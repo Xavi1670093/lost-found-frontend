@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/main_navigation_page.dart';
+import '../../../auth/presentation/pages/register_page.dart';
+import '../../../auth/presentation/pages/login_page.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -53,7 +55,7 @@ class WelcomePage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const MainNavigationPage(),
+                        builder: (_) => const LoginPage(),
                       ),
                     );
                   },
@@ -61,22 +63,17 @@ class WelcomePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    // Temporal: de momento entramos a la app visual
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MainNavigationPage(),
-                      ),
-                    );
-                  },
-                  child: const Text('Registrarse'),
-                ),
-              ),
-              const SizedBox(height: 32),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RegisterPage(),
+                    ),
+                  );
+                },
+                child: const Text('¿No tienes cuenta? Regístrate'),
+              ),              const SizedBox(height: 32),
             ],
           ),
         ),
