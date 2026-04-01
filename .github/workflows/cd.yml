@@ -1,0 +1,29 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: app-debug.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30

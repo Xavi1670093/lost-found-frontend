@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  analyze-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Build APK
+        run: flutter build apk --debug
