@@ -1,52 +1,126 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/app_strings.dart';
+import '../../../../core/settings/app_settings_controller.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final AppSettingsController settingsController;
+
+  const ProfilePage({
+    super.key,
+    required this.settingsController,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Perfil'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Center(
-            child: CircleAvatar(
-              radius: 42,
-              child: Icon(Icons.person, size: 42),
-            ),
+    final t = AppStrings.of(context);
+
+    return AnimatedBuilder(
+      animation: settingsController,
+      builder: (context, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(t.profile),
           ),
-          const SizedBox(height: 12),
-          const Center(
-            child: Text(
-              'Usuario UAB',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const Center(
+                child: CircleAvatar(
+                  radius: 42,
+                  child: Icon(Icons.person, size: 42),
+                ),
               ),
-            ),
+              const SizedBox(height: 12),
+              const Center(
+                child: Text(
+                  'Usuario UAB',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.inventory_2_outlined),
+                  title: Text(t.publishedObjects),
+                  subtitle: Text(t.userHistory),
+                  onTap: () {},
+                ),
+              ),
+
+              Card(
+                child: SwitchListTile(
+                  secondary: const Icon(Icons.dark_mode_outlined),
+                  title: Text(t.darkMode),
+                  value: settingsController.isDarkMode,
+                  onChanged: (value) {
+                    settingsController.setDarkMode(value);
+                  },
+                ),
+              ),
+
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.language_outlined),
+                  title: Text(t.language),
+                  subtitle: Text(_languageLabel(
+                    context,
+                    settingsController.locale.languageCode,
+                  )),
+                  trailing: DropdownButton<String>(
+                    value: settingsController.locale.languageCode,
+                    underline: const SizedBox(),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'es',
+                        child: Text(t.spanish),
+                      ),
+                      DropdownMenuItem(
+                        value: 'ca',
+                        child: Text(t.catalan),
+                      ),
+                      DropdownMenuItem(
+                        value: 'en',
+                        child: Text(t.english),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      settingsController.setLocale(Locale(value));
+                    },
+                  ),
+                ),
+              ),
+
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.settings_outlined),
+                  title: Text(t.settings),
+                  subtitle: Text(t.futureOptions),
+                  onTap: () {},
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.inventory_2_outlined),
-              title: const Text('Objetos publicados'),
-              subtitle: const Text('Aquí aparecerá el historial del usuario'),
-              onTap: () {},
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('Configuración'),
-              subtitle: const Text('Opciones futuras de la aplicación'),
-              onTap: () {},
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  String _languageLabel(BuildContext context, String code) {
+    final t = AppStrings.of(context);
+
+    switch (code) {
+      case 'ca':
+        return t.catalan;
+      case 'en':
+        return t.english;
+      case 'es':
+      default:
+        return t.spanish;
+    }
   }
 }

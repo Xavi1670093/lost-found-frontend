@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
-import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final AppSettingsController settingsController;
+
+  const LoginPage({
+    super.key,
+    required this.settingsController,
+  });
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -20,15 +26,17 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
 
   String? _validateUabEmail(String? value) {
+    final t = AppStrings.of(context);
+
     if (value == null || value.trim().isEmpty) {
-      return 'Introduce tu correo UAB';
+      return t.loginEmailRequired;
     }
 
     final email = value.trim();
     final uabRegex = RegExp(r'^\d{7}@uab\.cat$');
 
     if (!uabRegex.hasMatch(email)) {
-      return 'Debes usar un correo UAB válido (NIU@uab.cat)';
+      return t.loginEmailInvalid;
     }
 
     return null;
@@ -47,7 +55,9 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const MainNavigationPage(),
+        builder: (_) => MainNavigationPage(
+          settingsController: widget.settingsController,
+        ),
       ),
     );
   }
@@ -61,9 +71,12 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login'),
+        title: Text(t.loginTitleAppBar),
       ),
       body: SafeArea(
         child: Center(
@@ -71,110 +84,124 @@ class _LoginPageState extends State<LoginPage> {
             padding: const EdgeInsets.all(16),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Iniciar sesión',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Accede con tu correo institucional de la UAB',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Correo UAB',
-                        hintText: '1234567@uab.cat',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                      validator: _validateUabEmail,
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) {
-                        if (!_loading) {
-                          _login();
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Icon(
+                          Icons.lock_open_rounded,
+                          size: 56,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          t.loginTitle,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Introduce la contraseña';
-                        }
-                        if (value.length < 6) {
-                          return 'Mínimo 6 caracteres';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
+                        const SizedBox(height: 8),
+                        Text(
+                          t.loginSubtitle,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
 
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _login,
-                        child: _loading
-                            ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: t.uabEmailLabel,
+                            hintText: '1234567@uab.cat',
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.email_outlined),
                           ),
-                        )
-                            : const Text('Entrar'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                          validator: _validateUabEmail,
+                        ),
+                        const SizedBox(height: 16),
 
-                    TextButton(
-                      onPressed: _loading
-                          ? null
-                          : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RegisterPage(),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            if (!_loading) {
+                              _login();
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: t.passwordLabel,
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
                           ),
-                        );
-                      },
-                      child: const Text('¿No tienes cuenta? Regístrate'),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return t.passwordRequired;
+                            }
+                            if (value.length < 6) {
+                              return t.passwordMinLength;
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _loading ? null : _login,
+                            child: _loading
+                                ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                                : Text(t.loginButton),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        TextButton(
+                          onPressed: _loading
+                              ? null
+                              : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RegisterPage(
+                                  settingsController:
+                                  widget.settingsController,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Text(t.goToRegister),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

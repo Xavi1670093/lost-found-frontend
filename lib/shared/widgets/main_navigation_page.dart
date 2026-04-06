@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../features/chats/presentation/pages/chats_page.dart';
-import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
+import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/features/chats/presentation/pages/chats_page.dart';
+import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
+import 'package:unilost_found/features/profile/presentation/pages/profile_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
-  const MainNavigationPage({super.key});
+  final AppSettingsController settingsController;
+
+  const MainNavigationPage({
+    super.key,
+    required this.settingsController,
+  });
 
   @override
   State<MainNavigationPage> createState() => _MainNavigationPageState();
@@ -13,16 +19,16 @@ class MainNavigationPage extends StatefulWidget {
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomePage(),
-    ChatsPage(),
-    ProfilePage(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      const HomePage(),
+      const ChatsPage(),
+      ProfilePage(settingsController: widget.settingsController),
+    ];
+
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: pages[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {

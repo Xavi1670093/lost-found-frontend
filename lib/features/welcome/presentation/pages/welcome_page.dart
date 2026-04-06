@@ -1,80 +1,78 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/main_navigation_page.dart';
-import '../../../auth/presentation/pages/register_page.dart';
-import '../../../auth/presentation/pages/login_page.dart';
+import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/features/auth/presentation/pages/login_page.dart';
+import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
 
 class WelcomePage extends StatelessWidget {
-  const WelcomePage({super.key});
+  final AppSettingsController settingsController;
+
+  const WelcomePage({
+    super.key,
+    required this.settingsController,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            children: [
-              const Spacer(),
-              Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  color: Colors.teal.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.search,
-                  size: 56,
-                  color: Colors.teal,
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'UniLost & Found',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Encuentra y reporta objetos perdidos dentro del campus de forma rápida y sencilla.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    // Temporal: de momento entramos a la app visual
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LoginPage(),
-                      ),
-                    );
-                  },
-                  child: const Text('Iniciar sesión'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const RegisterPage(),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(
+                    Icons.search,
+                    size: 90,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'UniLost & Found',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                },
-                child: const Text('¿No tienes cuenta? Regístrate'),
-              ),              const SizedBox(height: 32),
-            ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Encuentra y publica objetos perdidos dentro de la UAB',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LoginPage(
+                            settingsController: settingsController,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Iniciar sesión'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RegisterPage(
+                            settingsController: settingsController,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('¿No tienes cuenta? Regístrate'),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
