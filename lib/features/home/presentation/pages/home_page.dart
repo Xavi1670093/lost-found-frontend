@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/app_strings.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inicio'),
+        title: Text(t.home),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -15,46 +18,44 @@ class HomePage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.teal.withValues(alpha: 0.08),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bienvenido a ULF',
-                  style: TextStyle(
+                  t.welcome,
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Aquí aparecerán próximamente los objetos perdidos y encontrados del campus.',
-                ),
+                const SizedBox(height: 8),
+                Text(t.welcomeDescription),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Vista previa',
-            style: TextStyle(
+          Text(
+            t.preview,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 12),
-          _FakeObjectCard(
+          const _FakeObjectCard(
             title: 'Mochila negra',
             location: 'Facultad de Ingeniería',
             date: 'Hoy',
           ),
-          _FakeObjectCard(
+          const _FakeObjectCard(
             title: 'Llaves con llavero rojo',
             location: 'Biblioteca',
             date: 'Ayer',
           ),
-          _FakeObjectCard(
+          const _FakeObjectCard(
             title: 'Cartera marrón',
             location: 'Plaza Cívica',
             date: 'Hace 2 días',
