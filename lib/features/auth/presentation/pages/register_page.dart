@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
+import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  final AppSettingsController settingsController;
+
+  const RegisterPage({
+    super.key,
+    required this.settingsController,
+  });
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -23,23 +29,28 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscureConfirmPassword = true;
 
   Future<void> _register() async {
+    final t = AppStrings.of(context);
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
 
-    // Simulación de registro contra backend
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
     setState(() => _loading = false);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registro completado')),
+      SnackBar(content: Text(t.registerSuccess)),
     );
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const MainNavigationPage()),
+      MaterialPageRoute(
+        builder: (_) => MainNavigationPage(
+          settingsController: widget.settingsController,
+        ),
+      ),
     );
   }
 
@@ -53,20 +64,22 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   String? _validateEmail(String? value) {
+    final t = AppStrings.of(context);
+
     if (value == null || value.trim().isEmpty) {
-      return 'Introduce tu correo UAB';
+      return t.loginEmailRequired;
     }
 
     final email = value.trim();
 
     if (!email.endsWith('@uab.cat')) {
-      return 'Debe ser un correo @uab.cat';
+      return t.registerEmailMustBeUab;
     }
 
     final prefix = email.split('@')[0];
 
     if (!RegExp(r'^\d{7}$').hasMatch(prefix)) {
-      return 'El NIU debe tener 7 dígitos';
+      return t.registerNiuInvalid;
     }
 
     return null;
@@ -74,9 +87,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Registro'),
+        title: Text(t.registerTitleAppBar),
       ),
       body: SafeArea(
         child: Center(
@@ -84,147 +100,165 @@ class _RegisterPageState extends State<RegisterPage> {
             padding: const EdgeInsets.all(16),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Crear cuenta',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Rellena los datos para registrarte',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Icon(
+                          Icons.person_add_alt_1_rounded,
+                          size: 56,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          t.registerTitle,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          t.registerSubtitle,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
 
-                    TextFormField(
-                      controller: _nameController,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Introduce tu nombre';
-                        }
-                        if (value.trim().length < 2) {
-                          return 'El nombre es demasiado corto';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                      validator: _validateEmail,
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
+                        TextFormField(
+                          controller: _nameController,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: t.nameLabel,
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.person_outline),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return t.nameRequired;
+                            }
+                            if (value.trim().length < 2) {
+                              return t.nameTooShort;
+                            }
+                            return null;
                           },
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: t.emailLabel,
+                            hintText: '1234567@uab.cat',
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.email_outlined),
+                          ),
+                          validator: _validateEmail,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: t.passwordLabel,
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return t.registerPasswordRequired;
+                            }
+                            if (value.length < 6) {
+                              return t.registerPasswordMinLength;
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            if (!_loading) {
+                              _register();
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: t.confirmPasswordLabel,
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.lock_reset_outlined),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return t.confirmPasswordRequired;
+                            }
+                            if (value != _passwordController.text) {
+                              return t.passwordsDoNotMatch;
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _loading ? null : _register,
+                            child: _loading
+                                ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                                : Text(t.registerButton),
                           ),
                         ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Introduce una contraseña';
-                        }
-                        if (value.length < 6) {
-                          return 'La contraseña debe tener al menos 6 caracteres';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) {
-                        if (!_loading) {
-                          _register();
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Repetir contraseña',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock_reset_outlined),
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscureConfirmPassword =
-                              !_obscureConfirmPassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
+                        TextButton(
+                          onPressed: _loading ? null : () => Navigator.pop(context),
+                          child: Text(t.goToLogin),
                         ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Repite la contraseña';
-                        }
-                        if (value != _passwordController.text) {
-                          return 'Las contraseñas no coinciden';
-                        }
-                        return null;
-                      },
+                      ],
                     ),
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _register,
-                        child: _loading
-                            ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                            : const Text('Registrarse'),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
