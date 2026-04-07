@@ -17,11 +17,7 @@ class ProfilePage extends StatelessWidget {
     return AnimatedBuilder(
       animation: settingsController,
       builder: (context, _) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(t.profile),
-          ),
-          body: ListView(
+        return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               const Center(
@@ -104,7 +100,6 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
             ],
-          ),
         );
       },
     );
