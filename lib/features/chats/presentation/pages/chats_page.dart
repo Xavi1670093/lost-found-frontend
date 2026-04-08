@@ -11,11 +11,7 @@ class ChatsPage extends StatelessWidget {
       ('Usuario 3', 'Dame 5 gramillos'),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chats'),
-      ),
-      body: ListView.separated(
+    return ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: chats.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -32,7 +28,6 @@ class ChatsPage extends StatelessWidget {
             ),
           );
         },
-      ),
     );
   }
 }
