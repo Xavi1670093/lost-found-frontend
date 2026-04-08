@@ -13,69 +13,167 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final primaryColor = theme.colorScheme.primary;
+    final subtitleColor = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.75);
+
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: const BoxConstraints(maxWidth: 380),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.search,
-                    size: 90,
+                  const SizedBox(height: 20),
+
+                  /// Logo / cabecera principal
+                  _WelcomeLogo(
+                    primaryColor: primaryColor,
+                    subtitleColor: subtitleColor ?? primaryColor,
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'UniLost & Found',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
+
+                  const SizedBox(height: 46),
+
+                  /// Botón principal
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: primaryColor,
+                          width: 2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        backgroundColor: isDark
+                            ? theme.colorScheme.surface
+                            : Colors.transparent,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LoginPage(
+                              settingsController: settingsController,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Acceder',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w500,
+                          color: primaryColor,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                     ),
                   ),
+
                   const SizedBox(height: 12),
-                  const Text(
-                    'Encuentra y publica objetos perdidos dentro de la UAB',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  FilledButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => LoginPage(
-                            settingsController: settingsController,
+
+                  /// Registro
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '¿No tienes una cuenta? ',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: subtitleColor,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RegisterPage(
+                                settingsController: settingsController,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Regístrate',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: primaryColor,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                            decorationColor: primaryColor,
                           ),
                         ),
-                      );
-                    },
-                    child: const Text('Iniciar sesión'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RegisterPage(
-                            settingsController: settingsController,
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Text('¿No tienes cuenta? Regístrate'),
-                  ),
+
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _WelcomeLogo extends StatelessWidget {
+  final Color primaryColor;
+  final Color subtitleColor;
+
+  const _WelcomeLogo({
+    required this.primaryColor,
+    required this.subtitleColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          'UAB',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 120,
+            height: 1.5,
+            fontWeight: FontWeight.w900,
+            color: primaryColor,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Lost & Found',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 34,
+            height: 1,
+            fontWeight: FontWeight.w500,
+            color: primaryColor,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Encuentra tus objetos perdidos\nen el campus universitario',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 15,
+            height: 1.35,
+            color: subtitleColor,
+          ),
+        ),
+      ],
     );
   }
 }
