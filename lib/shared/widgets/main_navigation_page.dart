@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:unilost_found/core/settings/app_settings_controller.dart';
-import 'package:unilost_found/features/chats/presentation/pages/chats_page.dart';
-import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
-import 'package:unilost_found/features/profile/presentation/pages/profile_page.dart';
+import '../../features/auth/presentation/pages/login_page.dart';
+import '../../core/settings/app_settings_controller.dart';
+import '../../features/chats/presentation/pages/chats_page.dart';
+import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/profile/presentation/pages/profile_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   final AppSettingsController settingsController;
-
-  const MainNavigationPage({
-    super.key,
-    required this.settingsController,
-  });
+  const MainNavigationPage({super.key, required this.settingsController});
 
   @override
   State<MainNavigationPage> createState() => _MainNavigationPageState();
@@ -19,40 +16,138 @@ class MainNavigationPage extends StatefulWidget {
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
 
+  // --- FUNCIÓN DE LOGOUT (RNF03: Seguridad) ---
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.red),
+            SizedBox(width: 10),
+            Text('¿Cerrar sesión?'),
+          ],
+        ),
+        content: const Text('¿Estás seguro de que quieres salir de ULF?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade50,
+              foregroundColor: Colors.red,
+            ),
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              // RNF03: Seguridad - Limpiamos el historial de navegación [cite: 215]
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LoginPage(settingsController: widget.settingsController),
+                ),
+                    (route) => false,
+              );
+            },
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Definimos las páginas inyectando las dependencias necesarias [cite: 145]
     final pages = [
       const HomePage(),
       const ChatsPage(),
-      ProfilePage(settingsController: widget.settingsController),
+      ProfilePage(
+        settingsController: widget.settingsController,
+        onLogout: _showLogoutDialog, // Pasamos la función al perfil
+      ),
     ];
 
     return Scaffold(
-      body: pages[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Chats',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
+      appBar: AppBar(
+        title: const Text('UniLost & Found'),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        actions: [
+          // Icono de Notificaciones según Sketch (RF14) [cite: 30]
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: () {},
           ),
         ],
+      ),
+      body: pages[_currentIndex],
+
+      // BOTÓN HOME CON EFECTO GLOW (RF03) [cite: 27]
+      floatingActionButton: Transform.translate(
+        offset: const Offset(0, 32),
+        child: Container(
+          height: 70, width: 70,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              if (_currentIndex == 0)
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+                  blurRadius: 20, spreadRadius: 5,
+                ),
+            ],
+          ),
+          child: FloatingActionButton(
+            onPressed: () => setState(() => _currentIndex = 0),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            elevation: _currentIndex == 0 ? 8 : 0,
+            shape: const CircleBorder(),
+            child: Icon(
+                _currentIndex == 0 ? Icons.home : Icons.home_outlined,
+                color: Colors.white, size: 35
+            ),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+      // BARRA INFERIOR CON SOMBRA (FOG) [cite: 34]
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15, spreadRadius: 2, offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomAppBar(
+          padding: EdgeInsets.zero,
+          height: 65,
+          color: Theme.of(context).scaffoldBackgroundColor,
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 6.0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              IconButton(
+                icon: Icon(_currentIndex == 1 ? Icons.chat_bubble : Icons.chat_bubble_outline),
+                color: _currentIndex == 1 ? Theme.of(context).colorScheme.primary : Colors.grey,
+                onPressed: () => setState(() => _currentIndex = 1),
+              ),
+              const SizedBox(width: 48),
+              IconButton(
+                icon: Icon(_currentIndex == 2 ? Icons.person : Icons.person_outline),
+                color: _currentIndex == 2 ? Theme.of(context).colorScheme.primary : Colors.grey,
+                onPressed: () => setState(() => _currentIndex = 2),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
