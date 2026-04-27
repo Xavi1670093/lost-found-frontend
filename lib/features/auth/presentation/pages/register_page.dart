@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
+// --- NUEVOS IMPORTS PARA LA INTEGRACIÓN (Iteración 2) ---
+import 'package:cloud_functions/cloud_functions.dart';
 
 class RegisterPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -28,6 +30,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  // --- LÓGICA DE REGISTRO SEGURO (RF01 / RNF03) ---
   Future<void> _register() async {
     final t = AppStrings.of(context);
 
@@ -35,23 +38,67 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _loading = true);
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // 1. Llamamos a la Cloud Function definida en el Backend
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('secureUniversityRegistration');
 
-    if (!mounted) return;
-    setState(() => _loading = false);
+      // 2. Enviamos los parámetros exactos que espera el servidor
+      await callable.call(<String, dynamic>{
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text,
+        'name': _nameController.text.trim(),
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t.registerSuccess)),
-    );
+      // 3. Si no hay error, el registro fue exitoso
+      if (!mounted) return;
+      setState(() => _loading = false);
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MainNavigationPage(
-          settingsController: widget.settingsController,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.registerSuccess)),
+      );
+
+      // Navegación a la pantalla principal tras registro exitoso
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainNavigationPage(
+            settingsController: widget.settingsController,
+          ),
         ),
-      ),
-    );
+      );
+
+    } on FirebaseFunctionsException catch (e) {
+      // 4. Gestión de errores específicos del Backend
+      setState(() => _loading = false);
+
+      String errorMessage = "Error en el registro";
+
+      if (e.code == 'already-exists') {
+        errorMessage = "Este correo ya está registrado en la plataforma.";
+      } else if (e.code == 'permission-denied') {
+        errorMessage = "Dominio no autorizado. Debes usar tu correo de la UAB.";
+      } else if (e.code == 'invalid-argument') {
+        errorMessage = "Datos inválidos. Por favor, revisa el formulario.";
+      } else if (e.code == 'unavailable') {
+        errorMessage = "El servicio de tu centro está temporalmente inactivo.";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      // Error genérico de red o sistema
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error de conexión. Inténtalo de nuevo."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
 
   @override
