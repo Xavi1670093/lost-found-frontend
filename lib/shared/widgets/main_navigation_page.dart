@@ -4,6 +4,7 @@ import '../../core/settings/app_settings_controller.dart';
 import '../../features/chats/presentation/pages/chats_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/home/presentation/pages/found_form_screen.dart';
 
 class MainNavigationPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -15,7 +16,6 @@ class MainNavigationPage extends StatefulWidget {
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
-
   // --- FUNCIÓN DE LOGOUT (RNF03: Seguridad) ---
   void _showLogoutDialog() {
     showDialog(
@@ -58,6 +58,41 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       ),
     );
   }
+  void _openOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text("He encontrado"),
+              onTap: () {
+                Navigator.pop(context);
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FoundFormScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.warning),
+              title: const Text("He perdido"),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +119,24 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           ),
         ],
       ),
-      body: pages[_currentIndex],
+      body: Stack(
+        children: [
+          pages[_currentIndex],
+
+          // ➕ BOTÓN NUEVO (BIEN POSICIONADO)
+          Positioned(
+            right: 16,
+            bottom: 120, // 👈 MÁS ARRIBA (NO CHOCA CON HOME)
+            child: FloatingActionButton(
+              heroTag: "addButton",
+              mini: true,
+              onPressed: _openOptions,
+              backgroundColor: Colors.green,
+              child: const Icon(Icons.add),
+            ),
+          ),
+        ],
+      ),
 
       // BOTÓN HOME CON EFECTO GLOW (RF03) [cite: 27]
       floatingActionButton: Transform.translate(
