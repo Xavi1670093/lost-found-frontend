@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "511367515700",
+    "firebase_url": "https://unilost-and-found-b6bb3-default-rtdb.firebaseio.com",
+    "project_id": "unilost-and-found-b6bb3",
+    "storage_bucket": "unilost-and-found-b6bb3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:511367515700:android:7d93e1b3e0395613d3c461",
+        "android_client_info": {
+          "package_name": "cat.uab.unilostfound.uni_lost_found"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSq2XhV2v402Hxiagd_aR9zVfTbnT25fU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
