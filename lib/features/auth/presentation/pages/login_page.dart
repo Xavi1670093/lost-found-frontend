@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Necesario para debugPrint
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
@@ -43,14 +44,27 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+    });
+
+    // Simulamos la llamada o usamos debugPrint en lugar de print
+    debugPrint("🔑 Intentando login para: ${_emailController.text}");
 
     await Future.delayed(const Duration(seconds: 2));
 
-    if (!mounted) return;
-    setState(() => _loading = false);
+    // Comprobamos si el widget sigue en pantalla tras el await
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _loading = false;
+    });
 
     Navigator.pushReplacement(
       context,
