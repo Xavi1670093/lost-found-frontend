@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Directo a Firebase
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
-import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 
 class LoginPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -18,55 +18,49 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  bool _loading = false;
   bool _obscurePassword = true;
+  bool _isLoading = false;      // Gestión de carga local
+  String? _errorMessage;       // Gestión de error local
 
   String? _validateUabEmail(String? value) {
     final t = AppStrings.of(context);
-
-    if (value == null || value.trim().isEmpty) {
-      return t.loginEmailRequired;
-    }
-
+    if (value == null || value.trim().isEmpty) return t.loginEmailRequired;
     final email = value.trim();
     final uabRegex = RegExp(r'^\d{7}@uab\.cat$');
-
-    if (!uabRegex.hasMatch(email)) {
-      return t.loginEmailInvalid;
-    }
-
+    if (!uabRegex.hasMatch(email)) return t.loginEmailInvalid;
     return null;
   }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _loading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      print("🔑 Intentando login: ${_emailController.text}");
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    if (!mounted) return;
-    setState(() => _loading = false);
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MainNavigationPage(
-          settingsController: widget.settingsController,
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+      print("✅ Login exitoso");
+      if (!mounted) return;
+      // Aquí podrías navegar a la Home si no es automática
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        if (e.code == 'user-not-found') _errorMessage = "Usuario no registrado";
+        else if (e.code == 'wrong-password') _errorMessage = "Contraseña incorrecta";
+        else _errorMessage = e.message;
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -75,9 +69,7 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.loginTitleAppBar),
-      ),
+      appBar: AppBar(title: Text(t.loginTitleAppBar)),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -85,45 +77,30 @@ class _LoginPageState extends State<LoginPage> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Card(
+                elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Form(
                     key: _formKey,
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Icon(
-                          Icons.lock_open_rounded,
-                          size: 56,
-                          color: theme.colorScheme.primary,
-                        ),
+                        Icon(Icons.lock_person_rounded, size: 64, color: theme.colorScheme.primary),
                         const SizedBox(height: 16),
-                        Text(
-                          t.loginTitle,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          t.loginSubtitle,
-                          textAlign: TextAlign.center,
-                        ),
+                        Text(t.loginTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 24),
+
+                        if (_errorMessage != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(color: Colors.red.shade50, border: Border.all(color: Colors.red), borderRadius: BorderRadius.circular(8)),
+                            child: Text(_errorMessage!, style: TextStyle(color: Colors.red.shade700)),
+                          ),
 
                         TextFormField(
                           controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          decoration: InputDecoration(
-                            labelText: t.uabEmailLabel,
-                            hintText: '1234567@uab.cat',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.email_outlined),
-                          ),
+                          decoration: InputDecoration(labelText: t.uabEmailLabel, hintText: '1234567@uab.cat', border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.badge_outlined)),
                           validator: _validateUabEmail,
                         ),
                         const SizedBox(height: 16),
@@ -131,72 +108,30 @@ class _LoginPageState extends State<LoginPage> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) {
-                            if (!_loading) {
-                              _login();
-                            }
-                          },
                           decoration: InputDecoration(
                             labelText: t.passwordLabel,
                             border: const OutlineInputBorder(),
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return t.passwordRequired;
-                            }
-                            if (value.length < 6) {
-                              return t.passwordMinLength;
-                            }
-                            return null;
-                          },
+                          validator: (value) => (value == null || value.length < 6) ? t.passwordMinLength : null,
                         ),
                         const SizedBox(height: 24),
 
                         SizedBox(
-                          height: 48,
+                          height: 52,
                           child: ElevatedButton(
-                            onPressed: _loading ? null : _login,
-                            child: _loading
-                                ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                                : Text(t.loginButton),
+                            onPressed: _isLoading ? null : _login,
+                            child: _isLoading ? const CircularProgressIndicator() : Text(t.loginButton),
                           ),
                         ),
                         const SizedBox(height: 12),
 
                         TextButton(
-                          onPressed: _loading
-                              ? null
-                              : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => RegisterPage(
-                                  settingsController:
-                                  widget.settingsController,
-                                ),
-                              ),
-                            );
-                          },
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RegisterPage(settingsController: widget.settingsController))),
                           child: Text(t.goToRegister),
                         ),
                       ],

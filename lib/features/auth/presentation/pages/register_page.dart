@@ -8,10 +8,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 class RegisterPage extends StatefulWidget {
   final AppSettingsController settingsController;
 
-  const RegisterPage({
-    super.key,
-    required this.settingsController,
-  });
+  const RegisterPage({super.key, required this.settingsController});
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -34,69 +31,46 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _register() async {
     final t = AppStrings.of(context);
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      print("⚠️ El formulario tiene errores visuales (NIU mal, contraseñas no coinciden, etc.)");
+      return;
+    }
 
     setState(() => _loading = true);
+    print("🚀 Botón pulsado. Iniciando llamada a Firebase...");
 
     try {
-      // 1. Llamamos a la Cloud Function definida en el Backend
-      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('secureUniversityRegistration');
+      final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'us-central1')
+          .httpsCallable('secureUniversityRegistration');
 
-      // 2. Enviamos los parámetros exactos que espera el servidor
-      await callable.call(<String, dynamic>{
+      print("📡 Enviando datos a us-central1: ${_emailController.text}");
+
+      final result = await callable.call(<String, dynamic>{
         'email': _emailController.text.trim(),
         'password': _passwordController.text,
         'name': _nameController.text.trim(),
       });
 
-      // 3. Si no hay error, el registro fue exitoso
+      print("✅ RESPUESTA DEL SERVIDOR: ${result.data}");
+
       if (!mounted) return;
       setState(() => _loading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.registerSuccess)),
-      );
-
-      // Navegación a la pantalla principal tras registro exitoso
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MainNavigationPage(
-            settingsController: widget.settingsController,
-          ),
-        ),
-      );
+      // ... resto de tu código de navegación ...
 
     } on FirebaseFunctionsException catch (e) {
-      // 4. Gestión de errores específicos del Backend
       setState(() => _loading = false);
-
-      String errorMessage = "Error en el registro";
-
-      if (e.code == 'already-exists') {
-        errorMessage = "Este correo ya está registrado en la plataforma.";
-      } else if (e.code == 'permission-denied') {
-        errorMessage = "Dominio no autorizado. Debes usar tu correo de la UAB.";
-      } else if (e.code == 'invalid-argument') {
-        errorMessage = "Datos inválidos. Por favor, revisa el formulario.";
-      } else if (e.code == 'unavailable') {
-        errorMessage = "El servicio de tu centro está temporalmente inactivo.";
-      }
+      print("❌ ERROR DE FIREBASE: Código: ${e.code} | Mensaje: ${e.message} | Detalles: ${e.details}");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Error de la nube: ${e.message}"), backgroundColor: Colors.red),
       );
     } catch (e) {
-      // Error genérico de red o sistema
       setState(() => _loading = false);
+      print("💥 ERROR INESPERADO (Posible conexión): $e");
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error de conexión. Inténtalo de nuevo."),
-          backgroundColor: Colors.orange,
-        ),
+        const SnackBar(content: Text("Error crítico de conexión"), backgroundColor: Colors.orange),
       );
     }
   }
