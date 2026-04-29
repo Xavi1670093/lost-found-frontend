@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart'; // Directo a Firebase
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
+import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 
 class LoginPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -50,8 +51,20 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       print("✅ Login exitoso");
+
       if (!mounted) return;
-      // Aquí podrías navegar a la Home si no es automática
+      setState(() => _isLoading = false);
+
+      // --- AQUÍ ESTÁ LA NAVEGACIÓN MÁGICA ---
+      // Usamos pushReplacement para que el usuario no pueda volver atrás al login con el botón del móvil
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => MainNavigationPage(
+            settingsController: widget.settingsController,
+          ),
+        ),
+      );
+
     } on FirebaseAuthException catch (e) {
       setState(() {
         if (e.code == 'user-not-found') _errorMessage = "Usuario no registrado";

@@ -52,11 +52,15 @@ class _RegisterPageState extends State<RegisterPage> {
       });
 
       print("✅ RESPUESTA DEL SERVIDOR: ${result.data}");
-
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => MainNavigationPage(
+            settingsController: widget.settingsController,
+          ),
+        ),
+      );
       if (!mounted) return;
       setState(() => _loading = false);
-
-      // ... resto de tu código de navegación ...
 
     } on FirebaseFunctionsException catch (e) {
       setState(() => _loading = false);
