@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Para debugPrint
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
-// --- NUEVOS IMPORTS PARA LA INTEGRACIÓN (Iteración 2) ---
 import 'package:cloud_functions/cloud_functions.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -23,41 +23,46 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-  TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   bool _loading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  // --- LÓGICA DE REGISTRO SEGURO (RF01 / RNF03) ---
   Future<void> _register() async {
     final t = AppStrings.of(context);
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() => _loading = true);
 
     try {
-      // 1. Llamamos a la Cloud Function definida en el Backend
-      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('secureUniversityRegistration');
+      debugPrint("📡 Enviando datos de registro a us-central1...");
 
-      // 2. Enviamos los parámetros exactos que espera el servidor
+      // 1. Llamamos a la Cloud Function (usamos us-central1 que es la que funcionó)
+      final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'us-central1')
+          .httpsCallable('secureUniversityRegistration');
+
+      // 2. Enviamos los parámetros
       await callable.call(<String, dynamic>{
         'email': _emailController.text.trim(),
         'password': _passwordController.text,
         'name': _nameController.text.trim(),
       });
 
-      // 3. Si no hay error, el registro fue exitoso
-      if (!mounted) return;
+      // 3. Verificación de seguridad para BuildContext tras un await
+      if (!mounted) {
+        return;
+      }
+
       setState(() => _loading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(t.registerSuccess)),
       );
 
-      // Navegación a la pantalla principal tras registro exitoso
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -68,11 +73,12 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
     } on FirebaseFunctionsException catch (e) {
-      // 4. Gestión de errores específicos del Backend
+      if (!mounted) return;
       setState(() => _loading = false);
 
       String errorMessage = "Error en el registro";
 
+      // Añadimos llaves a los bloques if/else para el linter
       if (e.code == 'already-exists') {
         errorMessage = "Este correo ya está registrado en la plataforma.";
       } else if (e.code == 'permission-denied') {
@@ -90,7 +96,8 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       );
     } catch (e) {
-      // Error genérico de red o sistema
+      debugPrint("💥 Error inesperado: $e");
+      if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

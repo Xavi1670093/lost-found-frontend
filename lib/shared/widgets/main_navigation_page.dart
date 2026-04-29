@@ -16,7 +16,7 @@ class MainNavigationPage extends StatefulWidget {
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
-  // --- FUNCIÓN DE LOGOUT (RNF03: Seguridad) ---
+
   void _showLogoutDialog() {
     showDialog(
       context: context,
@@ -43,7 +43,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             ),
             onPressed: () {
               Navigator.pop(dialogContext);
-              // RNF03: Seguridad - Limpiamos el historial de navegación [cite: 215]
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(
@@ -58,6 +57,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       ),
     );
   }
+
   void _openOptions() {
     showModalBottomSheet(
       context: context,
@@ -72,7 +72,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               title: const Text("He encontrado"),
               onTap: () {
                 Navigator.pop(context);
-
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -96,13 +95,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Definimos las páginas inyectando las dependencias necesarias [cite: 145]
     final pages = [
       const HomePage(),
       const ChatsPage(),
       ProfilePage(
         settingsController: widget.settingsController,
-        onLogout: _showLogoutDialog, // Pasamos la función al perfil
+        onLogout: _showLogoutDialog,
       ),
     ];
 
@@ -112,7 +110,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          // Icono de Notificaciones según Sketch (RF14) [cite: 30]
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
             onPressed: () {},
@@ -122,11 +119,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       body: Stack(
         children: [
           pages[_currentIndex],
-
-          // ➕ BOTÓN NUEVO (BIEN POSICIONADO)
           Positioned(
             right: 16,
-            bottom: 120, // 👈 MÁS ARRIBA (NO CHOCA CON HOME)
+            bottom: 120,
             child: FloatingActionButton(
               heroTag: "addButton",
               mini: true,
@@ -138,7 +133,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         ],
       ),
 
-      // BOTÓN HOME CON EFECTO GLOW (RF03) [cite: 27]
       floatingActionButton: Transform.translate(
         offset: const Offset(0, 32),
         child: Container(
@@ -148,7 +142,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             boxShadow: [
               if (_currentIndex == 0)
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+                  // 🚀 CORRECCIÓN AQUÍ: withValues en lugar de withOpacity
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
                   blurRadius: 20, spreadRadius: 5,
                 ),
             ],
@@ -167,12 +162,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      // BARRA INFERIOR CON SOMBRA (FOG) [cite: 34]
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              // 🚀 CORRECCIÓN AQUÍ: withValues en lugar de withOpacity
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 15, spreadRadius: 2, offset: const Offset(0, -2),
             ),
           ],
