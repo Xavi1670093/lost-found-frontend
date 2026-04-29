@@ -38,6 +38,15 @@ class AppStrings {
       'welcomeDescription':
       'Aquí aparecerán próximamente los objetos perdidos y encontrados del campus.',
 
+      // 🔹 Categorías
+      'keys': 'Llaves',
+      'wallets': 'Carteras',
+      'devices': 'Dispositivos',
+      'phones': 'Móviles',
+      'clothes': 'Ropa',
+      'bottles': 'Botellas',
+      'others': 'Otros',
+
       'loginTitleAppBar': 'Login',
       'loginTitle': 'Iniciar sesión',
       'loginSubtitle': 'Accede con tu correo institucional de la UAB',
@@ -87,6 +96,15 @@ class AppStrings {
       'preview': 'Vista prèvia',
       'welcomeDescription':
       'Aquí apareixeran pròximament els objectes perduts i trobats del campus.',
+
+      // 🔹 Categorías
+      'keys': 'Claus',
+      'wallets': 'Carteres',
+      'devices': 'Dispositius',
+      'phones': 'Mòbils',
+      'clothes': 'Roba',
+      'bottles': 'Ampolles',
+      'others': 'Altres',
 
       'loginTitleAppBar': 'Inici de sessió',
       'loginTitle': 'Iniciar sessió',
@@ -138,6 +156,15 @@ class AppStrings {
       'welcomeDescription':
       'Lost and found campus objects will appear here soon.',
 
+      // 🔹 Categorías
+      'keys': 'Keys',
+      'wallets': 'Wallets',
+      'devices': 'Devices',
+      'phones': 'Phones',
+      'clothes': 'Clothes',
+      'bottles': 'Bottles',
+      'others': 'Others',
+
       'loginTitleAppBar': 'Login',
       'loginTitle': 'Sign in',
       'loginSubtitle': 'Access with your UAB institutional email',
@@ -187,6 +214,15 @@ class AppStrings {
   String get welcome => _text('welcome');
   String get preview => _text('preview');
   String get welcomeDescription => _text('welcomeDescription');
+
+  // 🔹 Getters categorías
+  String get keys => _text('keys');
+  String get wallets => _text('wallets');
+  String get devices => _text('devices');
+  String get phones => _text('phones');
+  String get clothes => _text('clothes');
+  String get bottles => _text('bottles');
+  String get others => _text('others');
 
   String get loginTitleAppBar => _text('loginTitleAppBar');
   String get loginTitle => _text('loginTitle');
