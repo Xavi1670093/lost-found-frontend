@@ -4,6 +4,7 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -52,28 +53,61 @@ class _LoginPageState extends State<LoginPage> {
       _loading = true;
     });
 
-    // Simulamos la llamada o usamos debugPrint en lugar de print
-    debugPrint("🔑 Intentando login para: ${_emailController.text}");
+    try {
+      debugPrint("🔑 Intentando login REAL para: ${_emailController.text}");
 
-    await Future.delayed(const Duration(seconds: 2));
+      // 🚀 LLAMADA REAL A FIREBASE
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    // Comprobamos si el widget sigue en pantalla tras el await
-    if (!mounted) {
-      return;
-    }
+      debugPrint("✅ Login exitoso. UID: ${userCredential.user?.uid}");
 
-    setState(() {
-      _loading = false;
-    });
+      if (!mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MainNavigationPage(
-          settingsController: widget.settingsController,
+      setState(() {
+        _loading = false;
+      });
+
+      // Navegamos solo si el login ha funcionado
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainNavigationPage(
+            settingsController: widget.settingsController,
+          ),
         ),
-      ),
-    );
+      );
+
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _loading = false;
+      });
+
+      // Gestión de errores para que el usuario sepa qué pasa
+      String message = "Error al iniciar sesión";
+      if (e.code == 'user-not-found') {
+        message = "No existe ningún usuario con este correo.";
+      } else if (e.code == 'wrong-password') {
+        message = "Contraseña incorrecta.";
+      } else if (e.code == 'invalid-email') {
+        message = "El formato del correo no es válido.";
+      }
+
+      debugPrint("❌ Error de Firebase: ${e.code}");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _loading = false;
+      });
+      debugPrint("💥 Error inesperado: $e");
+    }
   }
 
   @override
