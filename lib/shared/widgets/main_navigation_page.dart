@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// Imports de tus páginas
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../core/settings/app_settings_controller.dart';
 import '../../features/chats/presentation/pages/chats_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/home/presentation/pages/found_form_screen.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -16,6 +21,13 @@ class MainNavigationPage extends StatefulWidget {
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
+
+  // Stream que escucha notificaciones no leídas para el usuario actual
+  Stream<DatabaseEvent> get _notificationsStream => FirebaseDatabase.instance
+      .ref('notifications/${FirebaseAuth.instance.currentUser?.uid}')
+      .orderByChild('is_read')
+      .equalTo(false)
+      .onValue;
 
   void _showLogoutDialog() {
     showDialog(
@@ -83,7 +95,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               title: const Text("He perdido algo"),
               onTap: () {
                 Navigator.pop(context);
-                // 🚀 AQUÍ ESTÁ EL CAMBIO: Pasamos 'lost'
                 Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'lost'))
@@ -113,9 +124,44 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
+          // 🚀 Integración del Badge de Notificaciones
+          StreamBuilder<DatabaseEvent>(
+            stream: _notificationsStream,
+            builder: (context, snapshot) {
+              bool hasUnread = snapshot.hasData &&
+                  snapshot.data!.snapshot.value != null;
+
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_rounded),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificationsPage()),
+                      );
+                    },
+                  ),
+                  if (hasUnread)
+                    Positioned(
+                      right: 12,
+                      top: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 12,
+                          minHeight: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -135,19 +181,19 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           ),
         ],
       ),
-
       floatingActionButton: Transform.translate(
         offset: const Offset(0, 32),
         child: Container(
-          height: 70, width: 70,
+          height: 70,
+          width: 70,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
               if (_currentIndex == 0)
                 BoxShadow(
-                  // 🚀 CORRECCIÓN AQUÍ: withValues en lugar de withOpacity
                   color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
-                  blurRadius: 20, spreadRadius: 5,
+                  blurRadius: 20,
+                  spreadRadius: 5,
                 ),
             ],
           ),
@@ -157,21 +203,22 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             elevation: _currentIndex == 0 ? 8 : 0,
             shape: const CircleBorder(),
             child: Icon(
-                _currentIndex == 0 ? Icons.home : Icons.home_outlined,
-                color: Colors.white, size: 35
+              _currentIndex == 0 ? Icons.home : Icons.home_outlined,
+              color: Colors.white,
+              size: 35,
             ),
           ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              // 🚀 CORRECCIÓN AQUÍ: withValues en lugar de withOpacity
               color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 15, spreadRadius: 2, offset: const Offset(0, -2),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, -2),
             ),
           ],
         ),
