@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/localization/app_strings.dart';
 import 'post_detail_page.dart'; // <--- IMPORTA LA NUEVA PÁGINA
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as osm;
+import 'package:firebase_database/firebase_database.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -91,6 +94,141 @@ class _HomePageState extends State<HomePage> {
 
         const SizedBox(height: 16),
 
+        SizedBox(
+
+          height: 260,
+
+          child: StreamBuilder<DatabaseEvent>(
+
+            stream: FirebaseDatabase.instance
+                .ref('posts')
+                .onValue,
+
+            builder: (
+                context,
+                snapshot,
+                ) {
+
+              List<Marker> markers = [];
+
+              if (snapshot.hasData &&
+                  snapshot.data!.snapshot.value != null) {
+
+                final postsMap =
+                snapshot.data!.snapshot.value
+                as Map<dynamic, dynamic>;
+
+                postsMap.forEach((key, value) {
+
+                  try {
+
+                    // 📍 Coordenadas reales
+                    final coords = value['coords'];
+
+                    if (coords == null) return;
+
+                    final latitude = coords['lat'];
+                    final longitude = coords['lng'];
+
+                    if (latitude == null ||
+                        longitude == null) {
+                      return;
+                    }
+
+                    markers.add(
+
+                      Marker(
+
+                        point: osm.LatLng(
+                          latitude.toDouble(),
+                          longitude.toDouble(),
+                        ),
+
+                        width: 50,
+                        height: 50,
+
+                        child: GestureDetector(
+
+                          onTap: () {
+
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(
+
+                              SnackBar(
+                                content: Text(
+                                  value['title']
+                                      ?? 'Objeto',
+                                ),
+                              ),
+                            );
+                          },
+
+                          child: Icon(
+
+                            value['type'] == 'lost'
+                                ? Icons.location_pin
+                                : Icons.location_on,
+
+                            color:
+                            value['type'] == 'lost'
+                                ? Colors.orange
+                                : Colors.green,
+
+                            size: 42,
+                          ),
+                        ),
+                      ),
+                    );
+
+                  } catch (e) {
+
+                    debugPrint(
+                      'Marker error: $e',
+                    );
+                  }
+                });
+              }
+
+              return ClipRRect(
+
+                borderRadius:
+                BorderRadius.circular(16),
+
+                child: FlutterMap(
+
+                  options: MapOptions(
+
+                    initialCenter:
+                    osm.LatLng(
+                      41.5000,
+                      2.1075,
+                    ),
+
+                    initialZoom: 14,
+                  ),
+
+                  children: [
+
+                    TileLayer(
+
+                      urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+
+                      userAgentPackageName:
+                      'com.example.lostfound',
+                    ),
+
+                    MarkerLayer(
+                      markers: markers,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 20),
         if (centerId == null)
           const Center(child: CircularProgressIndicator())
         else
