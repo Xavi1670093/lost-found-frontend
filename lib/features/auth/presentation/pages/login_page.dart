@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // Necesario para debugPrint
+import 'package:flutter/foundation.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
@@ -29,18 +29,14 @@ class _LoginPageState extends State<LoginPage> {
 
   String? _validateUabEmail(String? value) {
     final t = AppStrings.of(context);
-
     if (value == null || value.trim().isEmpty) {
       return t.loginEmailRequired;
     }
-
     final email = value.trim();
     final uabRegex = RegExp(r'^\d{7}@uab\.cat$');
-
     if (!uabRegex.hasMatch(email)) {
       return t.loginEmailInvalid;
     }
-
     return null;
   }
 
@@ -56,13 +52,33 @@ class _LoginPageState extends State<LoginPage> {
     try {
       debugPrint("🔑 Intentando login REAL para: ${_emailController.text}");
 
-      // 🚀 LLAMADA REAL A FIREBASE
+      // 1. Iniciar sesión en Firebase
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      debugPrint("✅ Login exitoso. UID: ${userCredential.user?.uid}");
+      // 2. Comprobar si el email está verificado
+      if (userCredential.user != null && !userCredential.user!.emailVerified) {
+        debugPrint("⚠️ Usuario no verificado. Forzando logout.");
+
+        // Si no está verificado, forzar cierre de sesión
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+        setState(() => _loading = false);
+
+        // Notificar al usuario en la UI
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Debes verificar tu cuenta para acceder. Revisa tu correo."),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return; // Detener el flujo de navegación
+      }
+
+      debugPrint("✅ Login exitoso y verificado. UID: ${userCredential.user?.uid}");
 
       if (!mounted) return;
 
@@ -70,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
         _loading = false;
       });
 
-      // Navegamos solo si el login ha funcionado
+      // 3. El usuario está verificado, navegar a la página principal
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -81,11 +97,11 @@ class _LoginPageState extends State<LoginPage> {
       );
 
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
 
-      // Gestión de errores para que el usuario sepa qué pasa
       String message = "Error al iniciar sesión";
       if (e.code == 'user-not-found') {
         message = "No existe ningún usuario con este correo.";
@@ -93,16 +109,17 @@ class _LoginPageState extends State<LoginPage> {
         message = "Contraseña incorrecta.";
       } else if (e.code == 'invalid-email') {
         message = "El formato del correo no es válido.";
+      } else if (e.code == 'user-disabled') {
+        message = "Esta cuenta ha sido deshabilitada.";
       }
 
       debugPrint("❌ Error de Firebase: ${e.code}");
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
@@ -205,9 +222,6 @@ class _LoginPageState extends State<LoginPage> {
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return t.passwordRequired;
-                            }
-                            if (value.length < 6) {
-                              return t.passwordMinLength;
                             }
                             return null;
                           },
