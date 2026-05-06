@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/localization/app_strings.dart';
 import '../../../../core/settings/app_settings_controller.dart';
 import 'user_posts_page.dart';
+import 'user_claims_page.dart'; // 🚀 IMPORT AÑADIDO
 
 class ProfilePage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -60,7 +61,6 @@ class _ProfilePageState extends State<ProfilePage> {
           centerId = (data['center_id'] ?? "uab").toString().toUpperCase();
         }
 
-        // Usamos AnimatedBuilder para que el cambio de idioma/tema sea instantáneo
         return AnimatedBuilder(
             animation: widget.settingsController,
             builder: (context, _) {
@@ -117,15 +117,20 @@ class _ProfilePageState extends State<ProfilePage> {
                       Icons.question_answer_outlined,
                       "Mis Peticiones",
                       Colors.orange,
-                          () { /* TODO */ }
+                          () {
+                        // 🚀 NAVEGACIÓN CORREGIDA
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const UserClaimsPage()),
+                        );
+                      }
                   ),
 
                   const SizedBox(height: 20),
 
-                  // --- SECCIÓN: AJUSTES (AQUÍ ESTÁ TU SELECTOR) ---
+                  // --- SECCIÓN: AJUSTES ---
                   _buildSectionTitle(t.settings),
 
-                  // Dark Mode
                   Card(
                     child: SwitchListTile(
                       secondary: const Icon(Icons.dark_mode_outlined),
@@ -135,7 +140,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
 
-                  // Idioma (RESTAURADO)
                   Card(
                     child: ListTile(
                       leading: const Icon(Icons.language_outlined),
@@ -178,8 +182,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // --- MÉTODOS AUXILIARES ---
-
+  // Métodos auxiliares...
   void _showEditNameDialog(String currentName, DatabaseReference ref) {
     final controller = TextEditingController(text: currentName);
     showDialog(
