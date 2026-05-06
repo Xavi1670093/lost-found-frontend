@@ -68,23 +68,26 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text("He encontrado"),
+              leading: const Icon(Icons.search, color: Colors.green),
+              title: const Text("He encontrado algo"),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const FoundFormScreen(),
-                  ),
+                    context,
+                    MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'found'))
                 );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.warning),
-              title: const Text("He perdido"),
+              leading: const Icon(Icons.warning, color: Colors.orange),
+              title: const Text("He perdido algo"),
               onTap: () {
                 Navigator.pop(context);
+                // 🚀 AQUÍ ESTÁ EL CAMBIO: Pasamos 'lost'
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'lost'))
+                );
               },
             ),
           ],
