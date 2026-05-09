@@ -4,7 +4,6 @@ import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/localization/app_strings.dart';
 import '../../../../core/settings/app_settings_controller.dart';
 import 'user_posts_page.dart';
-import 'user_claims_page.dart'; // 🚀 IMPORT AÑADIDO
 
 class ProfilePage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -36,7 +35,10 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 16),
             const Text("Esperando respuesta de Firebase..."),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: widget.onLogout, child: const Text("Reintentar Login")),
+            ElevatedButton(
+              onPressed: widget.onLogout,
+              child: const Text("Reintentar Login"),
+            ),
           ],
         ),
       );
@@ -55,168 +57,248 @@ class _ProfilePageState extends State<ProfilePage> {
         String centerId = "UAB";
 
         if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-          final data = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
+          final data = Map<dynamic, dynamic>.from(
+            snapshot.data!.snapshot.value as Map,
+          );
+
           userName = data['name'] ?? "Gur";
           userRole = data['role'] ?? "student";
           centerId = (data['center_id'] ?? "uab").toString().toUpperCase();
         }
 
         return AnimatedBuilder(
-            animation: widget.settingsController,
-            builder: (context, _) {
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // --- CABECERA ---
-                  Center(
-                    child: Column(
-                      children: [
-                        Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundColor: theme.colorScheme.primaryContainer,
-                              child: Icon(Icons.person, size: 50, color: theme.colorScheme.primary),
+          animation: widget.settingsController,
+          builder: (context, _) {
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Center(
+                  child: Column(
+                    children: [
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: theme.colorScheme.primaryContainer,
+                            child: Icon(
+                              Icons.person,
+                              size: 50,
+                              color: theme.colorScheme.primary,
                             ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: IconButton(
-                                onPressed: () => _showEditNameDialog(userName, userRef),
-                                icon: CircleAvatar(
-                                  radius: 15,
-                                  backgroundColor: theme.colorScheme.primary,
-                                  child: const Icon(Icons.edit, size: 14, color: Colors.white),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: IconButton(
+                              onPressed: () {
+                                _showEditNameDialog(userName, userRef);
+                              },
+                              icon: CircleAvatar(
+                                radius: 15,
+                                backgroundColor: theme.colorScheme.primary,
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 14,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(userName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                        Text(user.email ?? "", style: TextStyle(color: Colors.grey.shade600)),
-                        const SizedBox(height: 8),
-                        Chip(label: Text("$userRole | $centerId", style: const TextStyle(fontSize: 12))),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-
-                  // --- SECCIÓN: MI ACTIVIDAD ---
-                  _buildSectionTitle("Mi Actividad"),
-                  _buildActionCard(
-                    Icons.inventory_2_outlined,
-                    t.publishedObjects,
-                    Colors.blue,
-                        () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const UserPostsPage())
-                    ),
-                  ),
-                  _buildActionCard(
-                      Icons.question_answer_outlined,
-                      "Mis Peticiones",
-                      Colors.orange,
-                          () {
-                        // 🚀 NAVEGACIÓN CORREGIDA
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const UserClaimsPage()),
-                        );
-                      }
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // --- SECCIÓN: AJUSTES ---
-                  _buildSectionTitle(t.settings),
-
-                  Card(
-                    child: SwitchListTile(
-                      secondary: const Icon(Icons.dark_mode_outlined),
-                      title: Text(t.darkMode),
-                      value: widget.settingsController.isDarkMode,
-                      onChanged: (value) => widget.settingsController.setDarkMode(value),
-                    ),
-                  ),
-
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.language_outlined),
-                      title: Text(t.language),
-                      subtitle: Text(_languageLabel(context, widget.settingsController.locale.languageCode)),
-                      trailing: DropdownButton<String>(
-                        value: widget.settingsController.locale.languageCode,
-                        underline: const SizedBox(),
-                        items: [
-                          DropdownMenuItem(value: 'es', child: Text(t.spanish)),
-                          DropdownMenuItem(value: 'ca', child: Text(t.catalan)),
-                          DropdownMenuItem(value: 'en', child: Text(t.english)),
+                          ),
                         ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            widget.settingsController.setLocale(Locale(value));
-                          }
-                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        user.email ?? "",
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(height: 8),
+                      Chip(
+                        label: Text(
+                          "$userRole | $centerId",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                _buildSectionTitle("Mi Actividad"),
+
+                _buildActionCard(
+                  Icons.inventory_2_outlined,
+                  t.publishedObjects,
+                  Colors.blue,
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UserPostsPage(type: 'found'),
+                      ),
+                    );
+                  },
+                ),
+
+                _buildActionCard(
+                  Icons.search,
+                  "Mis Peticiones",
+                  Colors.orange,
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UserPostsPage(type: 'lost'),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                _buildSectionTitle(t.settings),
+
+                Card(
+                  child: SwitchListTile(
+                    secondary: const Icon(Icons.dark_mode_outlined),
+                    title: Text(t.darkMode),
+                    value: widget.settingsController.isDarkMode,
+                    onChanged: (value) {
+                      widget.settingsController.setDarkMode(value);
+                    },
+                  ),
+                ),
+
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.language_outlined),
+                    title: Text(t.language),
+                    subtitle: Text(
+                      _languageLabel(
+                        context,
+                        widget.settingsController.locale.languageCode,
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // Logout
-                  Card(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    elevation: 0,
-                    child: ListTile(
-                      leading: const Icon(Icons.logout_rounded, color: Colors.red),
-                      title: const Text('Cerrar sesión', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                      onTap: widget.onLogout,
+                    trailing: DropdownButton<String>(
+                      value: widget.settingsController.locale.languageCode,
+                      underline: const SizedBox(),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'es',
+                          child: Text(t.spanish),
+                        ),
+                        DropdownMenuItem(
+                          value: 'ca',
+                          child: Text(t.catalan),
+                        ),
+                        DropdownMenuItem(
+                          value: 'en',
+                          child: Text(t.english),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          widget.settingsController.setLocale(Locale(value));
+                        }
+                      },
                     ),
                   ),
-                ],
-              );
-            }
+                ),
+
+                const SizedBox(height: 30),
+
+                Card(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  elevation: 0,
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.logout_rounded,
+                      color: Colors.red,
+                    ),
+                    title: const Text(
+                      'Cerrar sesión',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onTap: widget.onLogout,
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  // Métodos auxiliares...
   void _showEditNameDialog(String currentName, DatabaseReference ref) {
     final controller = TextEditingController(text: currentName);
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Editar Nombre"),
-        content: TextField(controller: controller),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-          ElevatedButton(
-            onPressed: () async {
-              if (controller.text.trim().isNotEmpty) {
-                await ref.update({
-                  'name': controller.text.trim(),
-                  'updated_at': DateTime.now().millisecondsSinceEpoch
-                });
-                if (mounted) Navigator.pop(context);
-              }
-            },
-            child: const Text("Guardar"),
-          )
-        ],
-      ),
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Editar Nombre"),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: "Nombre",
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (controller.text.trim().isNotEmpty) {
+                  await ref.update({
+                    'name': controller.text.trim(),
+                    'updated_at': DateTime.now().millisecondsSinceEpoch,
+                  });
+
+                  if (mounted) Navigator.pop(context);
+                }
+              },
+              child: const Text("Guardar"),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 10, bottom: 8),
-      child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+        ),
+      ),
     );
   }
 
-  Widget _buildActionCard(IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(
+      IconData icon,
+      String title,
+      Color color,
+      VoidCallback onTap,
+      ) {
     return Card(
       child: ListTile(
         leading: Icon(icon, color: color),
@@ -229,10 +311,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String _languageLabel(BuildContext context, String code) {
     final t = AppStrings.of(context);
+
     switch (code) {
-      case 'ca': return t.catalan;
-      case 'en': return t.english;
-      default: return t.spanish;
+      case 'ca':
+        return t.catalan;
+      case 'en':
+        return t.english;
+      default:
+        return t.spanish;
     }
   }
 }
