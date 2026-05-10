@@ -18,7 +18,7 @@ class ChatsPage extends StatelessWidget {
     }
 
     return StreamBuilder<DatabaseEvent>(
-      stream: FirebaseDatabase.instance.ref('chats').onValue,
+      stream: FirebaseDatabase.instance.ref('user_chats/${user.uid}').onValue,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -30,67 +30,61 @@ class ChatsPage extends StatelessWidget {
           );
         }
 
+        // data contiene algo como { "chat_id_1": true, "chat_id_2": true }
         final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+        final chatIds = data.keys.toList();
 
-        final chats = <Map<String, dynamic>>[];
+        // Usamos un FutureBuilder para descargar los datos de cada ID
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: _fetchChatsDetails(chatIds),
+          builder: (context, futureSnapshot) {
+            if (futureSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        data.forEach((key, value) {
-          final chat = Map<dynamic, dynamic>.from(value as Map);
-          final members = Map<dynamic, dynamic>.from(chat['members'] ?? {});
+            final chats = futureSnapshot.data ?? [];
 
-          if (members[user.uid] == true) {
-            chats.add({
-              'id': key.toString(),
-              'data': chat,
-            });
-          }
-        });
+            if (chats.isEmpty) {
+              return const Center(
+                child: Text('Todavía no tienes chats.'),
+              );
+            }
 
-        chats.sort((a, b) {
-          final aTime = a['data']['last_message_time'] ?? a['data']['created_at'] ?? 0;
-          final bTime = b['data']['last_message_time'] ?? b['data']['created_at'] ?? 0;
-          return bTime.compareTo(aTime);
-        });
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: chats.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final chatId = chats[index]['id'];
+                final chat = chats[index]['data'] as Map<dynamic, dynamic>;
 
-        if (chats.isEmpty) {
-          return const Center(
-            child: Text('Todavía no tienes chats.'),
-          );
-        }
-
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: chats.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final chatId = chats[index]['id'];
-            final chat = chats[index]['data'] as Map<dynamic, dynamic>;
-
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: _statusColor(chat['post_status'] ?? 'active'),
-                  child: const Icon(Icons.chat_bubble_outline),
-                ),
-                title: Text(chat['post_title'] ?? 'Objeto'),
-                subtitle: Text(
-                  chat['last_message'] ?? 'Sin mensajes todavía',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatDetailPage(
-                        chatId: chatId,
-                        chat: chat,
-                      ),
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _statusColor(chat['post_status'] ?? 'active'),
+                      child: const Icon(Icons.chat_bubble_outline),
                     ),
-                  );
-                },
-              ),
+                    title: Text(chat['post_title'] ?? 'Objeto'),
+                    subtitle: Text(
+                      chat['last_message'] ?? 'Sin mensajes todavía',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatDetailPage(
+                            chatId: chatId,
+                            chat: chat,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             );
           },
         );
@@ -109,3 +103,26 @@ class ChatsPage extends StatelessWidget {
     }
   }
 }
+
+Future<List<Map<String, dynamic>>> _fetchChatsDetails(List<dynamic> chatIds) async {
+    final List<Map<String, dynamic>> fetchedChats = [];
+
+    for (final id in chatIds) {
+      final snap = await FirebaseDatabase.instance.ref('chats/$id').get();
+      if (snap.exists) {
+        fetchedChats.add({
+          'id': id.toString(),
+          'data': snap.value as Map<dynamic, dynamic>,
+        });
+      }
+    }
+
+    // Ordenar por fecha del último mensaje
+    fetchedChats.sort((a, b) {
+      final aTime = a['data']['last_message_time'] ?? a['data']['created_at'] ?? 0;
+      final bTime = b['data']['last_message_time'] ?? b['data']['created_at'] ?? 0;
+      return bTime.compareTo(aTime);
+    });
+
+    return fetchedChats;
+  }

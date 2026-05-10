@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/features/chats/presentation/pages/chat_detail_page.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../chats/presentation/pages/chat_detail_page.dart';
 
@@ -50,75 +51,36 @@ class PostDetailPage extends StatelessWidget {
     }
 
     try {
-      final chatsRef = FirebaseDatabase.instance.ref('chats');
-      final snapshot = await chatsRef.get();
+      // 1. Llamar a la Cloud Function en lugar de escribir directamente
+      final callable = FirebaseFunctions.instance.httpsCallable('getOrCreateChat');
+      final result = await callable.call({
+        'postId': postId,
+        'postOwnerId': postOwnerId,
+        'centerId': post['center_id'] ?? 'uab',
+        'postTitle': post['title'] ?? 'Objeto',
+        'postStatus': post['status'] ?? 'active',
+      });
 
-      String? existingChatId;
-      Map<dynamic, dynamic>? existingChat;
+      final String chatId = result.data['chatId'];
 
-      if (snapshot.value != null) {
-        final chatsMap = snapshot.value as Map<dynamic, dynamic>;
-
-        chatsMap.forEach((key, value) {
-          final chat = Map<dynamic, dynamic>.from(value as Map);
-          final members = Map<dynamic, dynamic>.from(chat['members'] ?? {});
-
-          final samePost = chat['post_id'] == postId;
-          final hasCurrentUser = members[currentUser.uid] == true;
-          final hasOwner = members[postOwnerId] == true;
-
-          if (samePost && hasCurrentUser && hasOwner) {
-            existingChatId = key.toString();
-            existingChat = chat;
-          }
-        });
+      // 2. Descargar los datos de ese chat específico (ya tenemos permiso porque somos miembros)
+      final chatSnap = await FirebaseDatabase.instance.ref('chats/$chatId').get();
+      
+      if (!chatSnap.exists) {
+        throw Exception("El chat no se pudo recuperar de la base de datos.");
       }
 
-      if (existingChatId != null && existingChat != null) {
-        if (!context.mounted) return;
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChatDetailPage(
-              chatId: existingChatId!,
-              chat: existingChat!,
-            ),
-          ),
-        );
-
-        return;
-      }
-
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final newChatRef = chatsRef.push();
-
-      final newChat = {
-        'id': newChatRef.key,
-        'center_id': post['center_id'] ?? 'uab',
-        'post_id': postId,
-        'post_title': post['title'] ?? 'Objeto',
-        'post_owner_id': postOwnerId,
-        'post_status': post['status'] ?? 'active',
-        'members': {
-          currentUser.uid: true,
-          postOwnerId: true,
-        },
-        'last_message': null,
-        'last_message_time': null,
-        'created_at': now,
-      };
-
-      await newChatRef.set(newChat);
+      final chatData = chatSnap.value as Map<dynamic, dynamic>;
 
       if (!context.mounted) return;
 
+      // 3. Navegar a la sala
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChatDetailPage(
-            chatId: newChatRef.key!,
-            chat: newChat,
+            chatId: chatId,
+            chat: chatData,
           ),
         ),
       );
