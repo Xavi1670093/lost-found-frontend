@@ -30,11 +30,10 @@ class ChatsPage extends StatelessWidget {
           );
         }
 
-        // data contiene algo como { "chat_id_1": true, "chat_id_2": true }
+        // data contiene los IDs de los chats autorizados
         final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
         final chatIds = data.keys.toList();
 
-        // Usamos un FutureBuilder para descargar los datos de cada ID
         return FutureBuilder<List<Map<String, dynamic>>>(
           future: _fetchChatsDetails(chatIds),
           builder: (context, futureSnapshot) {
@@ -92,19 +91,8 @@ class ChatsPage extends StatelessWidget {
     );
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'matched':
-        return Colors.orange.shade100;
-      case 'returned':
-        return Colors.green.shade100;
-      default:
-        return Colors.blue.shade100;
-    }
-  }
-}
-
-Future<List<Map<String, dynamic>>> _fetchChatsDetails(List<dynamic> chatIds) async {
+  // Función para obtener los detalles de los chats a partir de sus IDs
+  Future<List<Map<String, dynamic>>> _fetchChatsDetails(List<dynamic> chatIds) async {
     final List<Map<String, dynamic>> fetchedChats = [];
 
     for (final id in chatIds) {
@@ -126,3 +114,15 @@ Future<List<Map<String, dynamic>>> _fetchChatsDetails(List<dynamic> chatIds) asy
 
     return fetchedChats;
   }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'matched':
+        return Colors.orange.shade100;
+      case 'returned':
+        return Colors.green.shade100;
+      default:
+        return Colors.blue.shade100;
+    }
+  }
+}
