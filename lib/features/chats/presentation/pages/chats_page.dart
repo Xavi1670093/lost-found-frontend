@@ -37,13 +37,15 @@ class ChatsPage extends StatelessWidget {
         return FutureBuilder<List<Map<String, dynamic>>>(
           future: _fetchChatsDetails(chatIds),
           builder: (context, futureSnapshot) {
-            if (futureSnapshot.connectionState == ConnectionState.waiting) {
+            // Solo mostramos loading si NO HAY DATOS PREVIOS.
+            // Si ya hay datos, mantenemos la lista visible mientras se actualiza en silencio.
+            if (futureSnapshot.connectionState == ConnectionState.waiting && !futureSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
             final chats = futureSnapshot.data ?? [];
 
-            if (chats.isEmpty) {
+            if (chats.isEmpty && futureSnapshot.connectionState != ConnectionState.waiting) {
               return const Center(
                 child: Text('Todavía no tienes chats.'),
               );
