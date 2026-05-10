@@ -93,21 +93,31 @@ class ChatsPage extends StatelessWidget {
     );
   }
 
-  // Función para obtener los detalles de los chats a partir de sus IDs
+  // Función optimizada para obtener detalles de múltiples chats simultáneamente
   Future<List<Map<String, dynamic>>> _fetchChatsDetails(List<dynamic> chatIds) async {
-    final List<Map<String, dynamic>> fetchedChats = [];
+    if (chatIds.isEmpty) return [];
 
-    for (final id in chatIds) {
+    // 1. Mapeamos cada ID a un Future que descarga su contenido
+    final futures = chatIds.map((id) async {
       final snap = await FirebaseDatabase.instance.ref('chats/$id').get();
       if (snap.exists) {
-        fetchedChats.add({
+        return {
           'id': id.toString(),
           'data': snap.value as Map<dynamic, dynamic>,
-        });
+        };
       }
-    }
+      return null;
+    });
 
-    // Ordenar por fecha del último mensaje
+    // 2. Ejecutamos TODAS las peticiones a Firebase al mismo tiempo (Concurrencia)
+    final results = await Future.wait(futures);
+
+    // 3. Filtramos los nulos (por si algún chat fue eliminado en la BD)
+    final List<Map<String, dynamic>> fetchedChats = results
+        .whereType<Map<String, dynamic>>()
+        .toList();
+
+    // 4. Ordenar por fecha del último mensaje
     fetchedChats.sort((a, b) {
       final aTime = a['data']['last_message_time'] ?? a['data']['created_at'] ?? 0;
       final bTime = b['data']['last_message_time'] ?? b['data']['created_at'] ?? 0;
