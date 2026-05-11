@@ -23,6 +23,16 @@ El objetivo es evitar bloqueos de base de datos por datos nulos.
   - **Problema:** Firebase RTDB rechaza operaciones `.set()` si detecta algún campo `null` (ej. si el post cargado pierde su `id` o `title` en el parseo). Además, el casteo del mapa al navegar a `ChatDetailPage` puede romper el renderizado.
   - **Acción:** Refactorizar por completo la función `_contactOwner`. Añadir operadores *null-aware* (`??`) en todos los campos de Firebase, asegurar el casteo de UIDs como `String` y añadir trazabilidad (`debugPrint`) para registrar el fallo real si vuelve a ocurrir.
 
+## FASE 0.4: Restauración de Cloud Functions (Hotfix Crítico)
+El objetivo es volver a conectar la aplicación a la lógica segura del servidor (Backend), que fue accidentalmente reemplazada por consultas directas del cliente en el rediseño.
+
+- [ ] **Restaurar Cloud Function de Chats (`post_detail_page.dart`)**
+  - **Problema:** El rediseño intentaba crear chats usando `.set()` directamente en RTDB, ignorando el backend.
+  - **Acción:** Reemplazar la función de contacto para que utilice `FirebaseFunctions.instance.httpsCallable('getOrCreateChat')` tal y como espera el servidor.
+- [ ] **Restaurar Cloud Function de Edición (`edit_post_page.dart`)**
+  - **Problema:** El rediseño intentaba actualizar en cascada los posts y chats desde el teléfono del cliente, provocando bloqueos de seguridad.
+  - **Acción:** Eliminar la lógica cliente-servidor masiva y delegar el guardado nuevamente en la función server-side `FirebaseFunctions.instance.httpsCallable('updatePostStatus')` (u homóloga) manteniendo las notificaciones visuales (Snackbars) de la nueva interfaz.
+  
 ## FASE 1: Sistema de Diseño, Internacionalización y Fundamentos (Core)
 - [ ] **Internacionalización (i18n):** Implementar soporte base en Español (por defecto), Inglés y Catalán.
 - [ ] **Diseño Intuitivo (Material 3):** Configurar `app_theme.dart` activando M3, psicología del color y tipografía.
