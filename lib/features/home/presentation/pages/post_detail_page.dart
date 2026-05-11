@@ -20,7 +20,7 @@ class PostDetailPage extends StatefulWidget {
 class _PostDetailPageState extends State<PostDetailPage> {
   bool _isLoading = false;
 
-  Future<void> _contactOwner(BuildContext context) async {
+Future<void> _contactOwner(BuildContext context) async {
     if (_isLoading) return; // Evita el doble click
 
     setState(() {
@@ -36,11 +36,19 @@ class _PostDetailPageState extends State<PostDetailPage> {
           backgroundColor: Colors.orange,
         ),
       );
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    // Validación requerida por las reglas de seguridad del backend
+    if (!currentUser.emailVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes verificar tu correo institucional antes de poder abrir un chat.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
@@ -54,11 +62,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
           backgroundColor: Colors.red,
         ),
       );
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
@@ -69,16 +73,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
           backgroundColor: Colors.orange,
         ),
       );
-       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+       if (mounted) setState(() => _isLoading = false);
       return;
     }
 
     try {
-      // 1. Llamar a la Cloud Function en lugar de escribir directamente
       final callable = FirebaseFunctions.instance.httpsCallable('getOrCreateChat');
       final result = await callable.call({
         'postId': postId,
@@ -90,7 +89,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
       final String chatId = result.data['chatId'];
 
-      // 2. Descargar los datos de ese chat específico (ya tenemos permiso porque somos miembros)
       final chatSnap = await FirebaseDatabase.instance.ref('chats/$chatId').get();
 
       if (!chatSnap.exists) {
@@ -101,7 +99,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
       if (!context.mounted) return;
 
-      // 3. Navegar a la sala
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -128,7 +125,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     // Note the use of widget.post here since we are in the State class
