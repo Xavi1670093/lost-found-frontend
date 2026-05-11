@@ -172,6 +172,7 @@ class AppStrings {
       'editPostTitleFound': 'Editar objeto',
       'titleLabel': 'Título',
       'descriptionLabel': 'Descripción',
+      'locationLabel': 'Ubicación',
       'saveChanges': 'Guardar cambios',
       'deletePost': 'Eliminar publicación',
       'deleteConfirmationTitle': 'Eliminar publicación',
@@ -180,6 +181,10 @@ class AppStrings {
       'deleteSuccess': 'Publicación eliminada.',
       'errorSaving': 'Error al guardar',
       'errorDeleting': 'Error al eliminar',
+      'myRequests': 'Mis peticiones',
+      'noLostObjects': 'No has publicado ningún objeto perdido',
+      'mustLogin': 'Debes iniciar sesión',
+      'noTitle': 'Sin título',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -334,6 +339,7 @@ class AppStrings {
       'editPostTitleFound': 'Editar objecte',
       'titleLabel': 'Títol',
       'descriptionLabel': 'Descripció',
+      'locationLabel': 'Ubicació',
       'saveChanges': 'Desar canvis',
       'deletePost': 'Eliminar publicació',
       'deleteConfirmationTitle': 'Eliminar publicació',
@@ -342,6 +348,10 @@ class AppStrings {
       'deleteSuccess': 'Publicació eliminada.',
       'errorSaving': 'Error en desar',
       'errorDeleting': 'Error en eliminar',
+      'myRequests': 'Les meves peticions',
+      'noLostObjects': 'No has publicat cap objecte perdut',
+      'mustLogin': 'Has d’iniciar la sessió',
+      'noTitle': 'Sense títol',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -496,6 +506,7 @@ class AppStrings {
       'editPostTitleFound': 'Edit item',
       'titleLabel': 'Title',
       'descriptionLabel': 'Description',
+      'locationLabel': 'Location',
       'saveChanges': 'Save changes',
       'deletePost': 'Delete publication',
       'deleteConfirmationTitle': 'Delete publication',
@@ -504,6 +515,10 @@ class AppStrings {
       'deleteSuccess': 'Publication deleted.',
       'errorSaving': 'Error saving',
       'errorDeleting': 'Error deleting',
+      'myRequests': 'My requests',
+      'noLostObjects': 'You have not published any lost objects',
+      'mustLogin': 'You must log in',
+      'noTitle': 'No title',
     },
   };
 
@@ -659,6 +674,7 @@ class AppStrings {
   String get editPostTitleFound => _text('editPostTitleFound');
   String get titleLabel => _text('titleLabel');
   String get descriptionLabel => _text('descriptionLabel');
+  String get locationLabel => _text('locationLabel');
   String get saveChanges => _text('saveChanges');
   String get deletePost => _text('deletePost');
   String get deleteConfirmationTitle => _text('deleteConfirmationTitle');
@@ -667,6 +683,10 @@ class AppStrings {
   String get deleteSuccess => _text('deleteSuccess');
   String get errorSaving => _text('errorSaving');
   String get errorDeleting => _text('errorDeleting');
+  String get myRequests => _text('myRequests');
+  String get noLostObjects => _text('noLostObjects');
+  String get mustLogin => _text('mustLogin');
+  String get noTitle => _text('noTitle');
 
   String _text(String key) {
     return _localizedValues[locale.languageCode]?[key] ??

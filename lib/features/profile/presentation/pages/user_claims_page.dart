@@ -19,7 +19,7 @@ class UserClaimsPage extends StatelessWidget {
         .equalTo(user?.uid);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Mis Peticiones")),
+      appBar: AppBar(title: Text(t.myRequests)),
       body: StreamBuilder(
         stream: query.onValue,
         builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
@@ -43,7 +43,7 @@ class UserClaimsPage extends StatelessWidget {
           });
 
           if (myLostItems.isEmpty) {
-            return const Center(child: Text("No has publicado ningún objeto perdido"));
+            return Center(child: Text(t.noLostObjects));
           }
 
           return ListView.builder(
@@ -57,7 +57,7 @@ class UserClaimsPage extends StatelessWidget {
                     backgroundColor: Colors.orangeAccent,
                     child: Icon(Icons.help_outline, color: Colors.white),
                   ),
-                  title: Text(item['title'] ?? 'Sin título'),
+                  title: Text(item['title'] ?? t.noTitle),
                   subtitle: Text("${item['category']} · ${item['status']}"),
                   trailing: const Icon(Icons.chevron_right),
                 ),

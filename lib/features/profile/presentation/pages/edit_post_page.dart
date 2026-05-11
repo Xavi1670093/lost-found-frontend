@@ -3,6 +3,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
+import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 class EditPostPage extends StatefulWidget {
   final String postId;
@@ -88,25 +90,14 @@ class _EditPostPageState extends State<EditPostPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.updateSuccess),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-
+      if (!mounted) return;
+      AppNotifications.showSuccess(context, t.updateSuccess);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${t.errorSaving}: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      final message = ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -152,25 +143,14 @@ class _EditPostPageState extends State<EditPostPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.deleteSuccess),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-
+      if (!mounted) return;
+      AppNotifications.showSuccess(context, t.deleteSuccess);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${t.errorDeleting}: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      final message = ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

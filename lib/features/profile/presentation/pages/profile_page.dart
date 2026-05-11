@@ -49,7 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
           final data = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
           userName = data['name'] ?? t.defaultUserName;
           userRole = data['role'] == 'admin' ? t.adminRole : t.studentRole;
-          centerId = (data['center_id'] ?? "uab").toString().toUpperCase();
+          centerId = (data['center_id'] ?? "uab").toString().toLowerCase();
         }
 
         return AnimatedBuilder(

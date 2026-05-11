@@ -6,6 +6,8 @@ import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/core/theme/app_theme.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
+import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 class RegisterPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -68,48 +70,15 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
       setState(() => _loading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.registerSuccessMessage),
-          backgroundColor: AppTheme.successColor,
-          duration: const Duration(seconds: 5),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      AppNotifications.showSuccess(context, t.registerSuccessMessage);
 
       Navigator.pop(context);
 
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      String errorMessage;
-
-      switch (e.code) {
-        case 'already-exists':
-          errorMessage = t.errorAlreadyExists;
-          break;
-        case 'permission-denied':
-          errorMessage = t.errorDomainNotAuthorized;
-          break;
-        case 'invalid-argument':
-          errorMessage = t.errorInvalidArgument;
-          break;
-        case 'unavailable':
-          errorMessage = t.errorUnavailable;
-          break;
-        default:
-          errorMessage = t.errorLoginGeneric;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage), 
-          backgroundColor: AppTheme.errorColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      final errorMessage = ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, errorMessage);
     } catch (e) {
       debugPrint("💥 Error inesperado: $e");
       if (!mounted) return;

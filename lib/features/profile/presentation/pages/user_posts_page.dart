@@ -21,7 +21,7 @@ class UserPostsPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('Debes iniciar sesión.')));
+      return Scaffold(body: Center(child: Text(t.mustLogin)));
     }
 
     final query = FirebaseDatabase.instance.ref('posts').orderByChild('user_id').equalTo(user.uid);
@@ -108,7 +108,7 @@ class UserPostsPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            post['title'] ?? 'Objeto',
+                            post['title'] ?? t.defaultItemTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
