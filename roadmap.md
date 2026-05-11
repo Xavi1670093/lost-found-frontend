@@ -1,65 +1,51 @@
-# 🗺️ Roadmap de Rediseño UI/UX (Frontend - Flutter)
+# 🗺️ Roadmap de Rediseño UI/UX y Mejoras Core (Frontend - Flutter)
 
-Este roadmap detalla los pasos para modernizar la interfaz de la aplicación de objetos perdidos y encontrados, mejorando la usabilidad y la estética visual sin alterar la lógica de negocio ni la conexión con Firebase.
+Este roadmap detalla los pasos para modernizar la interfaz de la aplicación, haciéndola más intuitiva, accesible en múltiples idiomas y amigable en el manejo de errores, sin alterar la lógica de negocio base de Firebase.
 
-## FASE 1: Sistema de Diseño y Fundamentos (Core)
-El objetivo es estandarizar la apariencia para que la app se sienta cohesiva y moderna.
+## FASE 1: Sistema de Diseño, Internacionalización y Fundamentos (Core)
+El objetivo es estandarizar la apariencia y la base idiomática para que la app se sienta cohesiva y global.
 
-- [ ] **Paleta de Colores y Tipografía (`lib/core/theme/app_theme.dart`)**
-  - **Acción:** Transicionar a Material 3 (M3) activando `useMaterial3: true` en el `ThemeData`.
-  - **Color:** Definir un `ColorScheme` claro y oscuro. Usar colores de acento vibrantes (ej. naranja/azul) para destacar estados ("Perdido" vs "Encontrado").
-  - **Tipografía:** Integrar el paquete `google_fonts` y aplicar una fuente moderna y legible (ej. *Poppins*, *Montserrat* o *Inter*) para todo el `TextTheme`.
+- [ ] **Internacionalización (i18n) (`lib/core/localization/`)**
+  - **Acción:** Implementar soporte completo para 3 idiomas: **Español (idioma por defecto), Inglés y Catalán**.
+  - **Detalle:** Migrar absolutamente todos los textos, botones, alertas y descripciones a un sistema de traducción (ej. `flutter_localizations` con archivos `.arb` o mapas de `app_strings.dart`).
+- [ ] **Diseño Intuitivo: Paleta y Tipografía (`lib/core/theme/app_theme.dart`)**
+  - **Acción:** Transicionar a Material 3 (M3). Diseñar una interfaz visualmente intuitiva utilizando la psicología del color (ej. colores vivos como verde/azul para éxito o "Encontrado", rojo/naranja para peligro, error o "Perdido").
+  - **Tipografía e Iconos:** Usar tipografía legible y moderna (ej. Poppins o Inter) y una familia de iconos clara donde la acción se entienda casi sin leer.
 - [ ] **Componentes Globales (`lib/shared/widgets/`)**
-  - **Acción:** Crear widgets reutilizables básicos (botones primarios/secundarios, campos de texto personalizados con bordes redondeados y estados de foco/error, tarjetas base).
-  - **Estilos:** Añadir radios de borde (`BorderRadius.circular(16)`) y sombras suaves (`BoxShadow`) para dar profundidad.
+  - **Acción:** Crear botones, tarjetas y contenedores con un estilo moderno (bordes redondeados, sombras suaves).
 
-## FASE 2: Navegación y Estructura Principal
-Hacer que moverse por la aplicación sea fluido e intuitivo.
+## FASE 2: Navegación Principal
+Hacer que moverse por la aplicación sea un proceso natural y jerárquico.
 
-- [ ] **Navegación Principal (`lib/shared/widgets/main_navigation_page.dart`)**
-  - **Acción:** Reemplazar el `BottomNavigationBar` clásico por un `NavigationBar` de Material 3 o un menú de navegación flotante.
-  - **Mejora visual:** Añadir iconos rellenos/activos vs delineados/inactivos para indicar claramente la pestaña actual.
+- [ ] **Rediseño de la Barra de Navegación (`lib/shared/widgets/main_navigation_page.dart`)**
+  - **Acción:** Reemplazar la barra de navegación inferior clásica por un diseño más moderno e intuitivo.
+  - **Botón Home Destacado:** Transformar el botón de "Home" (o la acción principal) en el elemento más llamativo de la barra. Utilizar un botón más grande, flotante y centrado (ej. un `FloatingActionButton` anclado a un `BottomAppBar` con muesca curva) para que el usuario siempre sepa cómo volver al inicio.
+  - **i18n y UX:** Etiquetas en los 3 idiomas e iconos que cambien de estado (delineado cuando está inactivo, relleno/coloreado cuando está activo).
 
-## FASE 3: Rediseño de Pantallas (Features)
-Actualizar cada flujo de la aplicación utilizando los componentes de la Fase 1.
+## FASE 3: Formularios, Autenticación y Prevención de Errores
+Guiar al usuario en la introducción de datos y no dejarlo a ciegas cuando algo falla.
 
-### Auth & Onboarding (`lib/features/auth/` & `lib/features/welcome/`)
-- [ ] **Pantalla de Bienvenida (`welcome_page.dart`)**
-  - **Acción:** Añadir una ilustración heroica o animación (usando Lottie) que represente la búsqueda/encuentro de objetos.
-  - **UX:** Asegurar que los botones de inicio de sesión y registro tengan jerarquía visual (uno relleno, otro con borde).
-- [ ] **Login y Registro (`login_page.dart`, `register_page.dart`)**
-  - **Acción:** Limpiar el formulario. Usar iconos dentro de los campos de texto (`prefixIcon`). Agrupar lógicamente los elementos y dejar suficiente espacio en blanco (padding) para evitar saturación visual.
+- [ ] **Formularios Intuitivos y Ejemplos (`lib/shared/widgets/custom_text_field.dart`)**
+  - **Acción:** Añadir un texto de ayuda/ejemplo (`hintText` / placeholder) en todos y cada uno de los campos a rellenar de la app (registro, creación de posts, perfil).
+  - **i18n:** Los ejemplos deben estar traducidos para ayudar al usuario a entender el formato deseado en su propio idioma (ej. *Ej: mochila azul con pines... / Ex: blue backpack with pins...*).
+- [ ] **Manejo Exhaustivo de Errores de Cliente (`lib/features/auth/` y `core`)**
+  - **Acción:** Interceptar las excepciones del Backend/Firebase y mapearlas a mensajes útiles.
+  - **Detalle:** Añadir los casos faltantes (ej. *credencial incorrecta al iniciar sesión, correo en uso, contraseña débil, pérdida de conexión*).
+  - **Formato y Traducción:** Nunca mostrar errores en crudo (ej. evitar "auth/wrong-password"). Mostrar un mensaje con formato correcto, semántico y traducido al Español, Inglés o Catalán según corresponda.
 
-### Feed Principal y Detalles (`lib/features/home/`)
-- [ ] **Pantalla Principal (`home_page.dart`)**
-  - **Acción:** Rediseñar la lista de objetos usando un formato de "Grid" (cuadrícula) o "Cards" (tarjetas) grandes.
-  - **Elementos de la Tarjeta:** Imagen del objeto (ocupando la mitad superior), título, fecha, ubicación, y un *Badge* (etiqueta) de color distintivo que indique si está "Perdido" o "Encontrado".
-  - **UX:** Añadir una barra de búsqueda moderna en la parte superior con un botón para filtros (categoría, ubicación, fecha).
-- [ ] **Detalle del Objeto (`post_detail_page.dart`)**
-  - **Acción:** Implementar animaciones `Hero` en las imágenes para que transicionen suavemente desde la lista principal hasta el detalle.
-  - **Layout:** Mostrar la imagen en grande (SliverAppBar), seguido de la información detallada abajo. Añadir un botón flotante o un botón fijo en la parte inferior (Call to Action) muy visible para "Reclamar objeto" o "Contactar".
-- [ ] **Formularios de Creación (`found_form_screen.dart`, `edit_post_page.dart`)**
-  - **Acción:** Para formularios largos, agrupar los campos en secciones visuales usando `Card` o implementar un `Stepper` (paso a paso).
-  - **UX:** Mejorar el selector de imágenes mostrando una cuadrícula de previsualización de las fotos seleccionadas con la opción de eliminarlas fácilmente.
+## FASE 4: Rediseño de Pantallas (Features)
+Actualizar el resto de vistas aplicando los componentes y el sistema de idiomas.
 
-### Chats (`lib/features/chats/`)
-- [ ] **Lista de Chats (`chats_page.dart`)**
-  - **Acción:** Usar `ListTile` con avatares circulares (`CircleAvatar`). Destacar los mensajes no leídos con texto en negrita y un indicador de notificaciones (burbuja con el número de mensajes).
-- [ ] **Pantalla de Chat (`chat_detail_page.dart`)**
-  - **Acción:** Modernizar las burbujas de chat. Diferenciar visualmente los mensajes enviados (alineados a la derecha, color primario) de los recibidos (alineados a la izquierda, color gris claro/oscuro).
-  - **UX:** Añadir la hora de cada mensaje en tamaño pequeño debajo o dentro de la burbuja y mantener el campo de entrada de texto siempre fijo al teclado.
+- [ ] **Feed Principal y Detalles (`lib/features/home/`)**
+  - **Acción:** Rediseñar la lista de objetos usando formato de tarjetas grandes e intuitivas, con *Badges* de estado ("Perdido"/"Encontrado") usando los colores definidos en la Fase 1.
+- [ ] **Chats y Perfil (`lib/features/chats/`, `lib/features/profile/`)**
+  - **Acción:** Modernizar burbujas de chat, avatares y la información del perfil. Asegurar que los estados vacíos (ej. "Aún no tienes chats") sean visualmente agradables, con un icono de ayuda y en el idioma correcto.
 
-### Perfil (`lib/features/profile/`)
-- [ ] **Pantalla de Perfil (`profile_page.dart`)**
-  - **Acción:** Mostrar la información del usuario (foto, nombre, centro educativo) centrada en la parte superior de forma limpia.
-  - **UX:** Usar un `TabBar` para separar las vistas de "Mis Publicaciones" (`user_posts_page.dart`) y "Mis Reclamos" (`user_claims_page.dart`), evitando tener listas excesivamente largas en una sola vista.
+## FASE 5: Microinteracciones y Estado (Polishing)
+Los pequeños detalles de feedback para cerrar la experiencia UX.
 
-## FASE 4: Microinteracciones y Estado (Polishing)
-Los pequeños detalles que hacen que la app se sienta "Premium".
-
-- [ ] **Manejo de Estados de Carga (Loading)**
-  - **Acción:** Reemplazar los `CircularProgressIndicator` en las listas por efectos de *Shimmer* (esqueletos de carga) usando paquetes como `shimmer` para mejorar la percepción de velocidad.
 - [ ] **Feedback de Acciones (Snackbars & Diálogos)**
-  - **Acción:** Mostrar *Snackbars* flotantes con bordes redondeados y colores semánticos (verde para éxito, rojo para error) al reportar un objeto o editar un perfil.
-- [ ] **Manejo de Estados Vacíos (Empty States)**
-  - **Acción:** Diseñar pantallas de "estado vacío" amigables (con un icono o ilustración de una lupa triste y un texto que invite a la acción) para cuando no hay resultados de búsqueda o no hay chats.
+  - **Acción:** Crear un componente unificado para alertas. 
+  - **Formato Correcto:** Los mensajes de éxito, advertencia o error que saltan en pantalla deben tener un formato amigable: un icono representativo a la izquierda, borde redondeado, color representativo (verde, rojo, amarillo) y texto completamente traducido.
+- [ ] **Estados de Carga (Loading)**
+  - **Acción:** Implementar efectos de carga amigables (ej. *Shimmer effect*) para evitar bloqueos visuales mientras cargan las imágenes o las peticiones de red.

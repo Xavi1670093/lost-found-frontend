@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/core/theme/app_theme.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
@@ -42,6 +43,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
+    final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -66,9 +68,11 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _loading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Debes verificar tu cuenta para acceder. Revisa tu correo."),
-            backgroundColor: Colors.orange,
+          SnackBar(
+            content: Text(t.verifyEmailMessage),
+            backgroundColor: AppTheme.warningColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
         return;
@@ -98,19 +102,34 @@ class _LoginPageState extends State<LoginPage> {
         _loading = false;
       });
 
-      String message = "Error al iniciar sesión";
-      if (e.code == 'user-not-found') {
-        message = "No existe ningún usuario con este correo.";
-      } else if (e.code == 'wrong-password') {
-        message = "Contraseña incorrecta.";
-      } else if (e.code == 'invalid-email') {
-        message = "El formato del correo no es válido.";
-      } else if (e.code == 'user-disabled') {
-        message = "Esta cuenta ha sido deshabilitada.";
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = t.errorUserNotFound;
+          break;
+        case 'wrong-password':
+          message = t.errorWrongPassword;
+          break;
+        case 'invalid-email':
+          message = t.errorInvalidEmail;
+          break;
+        case 'user-disabled':
+          message = t.errorUserDisabled;
+          break;
+        case 'too-many-requests':
+          message = t.errorTooManyRequests;
+          break;
+        default:
+          message = t.errorLoginGeneric;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppTheme.errorColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -172,7 +191,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 CustomTextField(
                   label: t.uabEmailLabel,
-                  hintText: '1234567@uab.cat',
+                  hintText: t.emailHint,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.email_outlined,
@@ -216,7 +235,7 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '¿No tienes cuenta? ',
+                      t.dontHaveAccount,
                       style: theme.textTheme.bodyMedium,
                     ),
                     GestureDetector(
@@ -231,7 +250,7 @@ class _LoginPageState extends State<LoginPage> {
                         );
                       },
                       child: Text(
-                        'Regístrate',
+                        t.signUpLink,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,

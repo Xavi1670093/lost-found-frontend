@@ -79,7 +79,7 @@ class _HomePageState extends State<HomePage> {
                 child: TextField(
                   onChanged: (v) => setState(() => _searchQuery = v),
                   decoration: InputDecoration(
-                    hintText: 'Buscar objetos...',
+                    hintText: t.searchHint,
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.tune_rounded),
@@ -219,7 +219,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('Objetos Recientes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  child: Text(t.recentObjects, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -244,7 +244,7 @@ class _HomePageState extends State<HomePage> {
                         child: Center(
                           child: Padding(
                             padding: const EdgeInsets.all(40),
-                            child: Text("No hay objetos todavía en $centerId"),
+                            child: Text("${t.noObjectsIn} $centerId"),
                           ),
                         ),
                       );
@@ -263,11 +263,11 @@ class _HomePageState extends State<HomePage> {
                     });
 
                     if (postsList.isEmpty) {
-                      return const SliverToBoxAdapter(
+                      return SliverToBoxAdapter(
                         child: Center(
                           child: Padding(
-                            padding: EdgeInsets.all(40),
-                            child: Text("No se encontraron objetos."),
+                            padding: const EdgeInsets.all(40),
+                            child: Text(t.noObjectsFound),
                           ),
                         ),
                       );
@@ -320,6 +320,7 @@ class _RealObjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final isLost = post['type'] == 'lost';
     final theme = Theme.of(context);
 
@@ -361,7 +362,7 @@ class _RealObjectCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        isLost ? 'PERDIDO' : 'ENCONTRADO',
+                        isLost ? t.lostStatus : t.foundStatus,
                         style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -377,7 +378,7 @@ class _RealObjectCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  post['title'] ?? 'Objeto',
+                  post['title'] ?? t.defaultItemTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),

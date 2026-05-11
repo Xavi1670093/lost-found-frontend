@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/auth/presentation/pages/login_page.dart';
@@ -14,6 +16,7 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -23,12 +26,10 @@ class WelcomePage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Restored UAB Logo
                 const _WelcomeLogo(),
                 const SizedBox(height: 64),
-                // Buttons
                 CustomButton(
-                  text: 'Iniciar Sesión',
+                  text: t.loginButton,
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -42,7 +43,7 @@ class WelcomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 CustomButton(
-                  text: 'Crear Cuenta',
+                  text: t.registerButton,
                   isPrimary: false,
                   onPressed: () {
                     Navigator.push(
@@ -69,41 +70,40 @@ class _WelcomeLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
-    final subtitleColor = theme.textTheme.bodyMedium?.color?.withOpacity(0.75);
 
     return Column(
       children: [
         Text(
           'UAB',
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 100,
             height: 1.2,
             fontWeight: FontWeight.w900,
             color: primaryColor,
-            letterSpacing: 1,
+            letterSpacing: -2,
           ),
         ),
         Text(
           'Lost & Found',
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 28,
             height: 1,
-            fontWeight: FontWeight.w600,
-            color: primaryColor,
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.secondary,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         Text(
-          'Encuentra tus objetos perdidos\nen el campus universitario',
+          t.welcomeTagline,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            height: 1.4,
-            color: subtitleColor,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
           ),
         ),
       ],

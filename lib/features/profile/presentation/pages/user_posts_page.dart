@@ -25,7 +25,7 @@ class UserPostsPage extends StatelessWidget {
     }
 
     final query = FirebaseDatabase.instance.ref('posts').orderByChild('user_id').equalTo(user.uid);
-    final title = type == 'lost' ? 'Mis Peticiones' : 'Mis Hallazgos';
+    final title = type == 'lost' ? t.myLosses : t.myFindings;
 
     return Scaffold(
       appBar: AppBar(
@@ -41,7 +41,7 @@ class UserPostsPage extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-            return _buildEmptyState(theme, title);
+            return _buildEmptyState(theme, title, t);
           }
 
           final Map<dynamic, dynamic> postsMap = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
@@ -57,7 +57,7 @@ class UserPostsPage extends StatelessWidget {
           postsList.sort((a, b) => (b['created_at'] ?? 0).compareTo(a['created_at'] ?? 0));
 
           if (postsList.isEmpty) {
-            return _buildEmptyState(theme, title);
+            return _buildEmptyState(theme, title, t);
           }
 
           return GridView.builder(
@@ -115,9 +115,9 @@ class UserPostsPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _statusLabel(post['status']),
+                            _statusLabel(post['status'], t),
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: _statusColor(post['status']),
+                              color: _statusColor(post['status'], theme),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -134,32 +134,32 @@ class UserPostsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme, String title) {
+  Widget _buildEmptyState(ThemeData theme, String title, AppStrings t) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.inventory_2_outlined, size: 64, color: theme.colorScheme.outline),
           const SizedBox(height: 16),
-          Text('No hay publicaciones en $title', style: theme.textTheme.titleMedium),
+          Text("${t.noObjectsFound} ($title)", style: theme.textTheme.titleMedium),
         ],
       ),
     );
   }
 
-  String _statusLabel(dynamic status) {
+  String _statusLabel(dynamic status, AppStrings t) {
     switch (status) {
-      case 'matched': return 'Encontrado';
-      case 'returned': return 'Devuelto';
-      default: return 'Activo';
+      case 'matched': return t.statusMatched;
+      case 'returned': return t.statusReturned;
+      default: return t.statusInProcess;
     }
   }
 
-  Color _statusColor(dynamic status) {
+  Color _statusColor(dynamic status, ThemeData theme) {
     switch (status) {
       case 'matched': return Colors.orange;
       case 'returned': return Colors.green;
-      default: return Colors.blue;
+      default: return theme.colorScheme.primary;
     }
   }
 }

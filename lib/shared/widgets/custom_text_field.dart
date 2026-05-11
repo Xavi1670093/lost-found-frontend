@@ -26,29 +26,34 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF64748B),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
-        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: isPassword,
           keyboardType: keyboardType,
           validator: validator,
           maxLines: maxLines,
+          style: theme.textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: hintText,
-            prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 20) : null,
+            prefixIcon: prefixIcon != null 
+                ? Icon(prefixIcon, color: theme.colorScheme.primary.withOpacity(0.7)) 
+                : null,
             suffixIcon: suffixIcon,
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
           ),
         ),
       ],
