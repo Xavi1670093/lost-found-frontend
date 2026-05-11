@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      debugPrint("🔑 Intentando login REAL para: ${_emailController.text}");
+      debugPrint("🔑 Intentando inicio de sesión...");
 
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -80,7 +80,7 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      debugPrint("✅ Login exitoso y verificado. UID: ${userCredential.user?.uid}");
+      debugPrint("✅ Inicio de sesión exitoso.");
 
       if (!mounted) return;
 
@@ -170,15 +170,19 @@ class _LoginPageState extends State<LoginPage> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.email_outlined,
+                  textInputAction: TextInputAction.next,
                   validator: _validateUabEmail,
                 ),
                 const SizedBox(height: 20),
 
                 CustomTextField(
                   label: t.passwordLabel,
+                  hintText: t.passwordHint,
                   controller: _passwordController,
                   isPassword: _obscurePassword,
                   prefixIcon: Icons.lock_outline_rounded,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _login(),
                   suffixIcon: IconButton(
                     onPressed: () {
                       setState(() {
@@ -193,6 +197,9 @@ class _LoginPageState extends State<LoginPage> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return t.passwordRequired;
+                    }
+                    if (value.length < 6) {
+                      return t.passwordMinLength;
                     }
                     return null;
                   },

@@ -18,6 +18,10 @@ class ErrorHandler {
           return t.errorTooManyRequests;
         case 'email-already-in-use':
           return t.errorAlreadyExists;
+        case 'weak-password':
+          return t.errorWeakPassword;
+        case 'network-request-failed':
+          return t.errorNetworkFailed;
         default:
           return t.errorLoginGeneric;
       }

@@ -1,53 +1,27 @@
-# 🗺️ Roadmap de Rediseño UI/UX y Correcciones Críticas (Frontend)
+# 🗺️ Roadmap: Auditoría Final, i18n, Errores y Optimización (Fase QA)
 
-Este roadmap incluye las fases de estabilización de datos y lógica de negocio para garantizar que la app sea 100% funcional antes de pulir detalles visuales.
+Este roadmap está enfocado en pulir los detalles finales de la aplicación, garantizando que cumpla con los estándares de producción en rendimiento, seguridad, y experiencia de usuario (internacionalización y manejo de errores).
 
-## FASE 0.1: Corrección de Layouts y Renderizado (Hotfixes)
-- [x] Corrección de Conflicto Sliver/RenderBox (`user_posts_page.dart`).
-- [x] Ajuste de Scroll Inferior en el Feed (`home_page.dart`).
+## FASE 1: Cobertura Total de Internacionalización (i18n)
+El objetivo es que absolutamente ningún texto esté "hardcodeado" en la interfaz.
 
-## FASE 0.2: Corrección de Lógica de Negocio y Firebase (Hotfixes)
-El objetivo es solucionar los fallos introducidos al manejar tipos de datos y consultas ineficientes en Firebase.
+- [ ] **Auditoría de Widgets de UI:** Rastrear todos los archivos en `lib/features/` y `lib/shared/` para asegurar que todo el texto renderizado provenga de `AppStrings.of(context)`.
+- [ ] **Validadores de Formularios:** Traducir los textos de validación (`validator`) en los formularios de Login, Registro y Creación de Posts (ej. "El correo es obligatorio", "La contraseña es muy corta").
+- [ ] **Textos de Ayuda (Hints/Placeholders):** Confirmar que cada `CustomTextField` tiene su texto de ejemplo traducido y habilitado (ej. "Ej: llaves de coche...").
+- [ ] **Verificación de Diccionarios:** Asegurar que las claves en Español (defecto), Inglés y Catalán sean simétricas (ningún idioma debe tener claves faltantes).
 
-- [x] **Corrección de Creación de Chats (`post_detail_page.dart`)**
-  - **Problema:** El uso del operador `<` para comparar Strings (`user_id` y `uid`) lanza una excepción en Dart, bloqueando la creación del chat.
-  - **Acción:** Reemplazar la validación del `chatId` utilizando el método `.compareTo()`.
-- [x] **Optimización de Actualización en Cascada (`edit_post_page.dart`)**
-  - **Problema:** `_updateRelatedChatsStatus` intenta descargar toda la colección `chats`, lo que provoca un error de "Permission Denied" (y crasheos de memoria) ocultando el mensaje de éxito.
-  - **Acción:** Refactorizar la función para usar una consulta indexada (`orderByChild('post_id').equalTo(postId)`) e iterar sobre los resultados de forma segura usando `.children` en lugar de hacer casting a `Map`.
+## FASE 2: Estandarización de Errores (Error Handling)
+El objetivo es que el usuario nunca vea un error técnico y que siempre reciba instrucciones claras.
 
-## FASE 0.3: Sanitización de Datos en Creación de Chats (Hotfix)
-El objetivo es evitar bloqueos de base de datos por datos nulos.
+- [ ] **Mapeo de Errores de Firebase:** Revisar `lib/core/services/error_handler.dart`. Asegurar la captura de códigos como `user-not-found`, `wrong-password`, `permission-denied`, `network-request-failed`, etc.
+- [ ] **Formato "Por favor, ...":** Modificar las traducciones de los errores mapeados para que sigan una estructura formativa y educada. 
+  - *Mal:* "Credenciales incorrectas."
+  - *Bien:* "Por favor, verifica que tu correo y contraseña sean correctos."
+- [ ] **Consistencia Visual:** Asegurar que `AppNotifications` (los Snackbars) use el color semántico correcto (rojo/naranja para errores, verde para éxito) y muestre el mensaje traducido.
 
-- [x] **Creación Segura de Chats (`post_detail_page.dart`)**
-  - **Problema:** Firebase RTDB rechaza operaciones `.set()` si detecta algún campo `null` (ej. si el post cargado pierde su `id` o `title` en el parseo). Además, el casteo del mapa al navegar a `ChatDetailPage` puede romper el renderizado.
-  - **Acción:** Refactorizar por completo la función `_contactOwner`. Añadir operadores *null-aware* (`??`) en todos los campos de Firebase, asegurar el casteo de UIDs como `String` y añadir trazabilidad (`debugPrint`) para registrar el fallo real si vuelve a ocurrir.
+## FASE 3: Optimización de Código y Seguridad
+El objetivo es mejorar los FPS de la aplicación, evitar fugas de memoria y asegurar la confidencialidad.
 
-## FASE 0.4: Restauración de Cloud Functions (Hotfix Crítico)
-El objetivo es volver a conectar la aplicación a la lógica segura del servidor (Backend), que fue accidentalmente reemplazada por consultas directas del cliente en el rediseño.
-
-- [ ] **Restaurar Cloud Function de Chats (`post_detail_page.dart`)**
-  - **Problema:** El rediseño intentaba crear chats usando `.set()` directamente en RTDB, ignorando el backend.
-  - **Acción:** Reemplazar la función de contacto para que utilice `FirebaseFunctions.instance.httpsCallable('getOrCreateChat')` tal y como espera el servidor.
-- [ ] **Restaurar Cloud Function de Edición (`edit_post_page.dart`)**
-  - **Problema:** El rediseño intentaba actualizar en cascada los posts y chats desde el teléfono del cliente, provocando bloqueos de seguridad.
-  - **Acción:** Eliminar la lógica cliente-servidor masiva y delegar el guardado nuevamente en la función server-side `FirebaseFunctions.instance.httpsCallable('updatePostStatus')` (u homóloga) manteniendo las notificaciones visuales (Snackbars) de la nueva interfaz.
-  
-## FASE 1: Sistema de Diseño, Internacionalización y Fundamentos (Core)
-- [ ] **Internacionalización (i18n):** Implementar soporte base en Español (por defecto), Inglés y Catalán.
-- [ ] **Diseño Intuitivo (Material 3):** Configurar `app_theme.dart` activando M3, psicología del color y tipografía.
-
-## FASE 2: Navegación Principal
-- [ ] **Barra de Navegación (`main_navigation_page.dart`):** Renovar el menú inferior. Crear un botón "Home" flotante y destacado.
-
-## FASE 3: Formularios, Autenticación y Prevención de Errores
-- [ ] **Formularios Intuitivos y Ejemplos:** Asegurar que cada `TextField` tenga un `hintText` formativo referenciado a i18n.
-- [ ] **Manejo Exhaustivo de Errores:** Interceptar excepciones de Firebase y mapearlas a alertas semánticas limpias.
-
-## FASE 4: Rediseño de Pantallas (Features)
-- [ ] **Feed Principal y Detalles:** Mejorar el *Grid* de `home_page`. Asegurar un layout expandible limpio en el detalle.
-- [ ] **Chats y Perfil:** Refinar burbujas de chat, avatares y *empty states* amigables y traducidos.
-
-## FASE 5: Microinteracciones y Pulido (Polishing)
-- [ ] **Feedback de Acciones (Snackbars):** Crear un widget centralizado para notificaciones flotantes.
-- [ ] **Estados de Carga (Loading):** Reemplazar indicadores básicos por esqueletos (Shimmer Effect).
+- [ ] **Modificadores Const:** Aplicar `const` a todos los constructores y widgets estáticos posibles (paddings, iconos, textos fijos) para evitar que Flutter reconstruya ramas innecesarias del árbol de widgets.
+- [ ] **Gestión de Memoria (Dispose):** Auditar los *StatefulWidgets* (especialmente formularios y chats) para asegurar que todos los `TextEditingController`, *FocusNodes* y *Streams* se destruyan correctamente en el método `dispose()`.
+- [ ] **Limpieza de Logs:** Reemplazar cualquier función `print()` por `debugPrint()` o `log()` de `dart:developer`. Esto garantiza que información sensible (IDs, correos) no sea visible en la consola de la versión de producción (Release mode).

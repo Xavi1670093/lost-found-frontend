@@ -9,6 +9,8 @@ class CustomTextField extends StatelessWidget {
   final IconData? prefixIcon;
   final String? Function(String?)? validator;
   final Widget? suffixIcon;
+  final TextInputAction? textInputAction;
+  final void Function(String)? onFieldSubmitted;
   final int maxLines;
 
   const CustomTextField({
@@ -18,6 +20,8 @@ class CustomTextField extends StatelessWidget {
     this.controller,
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
+    this.textInputAction,
+    this.onFieldSubmitted,
     this.prefixIcon,
     this.validator,
     this.suffixIcon,
@@ -47,6 +51,8 @@ class CustomTextField extends StatelessWidget {
           keyboardType: keyboardType,
           validator: validator,
           maxLines: maxLines,
+          textInputAction: textInputAction,
+          onFieldSubmitted: onFieldSubmitted,
           style: theme.textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: hintText,
