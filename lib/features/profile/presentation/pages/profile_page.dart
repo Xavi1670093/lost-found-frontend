@@ -241,7 +241,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   Widget _buildSectionTitle(String title, ThemeData theme) {

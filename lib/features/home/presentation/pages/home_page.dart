@@ -40,10 +40,10 @@ class _HomePageState extends State<HomePage> {
   bool _matchesCategory(String backendCategory, String selectedLabel, AppStrings t) {
     if (selectedLabel.isEmpty) return true;
     if (selectedLabel == t.keys && backendCategory == "keys") return true;
-    if (selectedLabel == t.wallets && backendCategory == "wallet") return true;
+    if (selectedLabel == t.wallets && backendCategory == "wallets") return true;
     if (selectedLabel == t.devices && backendCategory == "devices") return true;
-    if (selectedLabel == t.clothes && backendCategory == "clothing") return true;
-    if (selectedLabel == t.others && backendCategory == "other") return true;
+    if (selectedLabel == t.clothes && backendCategory == "clothes") return true;
+    if (selectedLabel == t.others && backendCategory == "others") return true;
     return false;
   }
 
@@ -417,7 +417,7 @@ class _RealObjectCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        post['location'] ?? 'UAB',
+                        post['location'] ?? t.campusUab,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(

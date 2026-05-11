@@ -42,7 +42,7 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _loading = true);
 
     try {
-      debugPrint("📡 Fase 1: Creando cuenta en el servidor...");
+      debugPrint("📡 Registro: Iniciando creación de cuenta...");
 
       final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('secureUniversityRegistration');
@@ -53,14 +53,14 @@ class _RegisterPageState extends State<RegisterPage> {
         'name': _nameController.text.trim(),
       });
 
-      debugPrint("🔑 Fase 2: Login temporal para sesión de verificación...");
+      debugPrint("🔑 Registro: Sesión temporal establecida.");
 
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      debugPrint("📧 Fase 3: Disparando correo de verificación...");
+      debugPrint("📧 Registro: Correo de verificación enviado.");
 
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
         await userCredential.user!.sendEmailVerification();
@@ -155,6 +155,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   hintText: t.nameHint,
                   controller: _nameController,
                   prefixIcon: Icons.person_outline_rounded,
+                  textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return t.nameRequired;
                     return null;
@@ -168,15 +169,18 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.email_outlined,
+                  textInputAction: TextInputAction.next,
                   validator: _validateEmail,
                 ),
                 const SizedBox(height: 20),
 
                 CustomTextField(
                   label: t.passwordLabel,
+                  hintText: t.passwordHint,
                   controller: _passwordController,
                   isPassword: _obscurePassword,
                   prefixIcon: Icons.lock_outline_rounded,
+                  textInputAction: TextInputAction.next,
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
@@ -187,9 +191,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 CustomTextField(
                   label: t.confirmPasswordLabel,
+                  hintText: t.confirmPasswordHint,
                   controller: _confirmPasswordController,
                   isPassword: _obscureConfirmPassword,
                   prefixIcon: Icons.lock_reset_rounded,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _register(),
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                     icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),

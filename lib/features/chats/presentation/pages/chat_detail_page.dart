@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String chatId;
@@ -52,14 +54,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
       _messageController.clear();
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${t.sendError}: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      final message = ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } finally {
       if (mounted) setState(() => _sending = false);
     }

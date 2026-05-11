@@ -8,6 +8,7 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
+import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 class FoundFormScreen extends StatefulWidget {
@@ -34,13 +35,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   String? selectedCategoryKey;
   DateTime? selectedDate;
 
-  final Map<String, String> categoryOptions = {
-    'keys': 'Llaves', // We'll use t.keys in build
-    'wallet': 'Cartera',
-    'devices': 'Dispositivo',
-    'clothing': 'Ropa',
-    'other': 'Otros',
-  };
+  // Las opciones de categoría se cargan dinámicamente desde AppStrings en el build
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -131,7 +126,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      _showError("${t.publishError}: $e");
+      final message = ErrorHandler.getMessage(e, t);
+      _showError(message);
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
@@ -149,10 +145,10 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
 
     final Map<String, String> categories = {
       'keys': t.keys,
-      'wallet': t.wallets,
+      'wallets': t.wallets,
       'devices': t.devices,
-      'clothing': t.clothes,
-      'other': t.others,
+      'clothes': t.clothes,
+      'others': t.others,
     };
 
     return Scaffold(
@@ -233,30 +229,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    _buildSectionTitle(t.descriptionDetails, theme),
-                    const SizedBox(height: 16),
-                    TextFormField(
+                    CustomTextField(
+                      label: t.descriptionDetails,
+                      hintText: t.descriptionHint,
                       controller: descriptionController,
                       maxLines: 4,
-                      decoration: InputDecoration(
-                        hintText: t.descriptionHint,
-                        filled: true,
-                        fillColor: theme.colorScheme.surface,
-                        hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6)),
-                        contentPadding: const EdgeInsets.all(16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
-                        ),
-                      ),
+                      textInputAction: TextInputAction.done,
                     ),
                     const SizedBox(height: 32),
 
@@ -345,5 +323,11 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         ),
       ),
     );
+  }
+  @override
+  void dispose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    super.dispose();
   }
 }
