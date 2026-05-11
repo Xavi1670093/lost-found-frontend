@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
@@ -77,26 +78,21 @@ class _EditPostPageState extends State<EditPostPage> {
     setState(() => _saving = true);
 
     try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-
-      await FirebaseDatabase.instance.ref('posts/${widget.postId}').update({
+      final callable = FirebaseFunctions.instance.httpsCallable('updatePostStatus');
+      await callable.call({
+        'postId': widget.postId,
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
         'status': _selectedStatus,
-        'updated_at': now,
       });
 
-      await _updateRelatedChatsStatus();
-
       if (!mounted) return;
 
-      if (!mounted) return;
       AppNotifications.showSuccess(context, t.updateSuccess);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-
       final message = ErrorHandler.getMessage(e, t);
       AppNotifications.showError(context, message);
     } finally {
@@ -157,38 +153,7 @@ class _EditPostPageState extends State<EditPostPage> {
     }
   }
 
-  Future<void> _updateRelatedChatsStatus() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
 
-      // Bypassing global query restrictions by using user-specific indices
-      final userChatsRef = FirebaseDatabase.instance.ref('user_chats/${user.uid}');
-      final snapshot = await userChatsRef.get();
-
-      if (snapshot.exists) {
-        for (final child in snapshot.children) {
-          final chatId = child.key;
-          if (chatId == null) continue;
-
-          final chatRef = FirebaseDatabase.instance.ref('chats/$chatId');
-          final chatSnap = await chatRef.get();
-
-          if (chatSnap.exists) {
-            final chatData = chatSnap.value as Map;
-            if (chatData['post_id'].toString() == widget.postId) {
-              await chatRef.update({
-                'post_title': _titleController.text.trim(),
-                'post_status': _selectedStatus,
-              });
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Error updating related chats: $e');
-    }
-  }
 
   String _statusLabel(String status, AppStrings t) {
     switch (status) {

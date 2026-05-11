@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
@@ -22,115 +23,72 @@ class _PostDetailPageState extends State<PostDetailPage> {
   Future<void> _contactOwner(BuildContext context) async {
     final t = AppStrings.of(context);
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
 
-    final String? postUserIdRaw = widget.post['user_id']?.toString();
-    if (postUserIdRaw == null || postUserIdRaw == currentUser.uid) return;
+    if (currentUser == null) {
+      AppNotifications.showError(context, t.loginRequiredToContact);
+      return;
+    }
+
+    if (!currentUser.emailVerified) {
+      AppNotifications.showError(context, t.verifyEmailToChat);
+      return;
+    }
+
+    final postOwnerId = widget.post['user_id']?.toString();
+    final postId = widget.post['id']?.toString();
+
+    if (postOwnerId == null || postId == null) {
+      AppNotifications.showError(context, t.cannotOpenChat);
+      return;
+    }
+
+    if (postOwnerId == currentUser.uid) {
+      AppNotifications.showError(context, t.cannotChatSelf);
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      final String myUid = currentUser.uid;
-      // Consistent ID generation
-      final chatId = postUserIdRaw.compareTo(myUid) < 0
-          ? '${postUserIdRaw}_$myUid'
-          : '${myUid}_$postUserIdRaw';
+      final callable = FirebaseFunctions.instance.httpsCallable('getOrCreateChat');
+      final result = await callable.call({
+        'postId': postId,
+        'postOwnerId': postOwnerId,
+        'centerId': widget.post['center_id'] ?? 'uab',
+        'postTitle': widget.post['title'] ?? t.defaultItemTitle,
+        'postStatus': widget.post['status'] ?? 'active',
+      });
 
-      debugPrint('Attempting contact. ChatID: $chatId');
+      final String chatId = result.data['chatId'];
 
-      final chatRef = FirebaseDatabase.instance.ref('chats/$chatId');
-      
-      DataSnapshot? chatSnap;
-      try {
-        chatSnap = await chatRef.get();
-      } catch (_) {
-        // If we can't read it, we'll try to create it anyway
+      // Recuperamos el chat de la base de datos para asegurar consistencia
+      final chatSnap = await FirebaseDatabase.instance.ref('chats/$chatId').get();
+
+      if (!chatSnap.exists) {
+        throw Exception(t.chatRecoverError);
       }
 
-      final String postId = widget.post['id']?.toString() ?? 'unknown_post';
-      final String postTitle = widget.post['title']?.toString() ?? t.defaultItemTitle;
-
-      if (chatSnap == null || !chatSnap.exists) {
-        debugPrint('Chat does not exist. Creating with Map-based participants...');
-        
-        final Map<String, dynamic> chatData = {
-          'id': chatId,
-          'post_id': postId,
-          'post_title': postTitle,
-          'participants': {
-            myUid: true,
-            postUserIdRaw: true,
-          },
-          'created_at': ServerValue.timestamp,
-          'last_message': t.noMessagesYet,
-          'last_message_time': ServerValue.timestamp,
-        };
-
-        // Using atomic update for all nodes
-        final Map<String, dynamic> updates = {};
-        updates['chats/$chatId'] = chatData;
-        updates['user_chats/$myUid/$chatId'] = true;
-        // We attempt the other user's index too, if it fails we'll know from the catch
-        updates['user_chats/$postUserIdRaw/$chatId'] = true;
-
-        await FirebaseDatabase.instance.ref().update(updates);
-        debugPrint('Chat and indices created successfully!');
-      }
+      final chatData = Map<String, dynamic>.from(chatSnap.value as Map);
 
       if (!mounted) return;
-
-      // Navigate with the new or existing data
-      final chatDataToPass = (chatSnap != null && chatSnap.exists)
-          ? Map<String, dynamic>.from(chatSnap.value as Map)
-          : {
-              'id': chatId,
-              'post_id': postId,
-              'post_title': postTitle,
-              'participants': {myUid: true, postUserIdRaw: true},
-            };
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChatDetailPage(
             chatId: chatId,
-            chat: chatDataToPass,
+            chat: chatData,
           ),
         ),
       );
     } catch (e) {
       debugPrint('[ERROR] _contactOwner: $e');
-      
-      // Fallback: Try to navigate even if creation failed (it might exist but be unreadable)
-      if (e.toString().contains('permission-denied')) {
-        debugPrint('Permission denied during creation. Attempting direct navigation...');
-        _navigateToChatDirectly(context, currentUser.uid, postUserIdRaw);
-      } else {
-        if (!context.mounted) return;
-        final message = ErrorHandler.getMessage(e, t);
-        AppNotifications.showError(context, message);
-      }
+      if (!mounted) return;
+      final message = ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _navigateToChatDirectly(BuildContext context, String myUid, String otherUid) {
-    final chatId = otherUid.compareTo(myUid) < 0 ? '${otherUid}_$myUid' : '${myUid}_$otherUid';
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatDetailPage(
-          chatId: chatId,
-          chat: {
-            'id': chatId,
-            'post_id': widget.post['id'],
-            'post_title': widget.post['title'],
-            'participants': {myUid: true, otherUid: true},
-          },
-        ),
-      ),
-    );
   }
 
   @override
