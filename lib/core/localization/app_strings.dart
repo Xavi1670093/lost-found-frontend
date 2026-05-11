@@ -32,7 +32,6 @@ class AppStrings {
       'english': 'English',
       'publishedObjects': 'Objetos publicados',
       'futureOptions': 'Opciones futuras de la aplicación',
-      'userHistory': 'Aquí aparecerá el historial del usuario',
       'welcome': 'Bienvenido a ULF',
       'preview': 'Vista previa',
       'welcomeDescription':
@@ -185,10 +184,7 @@ class AppStrings {
       'deleteSuccess': 'Publicación eliminada.',
       'errorSaving': 'Error al guardar',
       'errorDeleting': 'Error al eliminar',
-      'myRequests': 'Mis peticiones',
-      'noLostObjects': 'No has publicado ningún objeto perdido',
-      'mustLogin': 'Debes iniciar sesión',
-      'noTitle': 'Sin título',
+      'mustLogin': 'Debes iniciar sesión para ver tus publicaciones.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -203,7 +199,6 @@ class AppStrings {
       'english': 'English',
       'publishedObjects': 'Objectes publicats',
       'futureOptions': 'Opcions futures de l’aplicació',
-      'userHistory': 'Aquí apareixerà l’historial de l’usuari',
       'welcome': 'Benvingut a ULF',
       'preview': 'Vista prèvia',
       'welcomeDescription':
@@ -356,10 +351,7 @@ class AppStrings {
       'deleteSuccess': 'Publicació eliminada.',
       'errorSaving': 'Error en desar',
       'errorDeleting': 'Error en eliminar',
-      'myRequests': 'Les meves peticions',
-      'noLostObjects': 'No has publicat cap objecte perdut',
-      'mustLogin': 'Has d’iniciar la sessió',
-      'noTitle': 'Sense títol',
+      'mustLogin': 'Has d’iniciar la sessió per veure les teves publicacions.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -374,7 +366,6 @@ class AppStrings {
       'english': 'English',
       'publishedObjects': 'Published items',
       'futureOptions': 'Future app options',
-      'userHistory': 'User history will appear here',
       'welcome': 'Welcome to ULF',
       'preview': 'Preview',
       'welcomeDescription':
@@ -527,10 +518,7 @@ class AppStrings {
       'deleteSuccess': 'Publication deleted.',
       'errorSaving': 'Error saving',
       'errorDeleting': 'Error deleting',
-      'myRequests': 'My requests',
-      'noLostObjects': 'You have not published any lost objects',
-      'mustLogin': 'You must log in',
-      'noTitle': 'No title',
+      'mustLogin': 'You must log in to see your posts.',
     },
   };
 
@@ -546,7 +534,6 @@ class AppStrings {
   String get english => _text('english');
   String get publishedObjects => _text('publishedObjects');
   String get futureOptions => _text('futureOptions');
-  String get userHistory => _text('userHistory');
   String get welcome => _text('welcome');
   String get preview => _text('preview');
   String get welcomeDescription => _text('welcomeDescription');
@@ -699,10 +686,7 @@ class AppStrings {
   String get deleteSuccess => _text('deleteSuccess');
   String get errorSaving => _text('errorSaving');
   String get errorDeleting => _text('errorDeleting');
-  String get myRequests => _text('myRequests');
-  String get noLostObjects => _text('noLostObjects');
   String get mustLogin => _text('mustLogin');
-  String get noTitle => _text('noTitle');
 
   String _text(String key) {
     return _localizedValues[locale.languageCode]?[key] ??

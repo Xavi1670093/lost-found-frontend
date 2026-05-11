@@ -347,8 +347,8 @@ class _RealObjectCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          theme.colorScheme.primaryContainer.withOpacity(0.4),
-                          theme.colorScheme.primaryContainer.withOpacity(0.1),
+                          theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                          theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -359,7 +359,7 @@ class _RealObjectCard extends StatelessWidget {
                       child: Icon(
                         _getCategoryIcon(post['category']?.toString()),
                         size: 44,
-                        color: theme.colorScheme.primary.withOpacity(0.7),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -375,7 +375,7 @@ class _RealObjectCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -413,7 +413,7 @@ class _RealObjectCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.location_on_rounded, size: 14, color: theme.colorScheme.primary.withOpacity(0.5)),
+                    Icon(Icons.location_on_rounded, size: 14, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -441,7 +441,7 @@ class _RealObjectCard extends StatelessWidget {
       case 'keys': return Icons.vpn_key_rounded;
       case 'wallet': return Icons.account_balance_wallet_rounded;
       case 'devices': return Icons.devices_rounded;
-      case 'clothing': return Icons.checkroom_rounded;
+      case 'clothes': return Icons.checkroom_rounded;
       default: return Icons.inventory_2_rounded;
     }
   }

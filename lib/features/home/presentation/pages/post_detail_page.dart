@@ -115,7 +115,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     gradient: LinearGradient(
                       colors: [
                         theme.colorScheme.primaryContainer,
-                        theme.colorScheme.primaryContainer.withOpacity(0.5),
+                        theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -125,7 +125,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     child: Icon(
                       _getCategoryIcon(post['category']?.toString()),
                       size: 100,
-                      color: theme.colorScheme.primary.withOpacity(0.8),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
                     ),
                   ),
                 ),
@@ -175,10 +175,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isLost ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                          color: isLost ? Colors.orange.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isLost ? Colors.orange.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+                            color: isLost ? Colors.orange.withValues(alpha: 0.3) : Colors.green.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Text(
@@ -201,7 +201,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     post['description'] ?? t.noDescription,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       height: 1.6,
-                      color: theme.colorScheme.onSurface.withOpacity(0.8),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -269,11 +269,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.95),
+        color: theme.colorScheme.surface.withValues(alpha: 0.95),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -294,7 +294,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       case 'keys': return Icons.vpn_key_rounded;
       case 'wallet': return Icons.account_balance_wallet_rounded;
       case 'devices': return Icons.devices_rounded;
-      case 'clothing': return Icons.checkroom_rounded;
+      case 'clothes': return Icons.checkroom_rounded;
       default: return Icons.inventory_2_rounded;
     }
   }
@@ -304,7 +304,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       case 'keys': return t.keys;
       case 'wallet': return t.wallets;
       case 'devices': return t.devices;
-      case 'clothing': return t.clothes;
+      case 'clothes': return t.clothes;
       default: return t.others;
     }
   }

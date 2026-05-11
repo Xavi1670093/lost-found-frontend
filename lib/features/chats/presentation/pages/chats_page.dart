@@ -79,10 +79,10 @@ class ChatsPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+                        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
+                            color: Colors.black.withValues(alpha: 0.02),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -94,7 +94,7 @@ class ChatsPage extends StatelessWidget {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer.withOpacity(0.4),
+                              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -202,13 +202,13 @@ class ChatsPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.chat_bubble_outline_rounded,
                 size: 80,
-                color: theme.colorScheme.primary.withOpacity(0.4),
+                color: theme.colorScheme.primary.withValues(alpha: 0.4),
               ),
             ),
             const SizedBox(height: 24),
