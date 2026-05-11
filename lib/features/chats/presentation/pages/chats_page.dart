@@ -18,7 +18,7 @@ class ChatsPage extends StatelessWidget {
     }
 
     return StreamBuilder<DatabaseEvent>(
-      stream: FirebaseDatabase.instance.ref('chats').onValue,
+      stream: FirebaseDatabase.instance.ref('user_chats/${user.uid}').onValue,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -30,72 +30,101 @@ class ChatsPage extends StatelessWidget {
           );
         }
 
+        // data contiene los IDs de los chats autorizados
         final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+        final chatIds = data.keys.toList();
 
-        final chats = <Map<String, dynamic>>[];
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: _fetchChatsDetails(chatIds),
+          builder: (context, futureSnapshot) {
+            // Solo mostramos loading si NO HAY DATOS PREVIOS.
+            // Si ya hay datos, mantenemos la lista visible mientras se actualiza en silencio.
+            if (futureSnapshot.connectionState == ConnectionState.waiting && !futureSnapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        data.forEach((key, value) {
-          final chat = Map<dynamic, dynamic>.from(value as Map);
-          final members = Map<dynamic, dynamic>.from(chat['members'] ?? {});
+            final chats = futureSnapshot.data ?? [];
 
-          if (members[user.uid] == true) {
-            chats.add({
-              'id': key.toString(),
-              'data': chat,
-            });
-          }
-        });
+            if (chats.isEmpty && futureSnapshot.connectionState != ConnectionState.waiting) {
+              return const Center(
+                child: Text('Todavía no tienes chats.'),
+              );
+            }
 
-        chats.sort((a, b) {
-          final aTime = a['data']['last_message_time'] ?? a['data']['created_at'] ?? 0;
-          final bTime = b['data']['last_message_time'] ?? b['data']['created_at'] ?? 0;
-          return bTime.compareTo(aTime);
-        });
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: chats.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final chatId = chats[index]['id'];
+                final chat = chats[index]['data'] as Map<dynamic, dynamic>;
 
-        if (chats.isEmpty) {
-          return const Center(
-            child: Text('Todavía no tienes chats.'),
-          );
-        }
-
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: chats.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final chatId = chats[index]['id'];
-            final chat = chats[index]['data'] as Map<dynamic, dynamic>;
-
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: _statusColor(chat['post_status'] ?? 'active'),
-                  child: const Icon(Icons.chat_bubble_outline),
-                ),
-                title: Text(chat['post_title'] ?? 'Objeto'),
-                subtitle: Text(
-                  chat['last_message'] ?? 'Sin mensajes todavía',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatDetailPage(
-                        chatId: chatId,
-                        chat: chat,
-                      ),
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _statusColor(chat['post_status'] ?? 'active'),
+                      child: const Icon(Icons.chat_bubble_outline),
                     ),
-                  );
-                },
-              ),
+                    title: Text(chat['post_title'] ?? 'Objeto'),
+                    subtitle: Text(
+                      chat['last_message'] ?? 'Sin mensajes todavía',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatDetailPage(
+                            chatId: chatId,
+                            chat: chat,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             );
           },
         );
       },
     );
+  }
+
+  // Función optimizada para obtener detalles de múltiples chats simultáneamente
+  Future<List<Map<String, dynamic>>> _fetchChatsDetails(List<dynamic> chatIds) async {
+    if (chatIds.isEmpty) return [];
+
+    // 1. Mapeamos cada ID a un Future que descarga su contenido
+    final futures = chatIds.map((id) async {
+      final snap = await FirebaseDatabase.instance.ref('chats/$id').get();
+      if (snap.exists) {
+        return {
+          'id': id.toString(),
+          'data': snap.value as Map<dynamic, dynamic>,
+        };
+      }
+      return null;
+    });
+
+    // 2. Ejecutamos TODAS las peticiones a Firebase al mismo tiempo (Concurrencia)
+    final results = await Future.wait(futures);
+
+    // 3. Filtramos los nulos (por si algún chat fue eliminado en la BD)
+    final List<Map<String, dynamic>> fetchedChats = results
+        .whereType<Map<String, dynamic>>()
+        .toList();
+
+    // 4. Ordenar por fecha del último mensaje
+    fetchedChats.sort((a, b) {
+      final aTime = a['data']['last_message_time'] ?? a['data']['created_at'] ?? 0;
+      final bTime = b['data']['last_message_time'] ?? b['data']['created_at'] ?? 0;
+      return bTime.compareTo(aTime);
+    });
+
+    return fetchedChats;
   }
 
   Color _statusColor(String status) {
