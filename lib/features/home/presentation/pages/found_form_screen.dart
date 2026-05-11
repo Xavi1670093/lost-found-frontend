@@ -8,6 +8,7 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 class FoundFormScreen extends StatefulWidget {
   final String postType;
@@ -123,12 +124,9 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost),
-            backgroundColor: widget.postType == 'found' ? Colors.green : Colors.orange,
-            behavior: SnackBarBehavior.floating,
-          ),
+        AppNotifications.showSuccess(
+          context, 
+          widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
         );
         Navigator.pop(context);
       }
@@ -140,13 +138,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg), 
-        backgroundColor: Theme.of(context).colorScheme.error,
-        behavior: SnackBarBehavior.floating,
-      )
-    );
+    AppNotifications.showError(context, msg);
   }
 
   @override

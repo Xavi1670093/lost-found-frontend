@@ -7,6 +7,8 @@ import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 class LoginPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -102,35 +104,8 @@ class _LoginPageState extends State<LoginPage> {
         _loading = false;
       });
 
-      String message;
-      switch (e.code) {
-        case 'user-not-found':
-          message = t.errorUserNotFound;
-          break;
-        case 'wrong-password':
-          message = t.errorWrongPassword;
-          break;
-        case 'invalid-email':
-          message = t.errorInvalidEmail;
-          break;
-        case 'user-disabled':
-          message = t.errorUserDisabled;
-          break;
-        case 'too-many-requests':
-          message = t.errorTooManyRequests;
-          break;
-        default:
-          message = t.errorLoginGeneric;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: AppTheme.errorColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      final message = ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } catch (e) {
       if (!mounted) return;
       setState(() {

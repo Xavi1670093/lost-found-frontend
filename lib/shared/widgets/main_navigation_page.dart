@@ -147,48 +147,80 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     ];
 
     return Scaffold(
+      extendBody: true,
       body: pages[_currentIndex],
       bottomNavigationBar: BottomAppBar(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        height: 65,
+        color: theme.colorScheme.surface.withOpacity(0.95),
         shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        color: theme.colorScheme.surface,
-        elevation: 8,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // Chat Tab
-              _NavigationTab(
+        notchMargin: 10,
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            // Chat Tab
+            Expanded(
+              child: _NavigationTab(
                 icon: _currentIndex == 0 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
                 label: t.chats,
                 isSelected: _currentIndex == 0,
                 onTap: () => setState(() => _currentIndex = 0),
               ),
-              
-              // Spacing for FAB
-              const SizedBox(width: 48),
-              
-              // Profile Tab
-              _NavigationTab(
+            ),
+            
+            // Central Space for FAB
+            const Expanded(child: SizedBox()),
+            
+            // Profile Tab
+            Expanded(
+              child: _NavigationTab(
                 icon: _currentIndex == 2 ? Icons.person_rounded : Icons.person_outline_rounded,
                 label: t.profile,
                 isSelected: _currentIndex == 2,
                 onTap: () => setState(() => _currentIndex = 2),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _currentIndex == 1 ? _openOptions : () => setState(() => _currentIndex = 1),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
-        shape: const CircleBorder(),
-        elevation: 4,
-        child: Icon(
-          _currentIndex == 1 ? Icons.add_rounded : Icons.home_rounded,
-          size: 32,
+      floatingActionButton: Container(
+        height: 70,
+        width: 70,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withOpacity(0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: _currentIndex == 1 ? _openOptions : () => setState(() => _currentIndex = 1),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          highlightElevation: 0,
+          shape: const CircleBorder(),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, anim) => RotationTransition(
+              turns: anim,
+              child: ScaleTransition(scale: anim, child: child),
+            ),
+            child: Icon(
+              _currentIndex == 1 ? Icons.add_rounded : Icons.home_rounded,
+              key: ValueKey(_currentIndex == 1 ? 'add' : 'home'),
+              size: 36,
+            ),
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,

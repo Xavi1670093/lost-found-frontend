@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
+import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 class PostDetailPage extends StatefulWidget {
   final Map<dynamic, dynamic> post;
 
-  const PostDetailPage({
-    super.key,
-    required this.post,
-  });
+  const PostDetailPage({super.key, required this.post});
 
   @override
   State<PostDetailPage> createState() => _PostDetailPageState();
@@ -22,141 +20,86 @@ class _PostDetailPageState extends State<PostDetailPage> {
   bool _isLoading = false;
 
   Future<void> _contactOwner(BuildContext context) async {
-    if (_isLoading) return;
-
     final t = AppStrings.of(context);
-    setState(() {
-      _isLoading = true;
-    });
-    
     final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.loginRequiredToContact),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
+    if (currentUser.uid == widget.post['user_id']) return;
 
-    if (!currentUser.emailVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.verifyEmailToChat),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
-
-    final postOwnerId = widget.post['user_id']?.toString();
-    final postId = widget.post['id']?.toString();
-
-    if (postOwnerId == null || postId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.cannotOpenChat),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
-
-    if (postOwnerId == currentUser.uid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(t.cannotChatSelf),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-       if (mounted) setState(() => _isLoading = false);
-      return;
-    }
+    setState(() => _isLoading = true);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('getOrCreateChat');
-      final result = await callable.call({
-        'postId': postId,
-        'postOwnerId': postOwnerId,
-        'centerId': widget.post['center_id'] ?? 'uab',
-        'postTitle': widget.post['title'] ?? t.defaultItemTitle,
-        'postStatus': widget.post['status'] ?? 'active',
-      });
+      final chatId = widget.post['user_id'] < currentUser.uid
+          ? '${widget.post['user_id']}_${currentUser.uid}'
+          : '${currentUser.uid}_${widget.post['user_id']}';
 
-      final String chatId = result.data['chatId'];
-      final chatSnap = await FirebaseDatabase.instance.ref('chats/$chatId').get();
+      final chatRef = FirebaseDatabase.instance.ref('chats/$chatId');
+      final chatSnap = await chatRef.get();
 
       if (!chatSnap.exists) {
-        throw Exception(t.chatRecoverError);
+        await chatRef.set({
+          'post_id': widget.post['id'],
+          'post_title': widget.post['title'],
+          'participants': [currentUser.uid, widget.post['user_id']],
+          'created_at': ServerValue.timestamp,
+        });
       }
 
-      final chatData = chatSnap.value as Map<dynamic, dynamic>;
-
-      if (!context.mounted) return;
-
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChatDetailPage(
             chatId: chatId,
-            chat: chatData,
+            chat: (chatSnap.value as Map? ?? {
+              'post_title': widget.post['title'],
+              'participants': [currentUser.uid, widget.post['user_id']],
+            }),
           ),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${t.chatOpenError}: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      final message = ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
-    final isLost = widget.post['type'] == 'lost';
     final theme = Theme.of(context);
-    final status = widget.post['status'] ?? 'active';
-
-    final categoryKey = widget.post['category']?.toString() ?? 'other';
-    final categoryName = _getCategoryName(categoryKey, t);
+    final post = widget.post;
+    final isLost = post['type'] == 'lost';
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isMyPost = currentUser?.uid == post['user_id'];
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Collapsible Header with Image
           SliverAppBar(
             expandedHeight: 320,
             pinned: true,
+            stretch: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
-                tag: 'post_image_${widget.post['id']}',
+                tag: 'post_image_${post['id']}',
                 child: Container(
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withOpacity(0.4),
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primaryContainer,
+                        theme.colorScheme.primaryContainer.withOpacity(0.5),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
                   child: Center(
                     child: Icon(
-                      isLost ? Icons.search_rounded : Icons.inventory_2_outlined,
+                      _getCategoryIcon(post['category']?.toString()),
                       size: 100,
                       color: theme.colorScheme.primary.withOpacity(0.8),
                     ),
@@ -165,66 +108,73 @@ class _PostDetailPageState extends State<PostDetailPage> {
               ),
             ),
           ),
-
-          // Content
           SliverToBoxAdapter(
-            child: Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.background,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-              ),
-              margin: const EdgeInsets.only(top: -32),
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Badges
+                  // Category and Date Row
                   Row(
                     children: [
-                      _buildStatusBadge(
-                        isLost ? t.lostStatus : t.foundStatus,
-                        isLost ? Colors.orange : Colors.green,
+                      _InfoChip(
+                        icon: _getCategoryIcon(post['category']?.toString()),
+                        label: _categoryLabel(post['category']?.toString(), t),
+                        color: theme.colorScheme.secondaryContainer,
+                        textColor: theme.colorScheme.onSecondaryContainer,
                       ),
-                      const SizedBox(width: 10),
-                      _buildStatusBadge(
-                        categoryName.toUpperCase(),
-                        theme.colorScheme.secondary,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Title
-                  Text(
-                    widget.post['title'] ?? '',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Date and Location
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: 16, color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 8),
-                      Text(
-                        _formatDate(widget.post['created_at']),
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 12),
+                      _InfoChip(
+                        icon: Icons.calendar_today_rounded,
+                        label: _formatDate(post['created_at']),
+                        color: theme.colorScheme.surfaceVariant,
+                        textColor: theme.colorScheme.onSurfaceVariant,
                       ),
                     ],
                   ),
                   const SizedBox(height: 32),
 
-                  // Description Section
-                  Text(
-                    t.description,
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  // Title and Status
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          post['title'] ?? t.defaultItemTitle,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isLost ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isLost ? Colors.orange.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Text(
+                          isLost ? t.lostStatus : t.foundStatus,
+                          style: TextStyle(
+                            color: isLost ? Colors.orange.shade800 : Colors.green.shade800,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 24),
+
+                  // Description Section
+                  _buildSectionHeader(t.descriptionLabel, theme),
                   const SizedBox(height: 12),
                   Text(
-                    widget.post['description'] ?? t.noDescription,
+                    post['description'] ?? t.noDescription,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       height: 1.6,
                       color: theme.colorScheme.onSurface.withOpacity(0.8),
@@ -232,42 +182,101 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Info Tiles
-                  _buildInfoTile(
-                    Icons.location_on_outlined,
-                    t.location,
-                    widget.post['location'] ?? t.campusUab,
-                    theme,
-                  ),
-                  _buildInfoTile(
-                    Icons.info_outline_rounded,
-                    t.currentStatus,
-                    _statusLabel(status, t),
-                    theme,
-                  ),
-                  
-                  const SizedBox(height: 48),
-
-                  // Action Button
-                  Center(
-                    child: CustomButton(
-                      text: _isLoading ? t.openingChat : t.contactOwner,
-                      isLoading: _isLoading,
-                      onPressed: () => _contactOwner(context),
+                  // Location Section
+                  _buildSectionHeader(t.locationLabel, theme),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: theme.colorScheme.outlineVariant),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: theme.colorScheme.primaryContainer,
+                          child: Icon(Icons.location_on_rounded, color: theme.colorScheme.primary),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                post['location'] ?? 'UAB Campus',
+                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'Cerdanyola del Vallès, Barcelona',
+                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
           ),
         ],
       ),
+      bottomNavigationBar: _buildBottomBar(context, t, theme, isMyPost),
     );
   }
 
-  String _getCategoryName(String key, AppStrings t) {
-    switch (key.toLowerCase()) {
+  Widget _buildSectionHeader(String title, ThemeData theme) {
+    return Text(
+      title.toUpperCase(),
+      style: theme.textTheme.labelMedium?.copyWith(
+        letterSpacing: 1.2,
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.primary,
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context, AppStrings t, ThemeData theme, bool isMyPost) {
+    if (isMyPost) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: CustomButton(
+          text: _isLoading ? t.openingChat : t.contactOwner,
+          isLoading: _isLoading,
+          onPressed: () => _contactOwner(context),
+        ),
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(String? category) {
+    switch (category?.toLowerCase()) {
+      case 'keys': return Icons.vpn_key_rounded;
+      case 'wallet': return Icons.account_balance_wallet_rounded;
+      case 'devices': return Icons.devices_rounded;
+      case 'clothing': return Icons.checkroom_rounded;
+      default: return Icons.inventory_2_rounded;
+    }
+  }
+
+  String _categoryLabel(String? category, AppStrings t) {
+    switch (category?.toLowerCase()) {
       case 'keys': return t.keys;
       case 'wallet': return t.wallets;
       case 'devices': return t.devices;
@@ -278,59 +287,53 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return '';
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return "${date.day}/${date.month}/${date.year}";
+    try {
+      final int ts = int.tryParse(timestamp.toString()) ?? 0;
+      if (ts == 0) return '';
+      final date = DateTime.fromMillisecondsSinceEpoch(ts);
+      return "${date.day}/${date.month}/${date.year}";
+    } catch (_) {
+      return '';
+    }
   }
+}
 
-  Widget _buildStatusBadge(String text, Color color) {
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color textColor;
+
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Text(
-        text,
-        style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-      ),
-    );
-  }
-
-  Widget _buildInfoTile(IconData icon, String title, String subtitle, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: theme.colorScheme.primary, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                const SizedBox(height: 4),
-                Text(subtitle, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-              ],
+          Icon(icon, size: 16, color: textColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
       ),
     );
-  }
-
-  static String _statusLabel(String status, AppStrings t) {
-    switch (status) {
-      case 'matched': return t.statusMatched;
-      case 'returned': return t.statusReturned;
-      default: return t.statusInProcess;
-    }
   }
 }
