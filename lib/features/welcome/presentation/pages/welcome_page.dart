@@ -88,7 +88,7 @@ class _WelcomeLogo extends StatelessWidget {
           ),
         ),
         Text(
-          'Lost & Found',
+          t.appName.replaceAll('UniLost & Found', 'Lost & Found'),
           textAlign: TextAlign.center,
           style: GoogleFonts.poppins(
             fontSize: 28,

@@ -256,13 +256,15 @@ class ChatsPage extends StatelessWidget {
     return fetchedChats;
   }
 
-  String _formatTime(int timestamp) {
-    if (timestamp == 0) return "";
+  String _formatTime(dynamic timestamp) {
+    if (timestamp is! int || timestamp == 0) return "";
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
     if (date.year == now.year && date.month == now.month && date.day == now.day) {
       return "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
     }
-    return "${date.day}/${date.month}";
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return "$day/$month";
   }
 }

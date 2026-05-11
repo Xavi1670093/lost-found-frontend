@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
@@ -42,29 +43,28 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _loading = true);
 
     try {
-      debugPrint("📡 Registro: Iniciando creación de cuenta...");
-
+      final email = _emailController.text.trim().toLowerCase();
       final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('secureUniversityRegistration');
 
       await callable.call(<String, dynamic>{
-        'email': _emailController.text.trim(),
+        'email': email,
         'password': _passwordController.text,
         'name': _nameController.text.trim(),
       });
 
-      debugPrint("🔑 Registro: Sesión temporal establecida.");
-
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
       );
-
-      debugPrint("📧 Registro: Correo de verificación enviado.");
 
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
         await userCredential.user!.sendEmailVerification();
         await FirebaseAuth.instance.signOut();
+      } else if (userCredential.user != null) {
+        // Si por algún motivo ya está verificado, guardamos sesión
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('login_timestamp', DateTime.now().millisecondsSinceEpoch);
       }
 
       if (!mounted) return;
@@ -80,7 +80,6 @@ class _RegisterPageState extends State<RegisterPage> {
       final errorMessage = ErrorHandler.getMessage(e, t);
       AppNotifications.showError(context, errorMessage);
     } catch (e) {
-      debugPrint("💥 Error inesperado: $e");
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -98,7 +97,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final t = AppStrings.of(context);
     if (value == null || value.trim().isEmpty) return t.loginEmailRequired;
 
-    final email = value.trim();
+    final email = value.trim().toLowerCase();
     if (!email.endsWith('@uab.cat')) return t.registerEmailMustBeUab;
 
     final prefix = email.split('@')[0];
