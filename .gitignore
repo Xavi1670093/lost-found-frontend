@@ -1,45 +1,87 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# ==============================================================================
+# Flutter/Dart/Pub
+# ==============================================================================
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
-/coverage/
+**/doc/api/
+**/ios/Flutter/.last_build_id
 
-# Symbolication related
-app.*.symbols
+# ==============================================================================
+# Android
+# ==============================================================================
+**/android/app/src/main/gen/
+**/android/app/src/profile/gen/
+**/android/app/src/debug/gen/
+**/android/app/src/release/gen/
+**/android/.gradle
+**/android/local.properties
+**/android/projectFilesBackup
+**/android/generated/
+**/android/captures/
 
-# Obfuscation related
-app.*.map.json
+# Claves y firmas (¡Muy importante!)
+*.jks
+*.keystore
+key.properties
+**/android/key.properties
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ==============================================================================
+# iOS / macOS
+# ==============================================================================
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/xcuserdata/
+**/ios/.generated/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# ==============================================================================
+# Firebase y Secretos (¡Crítico!)
+# ==============================================================================
+# Archivos de configuración de Firebase
+google-services.json
+**/android/app/google-services.json
+GoogleService-Info.plist
+**/ios/Runner/GoogleService-Info.plist
+**/macos/Runner/GoogleService-Info.plist
+
+# Opcional: Ignorar el archivo generado por FlutterFire (quitar el '#' si deseas ignorarlo)
+# lib/firebase_options.dart
+
+# Archivos de variables de entorno
+.env
+.env.*
+
+# ==============================================================================
+# IDEs y Entornos
+# ==============================================================================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# ==============================================================================
+# Sistema Operativo
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
