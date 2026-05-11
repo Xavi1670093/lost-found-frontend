@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:unilost_found/features/chats/presentation/pages/chat_detail_page.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../chats/presentation/pages/chat_detail_page.dart';
 
-class PostDetailPage extends StatelessWidget {
+class PostDetailPage extends StatefulWidget {
   final Map<dynamic, dynamic> post;
 
   const PostDetailPage({
@@ -13,7 +13,20 @@ class PostDetailPage extends StatelessWidget {
     required this.post,
   });
 
-  Future<void> _contactOwner(BuildContext context) async {
+  @override
+  State<PostDetailPage> createState() => _PostDetailPageState();
+}
+
+class _PostDetailPageState extends State<PostDetailPage> {
+  bool _isLoading = false;
+
+Future<void> _contactOwner(BuildContext context) async {
+    if (_isLoading) return; // Evita el doble click
+
+    setState(() {
+      _isLoading = true;
+    });
+    
     final currentUser = FirebaseAuth.instance.currentUser;
 
     if (currentUser == null) {
@@ -23,11 +36,24 @@ class PostDetailPage extends StatelessWidget {
           backgroundColor: Colors.orange,
         ),
       );
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
-    final postOwnerId = post['user_id']?.toString();
-    final postId = post['id']?.toString();
+    // Validación requerida por las reglas de seguridad del backend
+    if (!currentUser.emailVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes verificar tu correo institucional antes de poder abrir un chat.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    final postOwnerId = widget.post['user_id']?.toString();
+    final postId = widget.post['id']?.toString();
 
     if (postOwnerId == null || postId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -36,6 +62,7 @@ class PostDetailPage extends StatelessWidget {
           backgroundColor: Colors.red,
         ),
       );
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
@@ -46,70 +73,29 @@ class PostDetailPage extends StatelessWidget {
           backgroundColor: Colors.orange,
         ),
       );
+       if (mounted) setState(() => _isLoading = false);
       return;
     }
 
     try {
-      final chatsRef = FirebaseDatabase.instance.ref('chats');
-      final snapshot = await chatsRef.get();
+      final callable = FirebaseFunctions.instance.httpsCallable('getOrCreateChat');
+      final result = await callable.call({
+        'postId': postId,
+        'postOwnerId': postOwnerId,
+        'centerId': widget.post['center_id'] ?? 'uab',
+        'postTitle': widget.post['title'] ?? 'Objeto',
+        'postStatus': widget.post['status'] ?? 'active',
+      });
 
-      String? existingChatId;
-      Map<dynamic, dynamic>? existingChat;
+      final String chatId = result.data['chatId'];
 
-      if (snapshot.value != null) {
-        final chatsMap = snapshot.value as Map<dynamic, dynamic>;
+      final chatSnap = await FirebaseDatabase.instance.ref('chats/$chatId').get();
 
-        chatsMap.forEach((key, value) {
-          final chat = Map<dynamic, dynamic>.from(value as Map);
-          final members = Map<dynamic, dynamic>.from(chat['members'] ?? {});
-
-          final samePost = chat['post_id'] == postId;
-          final hasCurrentUser = members[currentUser.uid] == true;
-          final hasOwner = members[postOwnerId] == true;
-
-          if (samePost && hasCurrentUser && hasOwner) {
-            existingChatId = key.toString();
-            existingChat = chat;
-          }
-        });
+      if (!chatSnap.exists) {
+        throw Exception("El chat no se pudo recuperar de la base de datos.");
       }
 
-      if (existingChatId != null && existingChat != null) {
-        if (!context.mounted) return;
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChatDetailPage(
-              chatId: existingChatId!,
-              chat: existingChat!,
-            ),
-          ),
-        );
-
-        return;
-      }
-
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final newChatRef = chatsRef.push();
-
-      final newChat = {
-        'id': newChatRef.key,
-        'center_id': post['center_id'] ?? 'uab',
-        'post_id': postId,
-        'post_title': post['title'] ?? 'Objeto',
-        'post_owner_id': postOwnerId,
-        'post_status': post['status'] ?? 'active',
-        'members': {
-          currentUser.uid: true,
-          postOwnerId: true,
-        },
-        'last_message': null,
-        'last_message_time': null,
-        'created_at': now,
-      };
-
-      await newChatRef.set(newChat);
+      final chatData = chatSnap.value as Map<dynamic, dynamic>;
 
       if (!context.mounted) return;
 
@@ -117,8 +103,8 @@ class PostDetailPage extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (_) => ChatDetailPage(
-            chatId: newChatRef.key!,
-            chat: newChat,
+            chatId: chatId,
+            chat: chatData,
           ),
         ),
       );
@@ -131,18 +117,24 @@ class PostDetailPage extends StatelessWidget {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
-
   @override
   Widget build(BuildContext context) {
-    final isLost = post['type'] == 'lost';
+    // Note the use of widget.post here since we are in the State class
+    final isLost = widget.post['type'] == 'lost';
     final theme = Theme.of(context);
-    final status = post['status'] ?? 'active';
+    final status = widget.post['status'] ?? 'active';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(post['title'] ?? 'Detalle'),
+        title: Text(widget.post['title'] ?? 'Detalle'),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -158,7 +150,6 @@ class PostDetailPage extends StatelessWidget {
                 color: theme.colorScheme.primary,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -170,12 +161,14 @@ class PostDetailPage extends StatelessWidget {
                     children: [
                       Chip(
                         label: Text(isLost ? 'PERDIDO' : 'ENCONTRADO'),
-                        backgroundColor:
-                        isLost ? Colors.red.shade100 : Colors.green.shade100,
+                        backgroundColor: isLost
+                            ? Colors.red.shade100
+                            : Colors.green.shade100,
                       ),
                       Chip(
                         label: Text(
-                          post['category']?.toString().toUpperCase() ?? 'OTROS',
+                          widget.post['category']?.toString().toUpperCase() ??
+                              'OTROS',
                         ),
                       ),
                       Chip(
@@ -184,53 +177,51 @@ class PostDetailPage extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
-
                   Text(
-                    post['title'] ?? '',
+                    widget.post['title'] ?? '',
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
                   Text(
-                    post['description'] ?? 'Sin descripción',
+                    widget.post['description'] ?? 'Sin descripción',
                     style: const TextStyle(fontSize: 16),
                   ),
-
                   const SizedBox(height: 24),
-
                   const Divider(),
-
                   ListTile(
                     leading: const Icon(Icons.location_on_outlined),
                     title: const Text('Ubicación'),
-                    subtitle: Text(post['location'] ?? 'UAB - Campus'),
+                    subtitle: Text(widget.post['location'] ?? 'UAB - Campus'),
                   ),
-
                   ListTile(
                     leading: const Icon(Icons.calendar_today_outlined),
                     title: const Text('Publicado el'),
                     subtitle: Text(
                       DateTime.fromMillisecondsSinceEpoch(
-                        post['created_at'] ?? 0,
+                        widget.post['created_at'] ?? 0,
                       ).toString().split(' ')[0],
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton.icon(
-                      onPressed: () => _contactOwner(context),
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      label: const Text('Contactar'),
+                      onPressed: _isLoading
+                          ? null
+                          : () => _contactOwner(context), // Se desactiva si está cargando
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.chat_bubble_outline),
+                      label:
+                          Text(_isLoading ? 'Abriendo chat...' : 'Contactar'),
                     ),
                   ),
                 ],
