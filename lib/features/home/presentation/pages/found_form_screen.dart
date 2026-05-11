@@ -173,7 +173,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                       child: Container(
                         height: 200,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                          color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
                         ),
@@ -298,7 +298,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
           ),
           boxShadow: isCompleted ? [
             BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             )

@@ -85,7 +85,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 24),
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -93,7 +93,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check_circle_outline_rounded, color: Colors.green),
@@ -112,7 +112,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.help_outline_rounded, color: Colors.orange),
@@ -152,7 +152,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       bottomNavigationBar: BottomAppBar(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         height: 65,
-        color: theme.colorScheme.surface.withOpacity(0.95),
+        color: theme.colorScheme.surface.withValues(alpha: 0.95),
         shape: const CircularNotchedRectangle(),
         notchMargin: 10,
         child: Row(
@@ -190,13 +190,13 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: LinearGradient(
-            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.8)],
+            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.4),
+              color: theme.colorScheme.primary.withValues(alpha: 0.4),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),

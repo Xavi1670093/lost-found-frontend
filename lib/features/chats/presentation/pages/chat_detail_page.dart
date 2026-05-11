@@ -144,7 +144,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                           decoration: BoxDecoration(
                             color: isMe
                                 ? theme.colorScheme.primary
-                                : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                                : theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.only(
                               topLeft: const Radius.circular(20),
                               topRight: const Radius.circular(20),
@@ -170,8 +170,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: isMe
-                                      ? theme.colorScheme.onPrimary.withOpacity(0.7)
-                                      : theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                      ? theme.colorScheme.onPrimary.withValues(alpha: 0.7)
+                                      : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],
@@ -191,7 +191,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               color: theme.colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -202,7 +202,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                      color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextField(
@@ -211,7 +211,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       maxLines: 4,
                       decoration: InputDecoration(
                         hintText: t.typeMessageHint,
-                        hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6)),
+                        hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         border: InputBorder.none,
                       ),

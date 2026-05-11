@@ -64,7 +64,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.8)],
+                          colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -105,13 +105,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 4),
                           Text(
                             user.email ?? "",
-                            style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
                           ),
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(

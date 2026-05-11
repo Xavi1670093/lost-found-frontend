@@ -43,7 +43,7 @@ class _EditPostPageState extends State<EditPostPage> {
     'keys',
     'wallet',
     'devices',
-    'clothing',
+    'clothes',
     'other',
   ];
 
@@ -168,7 +168,7 @@ class _EditPostPageState extends State<EditPostPage> {
       case 'keys': return t.keys;
       case 'wallet': return t.wallets;
       case 'devices': return t.devices;
-      case 'clothing': return t.clothes;
+      case 'clothes': return t.clothes;
       default: return t.others;
     }
   }
@@ -222,7 +222,7 @@ class _EditPostPageState extends State<EditPostPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                  color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
@@ -250,7 +250,7 @@ class _EditPostPageState extends State<EditPostPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                  color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),

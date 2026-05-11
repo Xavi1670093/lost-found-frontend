@@ -90,7 +90,7 @@ class AppTheme {
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           elevation: 2,
-          shadowColor: primaryColor.withOpacity(0.4),
+          shadowColor: primaryColor.withValues(alpha: 0.4),
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -160,7 +160,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
         ),
         color: const Color(0xFF0F172A),
         clipBehavior: Clip.antiAlias,
@@ -172,11 +172,11 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
