@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'chat_detail_page.dart';
 
@@ -9,19 +10,20 @@ class ChatsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final user = FirebaseAuth.instance.currentUser;
     final theme = Theme.of(context);
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Mensajes')),
-        body: const Center(child: Text('Debes iniciar sesión para ver tus chats.')),
+        appBar: AppBar(title: Text(t.messages)),
+        body: Center(child: Text(t.mustLoginForChats)),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mensajes', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(t.messages, style: const TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
@@ -33,7 +35,7 @@ class ChatsPage extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-            return _buildEmptyState(theme);
+            return _buildEmptyState(theme, t);
           }
 
           final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
@@ -49,7 +51,7 @@ class ChatsPage extends StatelessWidget {
               final chats = futureSnapshot.data ?? [];
 
               if (chats.isEmpty && futureSnapshot.connectionState != ConnectionState.waiting) {
-                return _buildEmptyState(theme);
+                return _buildEmptyState(theme, t);
               }
 
               return ListView.separated(
@@ -96,7 +98,7 @@ class ChatsPage extends StatelessWidget {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        chat['post_title'] ?? 'Objeto',
+                                        chat['post_title'] ?? t.defaultItemTitle,
                                         style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -110,7 +112,7 @@ class ChatsPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  chat['last_message'] ?? 'Sin mensajes todavía',
+                                  chat['last_message'] ?? t.noMessagesYet,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
                                     fontStyle: chat['last_message'] == null ? FontStyle.italic : FontStyle.normal,
@@ -161,14 +163,14 @@ class ChatsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
+  Widget _buildEmptyState(ThemeData theme, AppStrings t) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.chat_bubble_outline_rounded, size: 64, color: theme.colorScheme.outline),
           const SizedBox(height: 16),
-          Text('No tienes mensajes todavía', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(t.noChatsYet, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         ],
       ),
     );

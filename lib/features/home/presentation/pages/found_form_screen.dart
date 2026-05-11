@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:io';
+import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
@@ -22,7 +23,6 @@ class FoundFormScreen extends StatefulWidget {
 
 class _FoundFormScreenState extends State<FoundFormScreen> {
   File? imageFile;
-  String locationText = "Obtener ubicación actual";
   Position? _currentPosition;
   bool _isPublishing = false;
 
@@ -30,20 +30,16 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
-  String? selectedCategory;
+  String? selectedCategoryKey;
   DateTime? selectedDate;
 
-  final List<String> categories = ["Llaves", "Cartera", "Dispositivo", "Ropa", "Otros"];
-
-  String _mapCategoryToBackend(String category) {
-    switch (category) {
-      case "Llaves": return "keys";
-      case "Cartera": return "wallet";
-      case "Dispositivo": return "devices";
-      case "Ropa": return "clothing";
-      default: return "other";
-    }
-  }
+  final Map<String, String> categoryOptions = {
+    'keys': 'Llaves', // We'll use t.keys in build
+    'wallet': 'Cartera',
+    'devices': 'Dispositivo',
+    'clothing': 'Ropa',
+    'other': 'Otros',
+  };
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -74,23 +70,24 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   }
 
   Future<void> _getLocation() async {
+    final t = AppStrings.of(context);
     final hasPermission = await PermissionService.requestLocation();
     if (!hasPermission) return;
     try {
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       setState(() {
         _currentPosition = position;
-        locationText = "Ubicación obtenida ✓";
       });
     } catch (e) {
-      _showError("No se pudo obtener la ubicación");
+      _showError(t.locationError);
     }
   }
 
   Future<void> _submit() async {
+    final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
-    if (selectedCategory == null || selectedDate == null) {
-      _showError("Selecciona categoría y fecha");
+    if (selectedCategoryKey == null || selectedDate == null) {
+      _showError(t.selectCategoryAndDate);
       return;
     }
 
@@ -98,7 +95,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("Sesión no iniciada");
+      if (user == null) throw Exception(t.sessionError);
 
       final userSnapshot = await FirebaseDatabase.instance.ref('users/${user.uid}/center_id').get();
       final centerId = userSnapshot.value?.toString() ?? "uab";
@@ -113,7 +110,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
-        'category': _mapCategoryToBackend(selectedCategory!),
+        'category': selectedCategoryKey,
         'status': 'active',
         'coords': {
           'lat': _currentPosition?.latitude ?? 41.500,
@@ -128,35 +125,51 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.postType == 'found' ? "¡Objeto encontrado publicado!" : "¡Alerta de pérdida publicada!"),
+            content: Text(widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost),
             backgroundColor: widget.postType == 'found' ? Colors.green : Colors.orange,
+            behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      _showError("Error al publicar: $e");
+      _showError("${t.publishError}: $e");
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg), 
+        backgroundColor: Theme.of(context).colorScheme.error,
+        behavior: SnackBarBehavior.floating,
+      )
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final theme = Theme.of(context);
     final isFound = widget.postType == 'found';
 
+    final Map<String, String> categories = {
+      'keys': t.keys,
+      'wallet': t.wallets,
+      'devices': t.devices,
+      'clothing': t.clothes,
+      'other': t.others,
+    };
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(isFound ? "Reportar Hallazgo" : "Reportar Pérdida"),
+        title: Text(isFound ? t.reportFoundTitle : t.reportLostTitle),
         backgroundColor: Colors.transparent,
       ),
       body: _isPublishing
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Form(
@@ -165,7 +178,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Image Picker Section
-                    _buildSectionTitle("Foto del objeto", theme),
+                    _buildSectionTitle(t.objectPhoto, theme),
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: _pickImage,
@@ -173,8 +186,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                         height: 200,
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 2),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
                         ),
                         child: imageFile == null
                             ? Column(
@@ -182,11 +195,11 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                                 children: [
                                   Icon(Icons.add_a_photo_rounded, size: 48, color: theme.colorScheme.primary),
                                   const SizedBox(height: 12),
-                                  Text("Toca para tomar una foto", style: TextStyle(color: theme.colorScheme.primary)),
+                                  Text(t.tapToTakePhoto, style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
                                 ],
                               )
                             : ClipRRect(
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(22),
                                 child: Image.file(imageFile!, fit: BoxFit.cover),
                               ),
                       ),
@@ -194,55 +207,72 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     const SizedBox(height: 32),
 
                     // Details Section
-                    _buildSectionTitle("Información básica", theme),
+                    _buildSectionTitle(t.basicInfo, theme),
                     const SizedBox(height: 16),
                     CustomTextField(
-                      label: "Título del objeto",
-                      hintText: "Ej: Llavero de la UAB",
+                      label: t.objectTitleLabel,
+                      hintText: t.objectTitleHint,
                       controller: titleController,
-                      validator: (value) => value == null || value.isEmpty ? "Campo obligatorio" : null,
+                      validator: (value) => value == null || value.isEmpty ? t.fieldRequired : null,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     
-                    const Text("Categoría", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 10),
+                    Text(t.category, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
-                      runSpacing: 8,
-                      children: categories.map((cat) {
+                      runSpacing: 10,
+                      children: categories.entries.map((entry) {
+                        final isSelected = selectedCategoryKey == entry.key;
                         return ChoiceChip(
-                          label: Text(cat),
-                          selected: selectedCategory == cat,
-                          onSelected: (_) => setState(() => selectedCategory = cat),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          label: Text(entry.value),
+                          selected: isSelected,
+                          onSelected: (_) => setState(() => selectedCategoryKey = entry.key),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           showCheckmark: false,
+                          backgroundColor: theme.colorScheme.surface,
+                          selectedColor: theme.colorScheme.primary,
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: 32),
 
-                    _buildSectionTitle("Descripción y detalles", theme),
+                    _buildSectionTitle(t.descriptionDetails, theme),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: descriptionController,
                       maxLines: 4,
                       decoration: InputDecoration(
-                        hintText: "Describe el objeto y dónde lo encontraste...",
+                        hintText: t.descriptionHint,
                         filled: true,
                         fillColor: theme.colorScheme.surface,
+                        hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6)),
+                        contentPadding: const EdgeInsets.all(16),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
                         ),
                       ),
                     ),
                     const SizedBox(height: 32),
 
-                    _buildSectionTitle("Ubicación y Fecha", theme),
+                    _buildSectionTitle(t.locationAndDate, theme),
                     const SizedBox(height: 16),
                     _buildActionTile(
                       Icons.location_on_rounded,
-                      locationText,
+                      _currentPosition != null ? t.locationObtained : t.getCurrentLocation,
                       _getLocation,
                       _currentPosition != null,
                       theme,
@@ -251,7 +281,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     _buildActionTile(
                       Icons.calendar_today_rounded,
                       selectedDate == null 
-                        ? "Seleccionar fecha" 
+                        ? t.selectDate
                         : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
                       _pickDate,
                       selectedDate != null,
@@ -260,10 +290,10 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     const SizedBox(height: 48),
 
                     CustomButton(
-                      text: "Publicar anuncio",
+                      text: t.publishButton,
                       onPressed: _submit,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -285,16 +315,24 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Widget _buildActionTile(IconData icon, String text, VoidCallback onTap, bool isCompleted, ThemeData theme) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
             width: isCompleted ? 2 : 1,
           ),
+          boxShadow: isCompleted ? [
+            BoxShadow(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ] : null,
         ),
         child: Row(
           children: [
@@ -304,13 +342,13 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
               child: Text(
                 text,
                 style: TextStyle(
-                  fontWeight: isCompleted ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
                   color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.onSurface,
                 ),
               ),
             ),
             if (isCompleted)
-              Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 20),
+              Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 22),
           ],
         ),
       ),

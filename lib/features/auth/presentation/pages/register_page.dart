@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/core/theme/app_theme.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 
@@ -31,6 +32,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscureConfirmPassword = true;
 
   Future<void> _register() async {
+    final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -67,10 +69,12 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _loading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Registro exitoso. Por favor, verifica tu correo antes de entrar (MIRAR SPAM)."),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 5),
+        SnackBar(
+          content: Text(t.registerSuccessMessage),
+          backgroundColor: AppTheme.successColor,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
 
@@ -79,27 +83,44 @@ class _RegisterPageState extends State<RegisterPage> {
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      String errorMessage = "Error en el registro";
+      String errorMessage;
 
-      if (e.code == 'already-exists') {
-        errorMessage = "Este correo ya está registrado. Intenta iniciar sesión.";
-      } else if (e.code == 'permission-denied') {
-        errorMessage = "Dominio no autorizado. Usa el correo @uab.cat.";
-      } else if (e.code == 'invalid-argument') {
-        errorMessage = "Datos inválidos. Revisa el formulario.";
-      } else if (e.code == 'unavailable') {
-        errorMessage = "Servidor fuera de línea. Inténtalo más tarde.";
+      switch (e.code) {
+        case 'already-exists':
+          errorMessage = t.errorAlreadyExists;
+          break;
+        case 'permission-denied':
+          errorMessage = t.errorDomainNotAuthorized;
+          break;
+        case 'invalid-argument':
+          errorMessage = t.errorInvalidArgument;
+          break;
+        case 'unavailable':
+          errorMessage = t.errorUnavailable;
+          break;
+        default:
+          errorMessage = t.errorLoginGeneric;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(errorMessage), 
+          backgroundColor: AppTheme.errorColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
     } catch (e) {
       debugPrint("💥 Error inesperado: $e");
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error de conexión."), backgroundColor: Colors.orange),
+        SnackBar(
+          content: Text(t.errorConnection), 
+          backgroundColor: AppTheme.warningColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
     }
   }
@@ -162,6 +183,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 CustomTextField(
                   label: t.nameLabel,
+                  hintText: t.nameHint,
                   controller: _nameController,
                   prefixIcon: Icons.person_outline_rounded,
                   validator: (value) {
@@ -173,7 +195,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 CustomTextField(
                   label: t.emailLabel,
-                  hintText: '1234567@uab.cat',
+                  hintText: t.emailHint,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.email_outlined,
@@ -218,13 +240,13 @@ class _RegisterPageState extends State<RegisterPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '¿Ya tienes cuenta? ',
+                      t.alreadyHaveAccount,
                       style: theme.textTheme.bodyMedium,
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Text(
-                        'Inicia Sesión',
+                        t.loginLink,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,

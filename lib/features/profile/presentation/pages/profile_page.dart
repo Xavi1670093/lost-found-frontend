@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
+import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'user_posts_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -28,7 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: theme.colorScheme.primary));
     }
 
     final DatabaseReference userRef = FirebaseDatabase.instance.ref('users/${user.uid}');
@@ -36,14 +37,18 @@ class _ProfilePageState extends State<ProfilePage> {
     return StreamBuilder<DatabaseEvent>(
       stream: userRef.onValue,
       builder: (context, snapshot) {
-        String userName = "Cargando...";
-        String userRole = "Estudiante";
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildSkeleton(theme);
+        }
+
+        String userName = t.loading;
+        String userRole = t.studentRole;
         String centerId = "UAB";
 
         if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
           final data = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
-          userName = data['name'] ?? "Usuario";
-          userRole = data['role'] == 'admin' ? "Administrador" : "Estudiante";
+          userName = data['name'] ?? t.defaultUserName;
+          userRole = data['role'] == 'admin' ? t.adminRole : t.studentRole;
           centerId = (data['center_id'] ?? "uab").toString().toUpperCase();
         }
 
@@ -124,14 +129,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     padding: const EdgeInsets.all(24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        _buildSectionTitle("Mi Actividad", theme),
+                        _buildSectionTitle(t.myActivity, theme),
                         const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
                               child: _buildActionCard(
                                 Icons.inventory_2_outlined,
-                                "Mis Hallazgos",
+                                t.myFindings,
                                 theme.colorScheme.primary,
                                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPostsPage(type: 'found'))),
                               ),
@@ -140,7 +145,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             Expanded(
                               child: _buildActionCard(
                                 Icons.search_rounded,
-                                "Mis Pérdidas",
+                                t.myLosses,
                                 theme.colorScheme.secondary,
                                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPostsPage(type: 'lost'))),
                               ),
@@ -149,7 +154,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
 
                         const SizedBox(height: 32),
-                        _buildSectionTitle("Ajustes", theme),
+                        _buildSectionTitle(t.settingsTitle, theme),
                         const SizedBox(height: 12),
                         
                         CustomCard(
@@ -158,22 +163,22 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               SwitchListTile(
                                 secondary: Icon(Icons.dark_mode_outlined, color: theme.colorScheme.primary),
-                                title: const Text("Modo Oscuro"),
+                                title: Text(t.darkMode),
                                 value: widget.settingsController.isDarkMode,
                                 onChanged: (v) => widget.settingsController.setDarkMode(v),
                               ),
                               const Divider(height: 1),
                               ListTile(
                                 leading: Icon(Icons.language_outlined, color: theme.colorScheme.primary),
-                                title: const Text("Idioma"),
+                                title: Text(t.language),
                                 subtitle: Text(_languageLabel(context, widget.settingsController.locale.languageCode)),
                                 trailing: DropdownButton<String>(
                                   value: widget.settingsController.locale.languageCode,
                                   underline: const SizedBox(),
-                                  items: const [
-                                    DropdownMenuItem(value: 'es', child: Text("Español")),
-                                    DropdownMenuItem(value: 'ca', child: Text("Català")),
-                                    DropdownMenuItem(value: 'en', child: Text("English")),
+                                  items: [
+                                    DropdownMenuItem(value: 'es', child: Text(t.spanish)),
+                                    DropdownMenuItem(value: 'ca', child: Text(t.catalan)),
+                                    DropdownMenuItem(value: 'en', child: Text(t.english)),
                                   ],
                                   onChanged: (v) => v != null ? widget.settingsController.setLocale(Locale(v)) : null,
                                 ),
@@ -187,7 +192,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           child: TextButton.icon(
                             onPressed: widget.onLogout,
                             icon: const Icon(Icons.logout_rounded, color: Colors.red),
-                            label: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                            label: Text(t.logout, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                               backgroundColor: Colors.red.withOpacity(0.05),
@@ -209,17 +214,22 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showEditNameDialog(String currentName, DatabaseReference ref) {
+    final t = AppStrings.of(context);
     final controller = TextEditingController(text: currentName);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Editar Nombre"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(t.editNameTitle),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: "Nuevo nombre", border: OutlineInputBorder()),
+          decoration: InputDecoration(
+            labelText: t.newNameLabel,
+            border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
           ElevatedButton(
             onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
@@ -227,7 +237,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 if (mounted) Navigator.pop(context);
               }
             },
-            child: const Text("Guardar"),
+            child: Text(t.save),
           ),
         ],
       ),
@@ -263,11 +273,46 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildSkeleton(ThemeData theme) {
+    return Scaffold(
+      body: Column(
+        children: [
+          SkeletonLoader(
+            height: 250,
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonLoader(width: 150, height: 20),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
+                    const SizedBox(width: 16),
+                    Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                SkeletonLoader(width: 150, height: 20),
+                const SizedBox(height: 16),
+                SkeletonLoader(height: 120, borderRadius: BorderRadius.circular(16)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _languageLabel(BuildContext context, String code) {
+    final t = AppStrings.of(context);
     switch (code) {
-      case 'ca': return "Català";
-      case 'en': return "English";
-      default: return "Español";
+      case 'ca': return t.catalan;
+      case 'en': return t.english;
+      default: return t.spanish;
     }
   }
 }
