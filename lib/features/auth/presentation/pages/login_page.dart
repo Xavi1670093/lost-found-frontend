@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/core/theme/app_theme.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
@@ -36,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
     if (value == null || value.trim().isEmpty) {
       return t.loginEmailRequired;
     }
-    final email = value.trim();
+    final email = value.trim().toLowerCase();
     final uabRegex = RegExp(r'^\d{7}@uab\.cat$');
     if (!uabRegex.hasMatch(email)) {
       return t.loginEmailInvalid;
@@ -55,15 +56,13 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      debugPrint("🔑 Intentando inicio de sesión...");
-
+      final email = _emailController.text.trim().toLowerCase();
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
       );
 
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
-        debugPrint("⚠️ Usuario no verificado. Forzando logout.");
         await FirebaseAuth.instance.signOut();
 
         if (!mounted) return;
@@ -80,7 +79,9 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      debugPrint("✅ Inicio de sesión exitoso.");
+      // Guardamos marca de tiempo para control de sesión (10 días)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('login_timestamp', DateTime.now().millisecondsSinceEpoch);
 
       if (!mounted) return;
 
@@ -111,7 +112,6 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _loading = false;
       });
-      debugPrint("💥 Error inesperado: $e");
     }
   }
 

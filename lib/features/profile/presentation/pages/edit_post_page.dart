@@ -41,10 +41,10 @@ class _EditPostPageState extends State<EditPostPage> {
 
   final List<String> _categories = [
     'keys',
-    'wallet',
+    'wallets',
     'devices',
     'clothes',
-    'other',
+    'others',
   ];
 
   @override
@@ -60,14 +60,14 @@ class _EditPostPageState extends State<EditPostPage> {
     );
 
     _selectedStatus = widget.post['status'] ?? 'active';
-    _selectedCategory = widget.post['category'] ?? 'other';
+    _selectedCategory = widget.post['category'] ?? 'others';
 
     if (!_statuses.contains(_selectedStatus)) {
       _selectedStatus = 'active';
     }
 
     if (!_categories.contains(_selectedCategory)) {
-      _selectedCategory = 'other';
+      _selectedCategory = 'others';
     }
   }
 
@@ -78,13 +78,19 @@ class _EditPostPageState extends State<EditPostPage> {
     setState(() => _saving = true);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('updatePostStatus');
-      await callable.call({
-        'postId': widget.postId,
+      // 1. Actualizamos campos de texto directamente en RTDB (permitido por reglas de seguridad)
+      await FirebaseDatabase.instance.ref('posts/${widget.postId}').update({
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
-        'status': _selectedStatus,
+        'updated_at': ServerValue.timestamp,
+      });
+
+      // 2. Notificamos al backend para actualizar el estado (esto dispara triggers en el servidor)
+      final callable = FirebaseFunctions.instance.httpsCallable('updatePostStatus');
+      await callable.call({
+        'postId': widget.postId,
+        'newStatus': _selectedStatus,
       });
 
       if (!mounted) return;
@@ -166,7 +172,7 @@ class _EditPostPageState extends State<EditPostPage> {
   String _categoryLabel(String category, AppStrings t) {
     switch (category) {
       case 'keys': return t.keys;
-      case 'wallet': return t.wallets;
+      case 'wallets': return t.wallets;
       case 'devices': return t.devices;
       case 'clothes': return t.clothes;
       default: return t.others;

@@ -110,8 +110,9 @@ class AppStrings {
       'report': 'Reportar',
       'searchHint': 'Buscar objetos...',
       'recentObjects': 'Objetos recientes',
-      'noObjectsIn': 'No hay objetos todavía en ',
+      'noObjectsIn': 'No hay objetos todavía en {center}',
       'noObjectsFound': 'No se encontraron objetos.',
+      'campusLocationDetail': 'Cerdanyola del Vallès, Barcelona',
       'lostStatus': 'PERDIDO',
       'foundStatus': 'ENCONTRADO',
       'defaultItemTitle': 'Objeto',
@@ -185,6 +186,7 @@ class AppStrings {
       'errorSaving': 'Error al guardar',
       'errorDeleting': 'Error al eliminar',
       'mustLogin': 'Debes iniciar sesión para ver tus publicaciones.',
+      'sessionExpired': 'Tu sesión ha caducado por seguridad después de 10 días. Por favor, inicia sesión de nuevo.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -277,8 +279,9 @@ class AppStrings {
       'report': 'Reportar',
       'searchHint': 'Cercar objectes...',
       'recentObjects': 'Objectes recents',
-      'noObjectsIn': 'Encara no hi ha objectes a ',
+      'noObjectsIn': 'Encara no hi ha objectes a {center}',
       'noObjectsFound': 'No s’han trobat objectes.',
+      'campusLocationDetail': 'Cerdanyola del Vallès, Barcelona',
       'lostStatus': 'PERDUT',
       'foundStatus': 'TROBAT',
       'defaultItemTitle': 'Objecte',
@@ -352,6 +355,7 @@ class AppStrings {
       'errorSaving': 'Error en desar',
       'errorDeleting': 'Error en eliminar',
       'mustLogin': 'Has d’iniciar la sessió per veure les teves publicacions.',
+      'sessionExpired': 'La teva sessió ha caducat per seguretat després de 10 dies. Si us plau, inicia la sessió de nou.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -444,8 +448,9 @@ class AppStrings {
       'report': 'Report',
       'searchHint': 'Search items...',
       'recentObjects': 'Recent items',
-      'noObjectsIn': 'No items yet in ',
+      'noObjectsIn': 'No items yet in {center}',
       'noObjectsFound': 'No items found.',
+      'campusLocationDetail': 'Cerdanyola del Vallès, Barcelona',
       'lostStatus': 'LOST',
       'foundStatus': 'FOUND',
       'defaultItemTitle': 'Item',
@@ -519,6 +524,7 @@ class AppStrings {
       'errorSaving': 'Error saving',
       'errorDeleting': 'Error deleting',
       'mustLogin': 'You must log in to see your posts.',
+      'sessionExpired': 'Your session has expired for security after 10 days. Please log in again.',
     },
   };
 
@@ -612,8 +618,10 @@ class AppStrings {
   String get report => _text('report');
   String get searchHint => _text('searchHint');
   String get recentObjects => _text('recentObjects');
-  String get noObjectsIn => _text('noObjectsIn');
+  String get noObjectsInRaw => _text('noObjectsIn');
+  String noObjectsIn(String center) => noObjectsInRaw.replaceAll('{center}', center);
   String get noObjectsFound => _text('noObjectsFound');
+  String get campusLocationDetail => _text('campusLocationDetail');
   String get lostStatus => _text('lostStatus');
   String get foundStatus => _text('foundStatus');
   String get defaultItemTitle => _text('defaultItemTitle');
@@ -687,6 +695,7 @@ class AppStrings {
   String get errorSaving => _text('errorSaving');
   String get errorDeleting => _text('errorDeleting');
   String get mustLogin => _text('mustLogin');
+  String get sessionExpired => _text('sessionExpired');
 
   String _text(String key) {
     return _localizedValues[locale.languageCode]?[key] ??

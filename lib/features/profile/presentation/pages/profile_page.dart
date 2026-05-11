@@ -195,7 +195,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             label: Text(t.logout, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              backgroundColor: Colors.red.withOpacity(0.05),
+                              backgroundColor: Colors.red.withValues(alpha: 0.05),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
@@ -263,7 +263,7 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 12),

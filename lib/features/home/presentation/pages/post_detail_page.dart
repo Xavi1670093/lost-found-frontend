@@ -82,7 +82,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ),
       );
     } catch (e) {
-      debugPrint('[ERROR] _contactOwner: $e');
       if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
       AppNotifications.showError(context, message);
@@ -232,7 +231,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                'Cerdanyola del Vallès, Barcelona',
+                                t.campusLocationDetail,
                                 style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                               ),
                             ],
@@ -292,7 +291,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   IconData _getCategoryIcon(String? category) {
     switch (category?.toLowerCase()) {
       case 'keys': return Icons.vpn_key_rounded;
-      case 'wallet': return Icons.account_balance_wallet_rounded;
+      case 'wallets': return Icons.account_balance_wallet_rounded;
       case 'devices': return Icons.devices_rounded;
       case 'clothes': return Icons.checkroom_rounded;
       default: return Icons.inventory_2_rounded;
@@ -302,7 +301,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   String _categoryLabel(String? category, AppStrings t) {
     switch (category?.toLowerCase()) {
       case 'keys': return t.keys;
-      case 'wallet': return t.wallets;
+      case 'wallets': return t.wallets;
       case 'devices': return t.devices;
       case 'clothes': return t.clothes;
       default: return t.others;
@@ -315,7 +314,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
       final int ts = int.tryParse(timestamp.toString()) ?? 0;
       if (ts == 0) return '';
       final date = DateTime.fromMillisecondsSinceEpoch(ts);
-      return "${date.day}/${date.month}/${date.year}";
+      final day = date.day.toString().padLeft(2, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      return "$day/$month/${date.year}";
     } catch (_) {
       return '';
     }

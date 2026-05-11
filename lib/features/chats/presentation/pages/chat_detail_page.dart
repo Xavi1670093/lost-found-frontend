@@ -44,14 +44,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         'id': messageRef.key,
         'sender_id': user.uid,
         'text': text,
-        'timestamp': now,
+        'timestamp': ServerValue.timestamp,
       });
 
-      await FirebaseDatabase.instance.ref('chats/${widget.chatId}').update({
-        'last_message': text,
-        'last_message_time': now,
-      });
-
+      // La sincronización de 'last_message' en el nodo 'chats' la gestiona el trigger 'onMessageCreated' en el servidor
       _messageController.clear();
     } catch (e) {
       final message = ErrorHandler.getMessage(e, t);
