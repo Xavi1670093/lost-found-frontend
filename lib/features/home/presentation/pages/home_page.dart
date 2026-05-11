@@ -53,251 +53,246 @@ class _HomePageState extends State<HomePage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Header with Search
-          SliverAppBar(
-            floating: true,
-            snap: true,
-            title: Text(
-              t.appName,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications_none_rounded),
-                onPressed: () {
-                  // TODO: Implementar notificaciones
-                },
-              ),
-              const SizedBox(width: 8),
-            ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(80),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: TextField(
-                  onChanged: (v) => setState(() => _searchQuery = v),
-                  decoration: InputDecoration(
-                    hintText: t.searchHint,
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.tune_rounded),
-                      onPressed: () {},
-                    ),
-                    filled: true,
-                    fillColor: theme.colorScheme.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                  ),
-                ),
-              ),
-            ),
-          ),
+      body: StreamBuilder(
+        stream: FirebaseDatabase.instance
+            .ref('posts')
+            .orderByChild('center_id')
+            .equalTo(centerId)
+            .onValue,
+        builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+          // Pre-procesamos los datos de los posts si están disponibles
+          List<Map<dynamic, dynamic>> postsList = [];
+          bool hasNoPosts = false;
+          bool isLoading = centerId == null || snapshot.connectionState == ConnectionState.waiting;
 
-          // Categories and Map
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Banner
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.8)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+          if (!isLoading) {
+            if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+              hasNoPosts = true;
+            } else {
+              for (final child in snapshot.data!.snapshot.children) {
+                final value = Map<dynamic, dynamic>.from(child.value as Map);
+                value['id'] = child.key;
+                bool categoryMatch = _matchesCategory(value['category']?.toString() ?? '', _selectedCategoryLabel, t);
+                bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+
+                if (value['is_deleted'] == false && value['status'] == 'active' && categoryMatch && searchMatch) {
+                  postsList.add(value);
+                }
+              }
+              if (postsList.isEmpty) hasNoPosts = true;
+            }
+          }
+
+          return CustomScrollView(
+            slivers: [
+              // Header with Search
+              SliverAppBar(
+                floating: true,
+                snap: true,
+                title: Text(
+                  t.appName,
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_rounded),
+                    onPressed: () {
+                      // TODO: Implementar notificaciones
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(80),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: TextField(
+                      onChanged: (v) => setState(() => _searchQuery = v),
+                      decoration: InputDecoration(
+                        hintText: t.searchHint,
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.tune_rounded),
+                          onPressed: () {},
+                        ),
+                        filled: true,
+                        fillColor: theme.colorScheme.surface,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withOpacity(0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          t.welcome,
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          t.welcomeDescription,
-                          style: TextStyle(color: Colors.white.withOpacity(0.9)),
-                        ),
-                      ],
                     ),
                   ),
                 ),
+              ),
 
-                // Categories
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      _buildCategoryChip(t.keys),
-                      _buildCategoryChip(t.wallets),
-                      _buildCategoryChip(t.devices),
-                      _buildCategoryChip(t.clothes),
-                      _buildCategoryChip(t.others),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Map Preview
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(t.preview, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    height: 180,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: theme.colorScheme.outlineVariant),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: StreamBuilder<DatabaseEvent>(
-                        stream: FirebaseDatabase.instance.ref('posts').onValue,
-                        builder: (context, snapshot) {
-                          List<Marker> markers = [];
-                          if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                            for (final child in snapshot.data!.snapshot.children) {
-                              try {
-                                final value = Map<dynamic, dynamic>.from(child.value as Map);
-                                value['id'] = child.key;
-                                final coords = value['coords'] as Map<dynamic, dynamic>?;
-                                if (coords == null) continue;
-                                
-                                final double lat = double.tryParse(coords['lat'].toString()) ?? 0.0;
-                                final double lng = double.tryParse(coords['lng'].toString()) ?? 0.0;
-
-                                markers.add(
-                                  Marker(
-                                    point: osm.LatLng(lat, lng),
-                                    width: 40,
-                                    height: 40,
-                                    child: Icon(
-                                      value['type'] == 'lost' ? Icons.location_on_rounded : Icons.location_on_rounded,
-                                      color: value['type'] == 'lost' ? Colors.orange : Colors.green,
-                                      size: 30,
-                                    ),
-                                  ),
-                                );
-                              } catch (_) {}
-                            }
-                          }
-                          return FlutterMap(
-                            options: const MapOptions(
-                              initialCenter: osm.LatLng(41.5000, 2.1075),
-                              initialZoom: 14,
+              // Categories and Map
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Banner
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                            children: [
-                              TileLayer(
-                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.example.lostfound',
-                              ),
-                              MarkerLayer(markers: markers),
-                            ],
-                          );
-                        },
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t.welcome,
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              t.welcomeDescription,
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
+
+                    // Categories
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          _buildCategoryChip(t.keys),
+                          _buildCategoryChip(t.wallets),
+                          _buildCategoryChip(t.devices),
+                          _buildCategoryChip(t.clothes),
+                          _buildCategoryChip(t.others),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Map Preview
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(t.preview, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        height: 180,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: theme.colorScheme.outlineVariant),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: StreamBuilder<DatabaseEvent>(
+                            stream: FirebaseDatabase.instance.ref('posts').onValue,
+                            builder: (context, snapshot) {
+                              List<Marker> markers = [];
+                              if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                                for (final child in snapshot.data!.snapshot.children) {
+                                  try {
+                                    final value = Map<dynamic, dynamic>.from(child.value as Map);
+                                    value['id'] = child.key;
+                                    final coords = value['coords'] as Map<dynamic, dynamic>?;
+                                    if (coords == null) continue;
+                                    
+                                    final double lat = double.tryParse(coords['lat'].toString()) ?? 0.0;
+                                    final double lng = double.tryParse(coords['lng'].toString()) ?? 0.0;
+
+                                    markers.add(
+                                      Marker(
+                                        point: osm.LatLng(lat, lng),
+                                        width: 40,
+                                        height: 40,
+                                        child: Icon(
+                                          value['type'] == 'lost' ? Icons.location_on_rounded : Icons.location_on_rounded,
+                                          color: value['type'] == 'lost' ? Colors.orange : Colors.green,
+                                          size: 30,
+                                        ),
+                                      ),
+                                    );
+                                  } catch (_) {}
+                                }
+                              }
+                              return FlutterMap(
+                                options: const MapOptions(
+                                  initialCenter: osm.LatLng(41.5000, 2.1075),
+                                  initialZoom: 14,
+                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.example.lostfound',
+                                  ),
+                                  MarkerLayer(markers: markers),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(t.recentObjects, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+
+              // Posts Grid
+              if (isLoading)
+                SkeletonLoader.postGrid()
+              else if (hasNoPosts)
+                SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Text(postsList.isEmpty && _searchQuery.isNotEmpty ? t.noObjectsFound : "${t.noObjectsIn} $centerId"),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 20,
+                      crossAxisSpacing: 20,
+                      childAspectRatio: 0.72,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _RealObjectCard(post: postsList[index]),
+                      childCount: postsList.length,
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(t.recentObjects, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-
-          // Posts Grid
-          centerId == null
-              ? SkeletonLoader.postGrid()
-              : StreamBuilder(
-                  stream: FirebaseDatabase.instance
-                      .ref('posts')
-                      .orderByChild('center_id')
-                      .equalTo(centerId)
-                      .onValue,
-                  builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return SkeletonLoader.postGrid();
-                    }
-                    if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-                      return SliverToBoxAdapter(
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(40),
-                            child: Text("${t.noObjectsIn} $centerId"),
-                          ),
-                        ),
-                      );
-                    }
-
-                    final List<Map<dynamic, dynamic>> postsList = [];
-
-                    for (final child in snapshot.data!.snapshot.children) {
-                      final value = Map<dynamic, dynamic>.from(child.value as Map);
-                      value['id'] = child.key;
-                      bool categoryMatch = _matchesCategory(value['category']?.toString() ?? '', _selectedCategoryLabel, t);
-                      bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
-
-                      if (value['is_deleted'] == false && value['status'] == 'active' && categoryMatch && searchMatch) {
-                        postsList.add(value);
-                      }
-                    }
-
-                    if (postsList.isEmpty) {
-                      return SliverToBoxAdapter(
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(40),
-                            child: Text(t.noObjectsFound),
-                          ),
-                        ),
-                      );
-                    }
-
-                    return SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 20,
-                          crossAxisSpacing: 20,
-                          childAspectRatio: 0.72,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => _RealObjectCard(post: postsList[index]),
-                          childCount: postsList.length,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        ],
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          );
+        },
       ),
     );
   }
