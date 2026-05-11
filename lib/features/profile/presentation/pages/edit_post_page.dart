@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
@@ -157,22 +158,35 @@ class _EditPostPageState extends State<EditPostPage> {
   }
 
   Future<void> _updateRelatedChatsStatus() async {
-    final chatsSnapshot = await FirebaseDatabase.instance.ref('chats').get();
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
 
-    if (chatsSnapshot.value == null) return;
+      // Bypassing global query restrictions by using user-specific indices
+      final userChatsRef = FirebaseDatabase.instance.ref('user_chats/${user.uid}');
+      final snapshot = await userChatsRef.get();
 
-    final chatsMap = chatsSnapshot.value as Map<dynamic, dynamic>;
+      if (snapshot.exists) {
+        for (final child in snapshot.children) {
+          final chatId = child.key;
+          if (chatId == null) continue;
 
-    for (final entry in chatsMap.entries) {
-      final chatId = entry.key.toString();
-      final chat = Map<dynamic, dynamic>.from(entry.value as Map);
+          final chatRef = FirebaseDatabase.instance.ref('chats/$chatId');
+          final chatSnap = await chatRef.get();
 
-      if (chat['post_id'] == widget.postId) {
-        await FirebaseDatabase.instance.ref('chats/$chatId').update({
-          'post_title': _titleController.text.trim(),
-          'post_status': _selectedStatus,
-        });
+          if (chatSnap.exists) {
+            final chatData = chatSnap.value as Map;
+            if (chatData['post_id'].toString() == widget.postId) {
+              await chatRef.update({
+                'post_title': _titleController.text.trim(),
+                'post_status': _selectedStatus,
+              });
+            }
+          }
+        }
       }
+    } catch (e) {
+      debugPrint('Error updating related chats: $e');
     }
   }
 
