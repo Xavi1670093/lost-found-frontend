@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-
+import 'package:unilost_found/shared/widgets/custom_button.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
 
 class PostDetailPage extends StatefulWidget {
@@ -20,8 +20,8 @@ class PostDetailPage extends StatefulWidget {
 class _PostDetailPageState extends State<PostDetailPage> {
   bool _isLoading = false;
 
-Future<void> _contactOwner(BuildContext context) async {
-    if (_isLoading) return; // Evita el doble click
+  Future<void> _contactOwner(BuildContext context) async {
+    if (_isLoading) return;
 
     setState(() {
       _isLoading = true;
@@ -40,7 +40,6 @@ Future<void> _contactOwner(BuildContext context) async {
       return;
     }
 
-    // Validación requerida por las reglas de seguridad del backend
     if (!currentUser.emailVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -88,7 +87,6 @@ Future<void> _contactOwner(BuildContext context) async {
       });
 
       final String chatId = result.data['chatId'];
-
       final chatSnap = await FirebaseDatabase.instance.ref('chats/$chatId').get();
 
       if (!chatSnap.exists) {
@@ -110,7 +108,6 @@ Future<void> _contactOwner(BuildContext context) async {
       );
     } catch (e) {
       if (!context.mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al abrir chat: $e'),
@@ -125,133 +122,180 @@ Future<void> _contactOwner(BuildContext context) async {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    // Note the use of widget.post here since we are in the State class
     final isLost = widget.post['type'] == 'lost';
     final theme = Theme.of(context);
     final status = widget.post['status'] ?? 'active';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.post['title'] ?? 'Detalle'),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 250,
-              width: double.infinity,
-              color: theme.colorScheme.primaryContainer,
-              child: Icon(
-                Icons.image,
-                size: 100,
-                color: theme.colorScheme.primary,
+      body: CustomScrollView(
+        slivers: [
+          // Collapsible Header with Image
+          SliverAppBar(
+            expandedHeight: 300,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Hero(
+                tag: 'post_image_${widget.post['id']}',
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.black.withOpacity(0.4), Colors.transparent, Colors.transparent],
+                    ),
+                  ),
+                  child: Icon(
+                    isLost ? Icons.search_rounded : Icons.inventory_2_outlined,
+                    size: 100,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
+          ),
+
+          // Content
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 8,
+                  // Badges
+                  Row(
                     children: [
-                      Chip(
-                        label: Text(isLost ? 'PERDIDO' : 'ENCONTRADO'),
-                        backgroundColor: isLost
-                            ? Colors.red.shade100
-                            : Colors.green.shade100,
+                      _buildStatusBadge(
+                        isLost ? 'PERDIDO' : 'ENCONTRADO',
+                        isLost ? Colors.orange : Colors.green,
                       ),
-                      Chip(
-                        label: Text(
-                          widget.post['category']?.toString().toUpperCase() ??
-                              'OTROS',
-                        ),
-                      ),
-                      Chip(
-                        label: Text(_statusLabel(status)),
-                        backgroundColor: _statusColor(status),
+                      const SizedBox(width: 8),
+                      _buildStatusBadge(
+                        widget.post['category']?.toString().toUpperCase() ?? 'OTROS',
+                        theme.colorScheme.secondary,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+
+                  // Title and Date
                   Text(
                     widget.post['title'] ?? '',
-                    style: const TextStyle(
-                      fontSize: 28,
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateTime.fromMillisecondsSinceEpoch(widget.post['created_at'] ?? 0)
+                            .toString()
+                            .split(' ')[0],
+                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Description Section
+                  Text(
+                    'Descripción',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     widget.post['description'] ?? 'Sin descripción',
-                    style: const TextStyle(fontSize: 16),
+                    style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
                   ),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.location_on_outlined),
-                    title: const Text('Ubicación'),
-                    subtitle: Text(widget.post['location'] ?? 'UAB - Campus'),
+                  const SizedBox(height: 32),
+
+                  // Info Cards
+                  _buildInfoTile(
+                    Icons.location_on_outlined,
+                    'Ubicación',
+                    widget.post['location'] ?? 'UAB - Campus',
+                    theme,
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.calendar_today_outlined),
-                    title: const Text('Publicado el'),
-                    subtitle: Text(
-                      DateTime.fromMillisecondsSinceEpoch(
-                        widget.post['created_at'] ?? 0,
-                      ).toString().split(' ')[0],
+                  _buildInfoTile(
+                    Icons.info_outline_rounded,
+                    'Estado actual',
+                    _statusLabel(status),
+                    theme,
+                  ),
+                  
+                  const SizedBox(height: 40),
+
+                  // Action Button
+                  Center(
+                    child: CustomButton(
+                      text: _isLoading ? 'Abriendo chat...' : 'Contactar con el dueño',
+                      isLoading: _isLoading,
+                      onPressed: () => _contactOwner(context),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading
-                          ? null
-                          : () => _contactOwner(context), // Se desactiva si está cargando
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.chat_bubble_outline),
-                      label:
-                          Text(_isLoading ? 'Abriendo chat...' : 'Contactar'),
-                    ),
-                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String title, String subtitle, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: theme.colorScheme.primary),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              Text(subtitle, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   static String _statusLabel(String status) {
     switch (status) {
-      case 'matched':
-        return 'Encontrado';
-      case 'returned':
-        return 'Devuelto';
-      default:
-        return 'En proceso';
-    }
-  }
-
-  static Color _statusColor(String status) {
-    switch (status) {
-      case 'matched':
-        return Colors.orange.shade100;
-      case 'returned':
-        return Colors.green.shade100;
-      default:
-        return Colors.blue.shade100;
+      case 'matched': return 'Encontrado';
+      case 'returned': return 'Devuelto';
+      default: return 'En proceso';
     }
   }
 }

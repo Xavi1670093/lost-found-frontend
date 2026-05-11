@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // AÑADIDO para el login temporal
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
-import 'login_page.dart'; // Para volver atrás
+import 'package:unilost_found/shared/widgets/custom_button.dart';
+import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 
 class RegisterPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -31,8 +31,6 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscureConfirmPassword = true;
 
   Future<void> _register() async {
-    final t = AppStrings.of(context);
-
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -42,7 +40,6 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       debugPrint("📡 Fase 1: Creando cuenta en el servidor...");
 
-      // 1. Delegar la creación al Backend (Cloud Function)
       final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('secureUniversityRegistration');
 
@@ -54,7 +51,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
       debugPrint("🔑 Fase 2: Login temporal para sesión de verificación...");
 
-      // 2. Iniciar sesión en el dispositivo para recuperar las credenciales
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -62,18 +58,14 @@ class _RegisterPageState extends State<RegisterPage> {
 
       debugPrint("📧 Fase 3: Disparando correo de verificación...");
 
-      // 3. Disparar el correo de verificación y cerrar sesión
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
         await userCredential.user!.sendEmailVerification();
-
-        // Cierre de sesión inmediato (Gatekeeping)
         await FirebaseAuth.instance.signOut();
       }
 
       if (!mounted) return;
       setState(() => _loading = false);
 
-      // Notificamos éxito y pedimos verificación
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Registro exitoso. Por favor, verifica tu correo antes de entrar (MIRAR SPAM)."),
@@ -82,17 +74,13 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       );
 
-      // Volvemos al Login
       Navigator.pop(context);
 
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      debugPrint("❌ Error de Cloud Function: [${e.code}] - ${e.message}");
-      debugPrint("❌ Detalles: ${e.details}");
       String errorMessage = "Error en el registro";
 
-      // Manejo de duplicados y errores de servidor
       if (e.code == 'already-exists') {
         errorMessage = "Este correo ya está registrado. Intenta iniciar sesión.";
       } else if (e.code == 'permission-denied') {
@@ -106,13 +94,6 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
       );
-    } on FirebaseAuthException catch (e) {
-      // Errores durante el login temporal
-      if (!mounted) return;
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error de acceso: ${e.message}"), backgroundColor: Colors.red),
-      );
     } catch (e) {
       debugPrint("💥 Error inesperado: $e");
       if (!mounted) return;
@@ -122,8 +103,6 @@ class _RegisterPageState extends State<RegisterPage> {
       );
     }
   }
-
-  // --- VALIDACIÓN Y DISEÑO (Se mantiene igual, solo he limpiado el _validateEmail) ---
 
   String? _validateEmail(String? value) {
     final t = AppStrings.of(context);
@@ -153,90 +132,109 @@ class _RegisterPageState extends State<RegisterPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.registerTitleAppBar)),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+      ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Icon(Icons.person_add_alt_1_rounded, size: 56, color: theme.colorScheme.primary),
-                        const SizedBox(height: 16),
-                        Text(t.registerTitle, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                        const SizedBox(height: 24),
-
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: InputDecoration(labelText: t.nameLabel, border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.person_outline)),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) return t.nameRequired;
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(labelText: t.emailLabel, hintText: '1234567@uab.cat', border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.email_outlined)),
-                          validator: _validateEmail,
-                        ),
-                        const SizedBox(height: 16),
-
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            labelText: t.passwordLabel,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                            ),
-                          ),
-                          validator: (value) => (value == null || value.length < 6) ? t.registerPasswordMinLength : null,
-                        ),
-                        const SizedBox(height: 16),
-
-                        TextFormField(
-                          controller: _confirmPasswordController,
-                          obscureText: _obscureConfirmPassword,
-                          decoration: InputDecoration(
-                            labelText: t.confirmPasswordLabel,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.lock_reset_outlined),
-                            suffixIcon: IconButton(
-                              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                            ),
-                          ),
-                          validator: (value) => (value != _passwordController.text) ? t.passwordsDoNotMatch : null,
-                        ),
-                        const SizedBox(height: 24),
-
-                        SizedBox(
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _loading ? null : _register,
-                            child: _loading ? const CircularProgressIndicator() : Text(t.registerButton),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextButton(onPressed: _loading ? null : () => Navigator.pop(context), child: Text(t.goToLogin)),
-                      ],
-                    ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 10),
+                Icon(
+                  Icons.person_add_rounded,
+                  size: 80,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  t.registerTitle,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
-              ),
+                const SizedBox(height: 32),
+
+                CustomTextField(
+                  label: t.nameLabel,
+                  controller: _nameController,
+                  prefixIcon: Icons.person_outline_rounded,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) return t.nameRequired;
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                CustomTextField(
+                  label: t.emailLabel,
+                  hintText: '1234567@uab.cat',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.email_outlined,
+                  validator: _validateEmail,
+                ),
+                const SizedBox(height: 20),
+
+                CustomTextField(
+                  label: t.passwordLabel,
+                  controller: _passwordController,
+                  isPassword: _obscurePassword,
+                  prefixIcon: Icons.lock_outline_rounded,
+                  suffixIcon: IconButton(
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
+                  ),
+                  validator: (value) => (value == null || value.length < 6) ? t.registerPasswordMinLength : null,
+                ),
+                const SizedBox(height: 20),
+
+                CustomTextField(
+                  label: t.confirmPasswordLabel,
+                  controller: _confirmPasswordController,
+                  isPassword: _obscureConfirmPassword,
+                  prefixIcon: Icons.lock_reset_rounded,
+                  suffixIcon: IconButton(
+                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                    icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
+                  ),
+                  validator: (value) => (value != _passwordController.text) ? t.passwordsDoNotMatch : null,
+                ),
+                const SizedBox(height: 40),
+
+                CustomButton(
+                  text: t.registerButton,
+                  isLoading: _loading,
+                  onPressed: _register,
+                ),
+                const SizedBox(height: 24),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '¿Ya tienes cuenta? ',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Text(
+                        'Inicia Sesión',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
         ),
