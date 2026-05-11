@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../features/auth/presentation/pages/login_page.dart';
-import '../../core/settings/app_settings_controller.dart';
-import '../../features/chats/presentation/pages/chats_page.dart';
-import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
-import '../../features/home/presentation/pages/found_form_screen.dart';
+import 'package:unilost_found/features/auth/presentation/pages/login_page.dart';
+import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/features/chats/presentation/pages/chats_page.dart';
+import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
+import 'package:unilost_found/features/profile/presentation/pages/profile_page.dart';
+import 'package:unilost_found/features/home/presentation/pages/found_form_screen.dart';
 
 class MainNavigationPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -15,7 +15,7 @@ class MainNavigationPage extends StatefulWidget {
 }
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
-  int _currentIndex = 0;
+  int _currentIndex = 1; // Default to Home
 
   void _showLogoutDialog() {
     showDialog(
@@ -83,7 +83,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               title: const Text("He perdido algo"),
               onTap: () {
                 Navigator.pop(context);
-                // 🚀 AQUÍ ESTÁ EL CAMBIO: Pasamos 'lost'
                 Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'lost'))
@@ -98,9 +97,10 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final pages = [
-      const HomePage(),
       const ChatsPage(),
+      const HomePage(),
       ProfilePage(
         settingsController: widget.settingsController,
         onLogout: _showLogoutDialog,
@@ -108,97 +108,37 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('UniLost & Found'),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
+      body: pages[_currentIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        destinations: const [
+          NavigationDestination(
+            selectedIcon: Icon(Icons.chat_bubble_rounded),
+            icon: Icon(Icons.chat_bubble_outline_rounded),
+            label: 'Chats',
+          ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.home_rounded),
+            icon: Icon(Icons.home_outlined),
+            label: 'Inicio',
+          ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.person_rounded),
+            icon: Icon(Icons.person_outline_rounded),
+            label: 'Perfil',
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          pages[_currentIndex],
-          Positioned(
-            right: 16,
-            bottom: 120,
-            child: FloatingActionButton(
-              heroTag: "addButton",
-              mini: true,
+      floatingActionButton: _currentIndex == 1
+          ? FloatingActionButton.extended(
               onPressed: _openOptions,
-              backgroundColor: Colors.green,
-              child: const Icon(Icons.add),
-            ),
-          ),
-        ],
-      ),
-
-      floatingActionButton: Transform.translate(
-        offset: const Offset(0, 32),
-        child: Container(
-          height: 70, width: 70,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              if (_currentIndex == 0)
-                BoxShadow(
-                  // 🚀 CORRECCIÓN AQUÍ: withValues en lugar de withOpacity
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
-                  blurRadius: 20, spreadRadius: 5,
-                ),
-            ],
-          ),
-          child: FloatingActionButton(
-            onPressed: () => setState(() => _currentIndex = 0),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            elevation: _currentIndex == 0 ? 8 : 0,
-            shape: const CircleBorder(),
-            child: Icon(
-                _currentIndex == 0 ? Icons.home : Icons.home_outlined,
-                color: Colors.white, size: 35
-            ),
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              // 🚀 CORRECCIÓN AQUÍ: withValues en lugar de withOpacity
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 15, spreadRadius: 2, offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomAppBar(
-          padding: EdgeInsets.zero,
-          height: 65,
-          color: Theme.of(context).scaffoldBackgroundColor,
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 6.0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconButton(
-                icon: Icon(_currentIndex == 1 ? Icons.chat_bubble : Icons.chat_bubble_outline),
-                color: _currentIndex == 1 ? Theme.of(context).colorScheme.primary : Colors.grey,
-                onPressed: () => setState(() => _currentIndex = 1),
-              ),
-              const SizedBox(width: 48),
-              IconButton(
-                icon: Icon(_currentIndex == 2 ? Icons.person : Icons.person_outline),
-                color: _currentIndex == 2 ? Theme.of(context).colorScheme.primary : Colors.grey,
-                onPressed: () => setState(() => _currentIndex = 2),
-              ),
-            ],
-          ),
-        ),
-      ),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Reportar'),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: Colors.white,
+            )
+          : null,
     );
   }
 }

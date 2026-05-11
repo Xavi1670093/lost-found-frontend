@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/shared/widgets/custom_button.dart';
+import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -52,30 +53,25 @@ class _LoginPageState extends State<LoginPage> {
     try {
       debugPrint("🔑 Intentando login REAL para: ${_emailController.text}");
 
-      // 1. Iniciar sesión en Firebase
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      // 2. Comprobar si el email está verificado
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
         debugPrint("⚠️ Usuario no verificado. Forzando logout.");
-
-        // Si no está verificado, forzar cierre de sesión
         await FirebaseAuth.instance.signOut();
 
         if (!mounted) return;
         setState(() => _loading = false);
 
-        // Notificar al usuario en la UI
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Debes verificar tu cuenta para acceder. Revisa tu correo."),
             backgroundColor: Colors.orange,
           ),
         );
-        return; // Detener el flujo de navegación
+        return;
       }
 
       debugPrint("✅ Login exitoso y verificado. UID: ${userCredential.user?.uid}");
@@ -86,14 +82,14 @@ class _LoginPageState extends State<LoginPage> {
         _loading = false;
       });
 
-      // 3. El usuario está verificado, navegar a la página principal
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (_) => MainNavigationPage(
             settingsController: widget.settingsController,
           ),
         ),
+        (route) => false,
       );
 
     } on FirebaseAuthException catch (e) {
@@ -112,8 +108,6 @@ class _LoginPageState extends State<LoginPage> {
       } else if (e.code == 'user-disabled') {
         message = "Esta cuenta ha sido deshabilitada.";
       }
-
-      debugPrint("❌ Error de Firebase: ${e.code}");
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: Colors.red),
@@ -141,131 +135,113 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.loginTitleAppBar),
+        backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Icon(
-                          Icons.lock_open_rounded,
-                          size: 56,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          t.loginTitle,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          t.loginSubtitle,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          decoration: InputDecoration(
-                            labelText: t.uabEmailLabel,
-                            hintText: '1234567@uab.cat',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.email_outlined),
-                          ),
-                          validator: _validateUabEmail,
-                        ),
-                        const SizedBox(height: 16),
-
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) {
-                            if (!_loading) {
-                              _login();
-                            }
-                          },
-                          decoration: InputDecoration(
-                            labelText: t.passwordLabel,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return t.passwordRequired;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-
-                        SizedBox(
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _loading ? null : _login,
-                            child: _loading
-                                ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                                : Text(t.loginButton),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        TextButton(
-                          onPressed: _loading
-                              ? null
-                              : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => RegisterPage(
-                                  settingsController:
-                                  widget.settingsController,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Text(t.goToRegister),
-                        ),
-                      ],
-                    ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+                Icon(
+                  Icons.lock_person_rounded,
+                  size: 80,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  t.loginTitle,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  t.loginSubtitle,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 48),
+
+                CustomTextField(
+                  label: t.uabEmailLabel,
+                  hintText: '1234567@uab.cat',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.email_outlined,
+                  validator: _validateUabEmail,
+                ),
+                const SizedBox(height: 20),
+
+                CustomTextField(
+                  label: t.passwordLabel,
+                  controller: _passwordController,
+                  isPassword: _obscurePassword,
+                  prefixIcon: Icons.lock_outline_rounded,
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                      size: 20,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return t.passwordRequired;
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 40),
+
+                CustomButton(
+                  text: t.loginButton,
+                  isLoading: _loading,
+                  onPressed: _login,
+                ),
+                const SizedBox(height: 24),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '¿No tienes cuenta? ',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RegisterPage(
+                              settingsController: widget.settingsController,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Regístrate',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
         ),

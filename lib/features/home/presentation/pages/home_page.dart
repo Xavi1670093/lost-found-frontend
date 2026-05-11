@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import '../../../../core/localization/app_strings.dart';
-import 'post_detail_page.dart'; // <--- IMPORTA LA NUEVA PÁGINA
+import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/shared/widgets/custom_card.dart';
+import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'post_detail_page.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as osm;
-import 'package:firebase_database/firebase_database.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,6 +19,7 @@ class _HomePageState extends State<HomePage> {
   final user = FirebaseAuth.instance.currentUser;
   String? centerId;
   String _selectedCategoryLabel = "";
+  String _searchQuery = "";
 
   @override
   void initState() {
@@ -35,234 +37,262 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // 🚀 LÓGICA DE FILTRADO: Mapea UI Labels con Backend Enums
   bool _matchesCategory(String backendCategory, String selectedLabel, AppStrings t) {
-    // Si no hay nada seleccionado (o es la primera carga), mostramos todo
     if (selectedLabel.isEmpty) return true;
-
     if (selectedLabel == t.keys && backendCategory == "keys") return true;
     if (selectedLabel == t.wallets && backendCategory == "wallet") return true;
     if (selectedLabel == t.devices && backendCategory == "devices") return true;
     if (selectedLabel == t.clothes && backendCategory == "clothing") return true;
-    if (selectedLabel == t.phones && backendCategory == "phones") return true; // Si añadís phones
     if (selectedLabel == t.others && backendCategory == "other") return true;
-
     return false;
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
+    final theme = Theme.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Banner bienvenida
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(t.welcome, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(t.welcomeDescription),
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          // Header with Search
+          SliverAppBar(
+            floating: true,
+            snap: true,
+            title: Text(
+              'UniLost & Found',
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none_rounded),
+                onPressed: () {
+                  // TODO: Implementar notificaciones
+                },
+              ),
+              const SizedBox(width: 8),
             ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(80),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: TextField(
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar objetos...',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.tune_rounded),
+                      onPressed: () {},
+                    ),
+                    filled: true,
+                    fillColor: theme.colorScheme.surface,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
 
-        const SizedBox(height: 20),
-        Text(t.preview, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
+          // Categories and Map
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Banner
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t.welcome,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          t.welcomeDescription,
+                          style: TextStyle(color: Colors.white.withOpacity(0.9)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-        // Filtros por categoría
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _buildCategoryChip(t.keys),
-              _buildCategoryChip(t.wallets),
-              _buildCategoryChip(t.devices),
-              _buildCategoryChip(t.clothes),
-              _buildCategoryChip(t.others),
-            ],
+                // Categories
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      _buildCategoryChip(t.keys),
+                      _buildCategoryChip(t.wallets),
+                      _buildCategoryChip(t.devices),
+                      _buildCategoryChip(t.clothes),
+                      _buildCategoryChip(t.others),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Map Preview
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(t.preview, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: theme.colorScheme.outlineVariant),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: StreamBuilder<DatabaseEvent>(
+                        stream: FirebaseDatabase.instance.ref('posts').onValue,
+                        builder: (context, snapshot) {
+                          List<Marker> markers = [];
+                          if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                            final postsMap = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                            postsMap.forEach((key, value) {
+                              try {
+                                final coords = value['coords'];
+                                if (coords == null) return;
+                                markers.add(
+                                  Marker(
+                                    point: osm.LatLng(coords['lat'].toDouble(), coords['lng'].toDouble()),
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(
+                                      value['type'] == 'lost' ? Icons.location_on_rounded : Icons.location_on_rounded,
+                                      color: value['type'] == 'lost' ? Colors.orange : Colors.green,
+                                      size: 30,
+                                    ),
+                                  ),
+                                );
+                              } catch (_) {}
+                            });
+                          }
+                          return FlutterMap(
+                            options: const MapOptions(
+                              initialCenter: osm.LatLng(41.5000, 2.1075),
+                              initialZoom: 14,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.example.lostfound',
+                              ),
+                              MarkerLayer(markers: markers),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('Objetos Recientes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
-        ),
 
-        const SizedBox(height: 16),
-
-        SizedBox(
-
-          height: 260,
-
-          child: StreamBuilder<DatabaseEvent>(
-
-            stream: FirebaseDatabase.instance
-                .ref('posts')
-                .onValue,
-
-            builder: (
-                context,
-                snapshot,
-                ) {
-
-              List<Marker> markers = [];
-
-              if (snapshot.hasData &&
-                  snapshot.data!.snapshot.value != null) {
-
-                final postsMap =
-                snapshot.data!.snapshot.value
-                as Map<dynamic, dynamic>;
-
-                postsMap.forEach((key, value) {
-
-                  try {
-
-                    // 📍 Coordenadas reales
-                    final coords = value['coords'];
-
-                    if (coords == null) return;
-
-                    final latitude = coords['lat'];
-                    final longitude = coords['lng'];
-
-                    if (latitude == null ||
-                        longitude == null) {
-                      return;
+          // Posts Grid
+          centerId == null
+              ? const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()))
+              : StreamBuilder(
+                  stream: FirebaseDatabase.instance
+                      .ref('posts')
+                      .orderByChild('center_id')
+                      .equalTo(centerId)
+                      .onValue,
+                  builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return SkeletonLoader.postGrid();
+                    }
+                    if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+                      return SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(40),
+                            child: Text("No hay objetos todavía en $centerId"),
+                          ),
+                        ),
+                      );
                     }
 
-                    markers.add(
+                    final Map<dynamic, dynamic> postsMap = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                    final List<Map<dynamic, dynamic>> postsList = [];
 
-                      Marker(
+                    postsMap.forEach((key, value) {
+                      bool categoryMatch = _matchesCategory(value['category'] ?? '', _selectedCategoryLabel, t);
+                      bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
 
-                        point: osm.LatLng(
-                          latitude.toDouble(),
-                          longitude.toDouble(),
-                        ),
+                      if (value['is_deleted'] == false && value['status'] == 'active' && categoryMatch && searchMatch) {
+                        postsList.add(value);
+                      }
+                    });
 
-                        width: 50,
-                        height: 50,
-
-                        child: GestureDetector(
-
-                          onTap: () {
-
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-
-                              SnackBar(
-                                content: Text(
-                                  value['title']
-                                      ?? 'Objeto',
-                                ),
-                              ),
-                            );
-                          },
-
-                          child: Icon(
-
-                            value['type'] == 'lost'
-                                ? Icons.location_pin
-                                : Icons.location_on,
-
-                            color:
-                            value['type'] == 'lost'
-                                ? Colors.orange
-                                : Colors.green,
-
-                            size: 42,
+                    if (postsList.isEmpty) {
+                      return const SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Text("No se encontraron objetos."),
                           ),
+                        ),
+                      );
+                    }
+
+                    return SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverGrid(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.75,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => _RealObjectCard(post: postsList[index]),
+                          childCount: postsList.length,
                         ),
                       ),
                     );
-
-                  } catch (e) {
-
-                    debugPrint(
-                      'Marker error: $e',
-                    );
-                  }
-                });
-              }
-
-              return ClipRRect(
-
-                borderRadius:
-                BorderRadius.circular(16),
-
-                child: FlutterMap(
-
-                  options: MapOptions(
-
-                    initialCenter:
-                    osm.LatLng(
-                      41.5000,
-                      2.1075,
-                    ),
-
-                    initialZoom: 14,
-                  ),
-
-                  children: [
-
-                    TileLayer(
-
-                      urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-
-                      userAgentPackageName:
-                      'com.example.lostfound',
-                    ),
-
-                    MarkerLayer(
-                      markers: markers,
-                    ),
-                  ],
+                  },
                 ),
-              );
-            },
-          ),
-        ),
-
-        const SizedBox(height: 20),
-        if (centerId == null)
-          const Center(child: CircularProgressIndicator())
-        else
-          StreamBuilder(
-            stream: FirebaseDatabase.instance.ref('posts')
-                .orderByChild('center_id')
-                .equalTo(centerId)
-                .onValue,
-            builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-              if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-                return Center(child: Padding(padding: const EdgeInsets.all(20), child: Text("No hay objetos todavía en $centerId")));
-              }
-
-              final Map<dynamic, dynamic> postsMap = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-              final List<Map<dynamic, dynamic>> postsList = [];
-
-              postsMap.forEach((key, value) {
-                // 🔍 APLICAMOS EL FILTRO AQUÍ
-                bool categoryMatch = _matchesCategory(value['category'] ?? '', _selectedCategoryLabel, t);
-
-                if (value['is_deleted'] == false && value['status'] == 'active' && categoryMatch) {
-                  postsList.add(value);
-                }
-              });
-
-              if (postsList.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No hay objetos en esta categoría.")));
-
-              return Column(
-                children: postsList.map((post) => _RealObjectCard(post: post)).toList(),
-              );
-            },
-          ),
-      ],
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ],
+      ),
     );
   }
 
@@ -274,10 +304,11 @@ class _HomePageState extends State<HomePage> {
         selected: _selectedCategoryLabel == label,
         onSelected: (bool selected) {
           setState(() {
-            // Si pulsas el mismo, se deselecciona y muestra todo
             _selectedCategoryLabel = selected ? label : "";
           });
         },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        showCheckmark: false,
       ),
     );
   }
@@ -290,24 +321,86 @@ class _RealObjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLost = post['type'] == 'lost';
+    final theme = Theme.of(context);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isLost ? Colors.red.shade50 : Colors.green.shade50,
-          child: Icon(isLost ? Icons.search : Icons.inventory_2_outlined, color: isLost ? Colors.red : Colors.green),
-        ),
-        title: Text(post['title'] ?? 'Objeto'),
-        subtitle: Text('${post['location'] ?? 'UAB'} · ${post['category']}'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          // 🚀 NAVEGACIÓN REAL A DETALLES
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => PostDetailPage(post: post)),
-          );
-        },
+    return CustomCard(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => PostDetailPage(post: post)),
+        );
+      },
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image/Icon Area
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Stack(
+                children: [
+                  Center(
+                    child: Icon(
+                      isLost ? Icons.search_rounded : Icons.inventory_2_outlined,
+                      size: 48,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isLost ? Colors.orange : Colors.green,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isLost ? 'PERDIDO' : 'ENCONTRADO',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Info Area
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  post['title'] ?? 'Objeto',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 12, color: theme.colorScheme.secondary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        post['location'] ?? 'UAB',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
