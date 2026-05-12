@@ -7,6 +7,7 @@ import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'post_detail_page.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as osm;
+import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,11 +21,19 @@ class _HomePageState extends State<HomePage> {
   String? centerId;
   String _selectedCategoryLabel = "";
   String _searchQuery = "";
+  late TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     _loadUserCenter();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserCenter() async {
@@ -39,12 +48,9 @@ class _HomePageState extends State<HomePage> {
 
   bool _matchesCategory(String backendCategory, String selectedLabel, AppStrings t) {
     if (selectedLabel.isEmpty) return true;
-    if (selectedLabel == t.keys && backendCategory == "keys") return true;
-    if (selectedLabel == t.wallets && backendCategory == "wallets") return true;
-    if (selectedLabel == t.devices && backendCategory == "devices") return true;
-    if (selectedLabel == t.clothes && backendCategory == "clothes") return true;
-    if (selectedLabel == t.others && backendCategory == "others") return true;
-    return false;
+    // Comparamos el label localizado de la categoría del post con el label seleccionado
+    final categoryLabel = CategoryUtils.getCategoryLabel(backendCategory, t);
+    return categoryLabel == selectedLabel;
   }
 
   @override
@@ -88,7 +94,8 @@ class _HomePageState extends State<HomePage> {
               // Header with Search
               SliverAppBar(
                 floating: true,
-                snap: true,
+                pinned: true,
+                snap: false,
                 title: Text(
                   t.appName,
                   style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -107,14 +114,25 @@ class _HomePageState extends State<HomePage> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: TextField(
+                      controller: _searchController,
                       onChanged: (v) => setState(() => _searchQuery = v),
                       decoration: InputDecoration(
                         hintText: t.searchHint,
                         prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.tune_rounded),
-                          onPressed: () {},
-                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = "");
+                                },
+                              )
+                            : IconButton(
+                                icon: const Icon(Icons.tune_rounded),
+                                onPressed: () {
+                                  // TODO: Filtros avanzados
+                                },
+                              ),
                         filled: true,
                         fillColor: theme.colorScheme.surface,
                         border: OutlineInputBorder(
@@ -176,13 +194,9 @@ class _HomePageState extends State<HomePage> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
-                        children: [
-                          _buildCategoryChip(t.keys),
-                          _buildCategoryChip(t.wallets),
-                          _buildCategoryChip(t.devices),
-                          _buildCategoryChip(t.clothes),
-                          _buildCategoryChip(t.others),
-                        ],
+                        children: CategoryUtils.categories.map((cat) {
+                          return _buildCategoryChip(CategoryUtils.getCategoryLabel(cat, t));
+                        }).toList(),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -196,57 +210,42 @@ class _HomePageState extends State<HomePage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Container(
-                        height: 180,
+                        height: 240,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: theme.colorScheme.outlineVariant),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: StreamBuilder<DatabaseEvent>(
-                            stream: FirebaseDatabase.instance.ref('posts').onValue,
-                            builder: (context, snapshot) {
-                              List<Marker> markers = [];
-                              if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                                for (final child in snapshot.data!.snapshot.children) {
-                                  try {
-                                    final value = Map<dynamic, dynamic>.from(child.value as Map);
-                                    value['id'] = child.key;
-                                    final coords = value['coords'] as Map<dynamic, dynamic>?;
-                                    if (coords == null) continue;
-                                    
-                                    final double lat = double.tryParse(coords['lat'].toString()) ?? 0.0;
-                                    final double lng = double.tryParse(coords['lng'].toString()) ?? 0.0;
+                          child: FlutterMap(
+                            options: const MapOptions(
+                              initialCenter: osm.LatLng(41.5000, 2.1075),
+                              initialZoom: 14,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.example.lostfound',
+                              ),
+                              MarkerLayer(
+                                markers: postsList.map((post) {
+                                  final coords = post['coords'] as Map<dynamic, dynamic>?;
+                                  final double lat = double.tryParse(coords?['lat'].toString() ?? '0.0') ?? 0.0;
+                                  final double lng = double.tryParse(coords?['lng'].toString() ?? '0.0') ?? 0.0;
 
-                                    markers.add(
-                                      Marker(
-                                        point: osm.LatLng(lat, lng),
-                                        width: 40,
-                                        height: 40,
-                                        child: Icon(
-                                          value['type'] == 'lost' ? Icons.location_on_rounded : Icons.location_on_rounded,
-                                          color: value['type'] == 'lost' ? Colors.orange : Colors.green,
-                                          size: 30,
-                                        ),
-                                      ),
-                                    );
-                                  } catch (_) {}
-                                }
-                              }
-                              return FlutterMap(
-                                options: const MapOptions(
-                                  initialCenter: osm.LatLng(41.5000, 2.1075),
-                                  initialZoom: 14,
-                                ),
-                                children: [
-                                  TileLayer(
-                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName: 'com.example.lostfound',
-                                  ),
-                                  MarkerLayer(markers: markers),
-                                ],
-                              );
-                            },
+                                  return Marker(
+                                    point: osm.LatLng(lat, lng),
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(
+                                      Icons.location_on_rounded,
+                                      color: post['type'] == 'lost' ? Colors.orange : Colors.green,
+                                      size: 30,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -342,26 +341,27 @@ class _RealObjectCard extends StatelessWidget {
               children: [
                 Hero(
                   tag: 'post_image_${post['id']}',
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-                          theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        _getCategoryIcon(post['category']?.toString()),
-                        size: 44,
-                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                      ),
-                    ),
+                    child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                            child: Image.network(
+                              post['imageUrl'],
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => _buildIconFallback(theme),
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : _buildIconFallback(theme),
                   ),
                 ),
                 // Status Badge
@@ -436,13 +436,27 @@ class _RealObjectCard extends StatelessWidget {
     );
   }
 
-  IconData _getCategoryIcon(String? category) {
-    switch (category?.toLowerCase()) {
-      case 'keys': return Icons.vpn_key_rounded;
-      case 'wallet': return Icons.account_balance_wallet_rounded;
-      case 'devices': return Icons.devices_rounded;
-      case 'clothes': return Icons.checkroom_rounded;
-      default: return Icons.inventory_2_rounded;
-    }
+  Widget _buildIconFallback(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Center(
+        child: Icon(
+          CategoryUtils.getCategoryIcon(post['category']?.toString()),
+          size: 44,
+          color: theme.colorScheme.primary.withValues(alpha: 0.7),
+        ),
+      ),
+    );
   }
 }

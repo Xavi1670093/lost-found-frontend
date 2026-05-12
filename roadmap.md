@@ -1,38 +1,63 @@
-# 🗺️ Roadmap: Resolución de Bugs, Mejoras Auth y Fase QA
+# Roadmap de Frontend (Flutter)
 
-Este roadmap guía la implementación de correcciones en la rama `mejorar-UX-UI`, alineando el código del Frontend con la arquitectura actual del Backend (Cloud Functions y RTDB), e incorporando las nuevas mejoras de sesión e internacionalización (i18n).
+Este documento detalla las tareas atómicas a ejecutar por el agente de IA para solucionar los bugs y añadir las nuevas funcionalidades requeridas en la aplicación Flutter.
 
-## FASE 1: Corrección de Errores Críticos (Integración Backend)
-**Objetivo:** Restaurar la funcionalidad de edición y optimizar la sincronización del chat respetando los triggers del lado del servidor.
+## 1. Cierre de Sesión Seguro (Local) y Persistencia
+* **Objetivo**: Asegurar que el cierre de sesión borre la persistencia en el dispositivo actual sin afectar a otros dispositivos, y permitir que la sesión dure hasta 10 días por defecto.
+* **Archivos implicados**: Controladores de autenticación (`lib/features/auth/presentation/...` o capa de dominio/aplicación).
+* **Instrucciones**:
+    1. En la inicialización de Firebase, configurar la persistencia de sesión a local (`browserLocalPersistence` si hay soporte web) para que el token se renueve y mantenga al usuario logueado al cerrar y abrir la app.
+    2. Al ejecutar el método de logout, llamar a `await FirebaseAuth.instance.signOut();` para eliminar el token exclusivamente en el dispositivo actual.
+    3. Borrar cualquier almacenamiento local asociado (ej. limpiar caché de usuario con `SharedPreferences` o `SecureStorage`).
+    4. Limpiar el estado global de los controladores (Riverpod, Bloc, o Provider) para que no queden datos residuales.
+    5. Redirigir al usuario forzosamente a la pantalla de Login limpiando el historial de navegación (`pushAndRemoveUntil`).
 
-- [ ] **Fix Edición de Publicaciones (`lib/features/profile/presentation/pages/edit_post_page.dart`):**
-  - **Alinear Payload con Cloud Function:** La función `updatePostStatus` en el backend espera estrictamente los parámetros `postId` y `newStatus`. Actualmente, el frontend envía un mapa con `status` (junto a título, descripción y categoría). Se debe cambiar el parámetro enviado a `newStatus: _selectedStatus`.
-  - **Actualización de Textos:** Como la Cloud Function *solo* actualiza el estado, el título, descripción y categoría deben actualizarse directamente desde el frontend hacia la Realtime Database (`FirebaseDatabase.instance.ref('posts/${widget.postId}').update({...})`), ya que las reglas en `database.rules.json` permiten la escritura en el nodo `posts` si el `user_id` coincide con el del usuario autenticado.
+## 2. Buscador de Inicio: Botón Limpiar y Persistencia al Scroll
+* **Objetivo**: Mejorar la experiencia de usuario con la barra de búsqueda en el Home.
+* **Archivos implicados**: `lib/features/home/presentation/pages/home_page.dart`.
+* **Instrucciones**:
+    1. Añadir un botón condicional en el `TextField` de búsqueda: `suffixIcon: IconButton(icon: Icon(Icons.clear), onPressed: () => searchController.clear())`. Al limpiarlo, se debe actualizar el estado para mostrar la lista completa de objetos.
+    2. Evitar que el texto se borre al hacer scroll manteniendo el `TextEditingController` como variable de estado de la clase (o en el gestor de estado) e instanciándolo solo en el `initState`.
+    3. Para que la barra se mantenga visible al bajar, extraer el `TextField` fuera de la lista scrolleable (ej. en un `Column` estático arriba del `Expanded/ListView`) o usar un `SliverAppBar` con `floating: true` y `pinned: true`.
 
-- [ ] **Fix Fallos y Latencia en el Chat (`lib/features/chats/presentation/pages/chat_detail_page.dart`):**
-  - **Eliminar Redundancia de Actualización:** El backend cuenta con un trigger (`onMessageCreated.ts`) que actualiza atómicamente el último mensaje en el nodo del chat y en los índices de todos los miembros.
-  - **Acción a tomar:** Eliminar la instrucción manual en `_sendMessage` donde el frontend hace el `update` de `chats/${widget.chatId}` con `last_message`. El frontend únicamente debe empujar (`push()`) el nuevo mensaje a la ruta `messages/${widget.chatId}` y dejar que la Cloud Function haga la sincronización. Esto evita conflictos de permisos o colisiones de datos.
+## 3. Ampliación de Categorías e Iconos por Defecto
+* **Objetivo**: Añadir las nuevas categorías con soporte para los 3 idiomas y configurar iconos por defecto.
+* **Archivos implicados**: `lib/core/localization/app_strings.dart` (o archivos `.arb`), modelos de datos, widgets de tarjeta como `lib/shared/widgets/custom_card.dart`.
+* **Instrucciones**:
+    1. Añadir las categorías: `["accessories", "clothes", "devices", "wallets", "keys", "bags", "study", "others"]`.
+    2. Configurar las traducciones de estas 8 categorías para los 3 idiomas de la app en los archivos de internacionalización.
+    3. Crear un método o mapa de constantes que asocie un `IconData` específico a cada categoría de la nueva lista.
+    4. En las tarjetas de la lista, implementar lógica de fallback: si la publicación no tiene imagen (`imageUrl` es null o vacío), renderizar un contenedor destacando el icono asociado a su categoría.
 
-## FASE 2: Mejoras de Autenticación e Inicio de Sesión
-**Objetivo:** Añadir flexibilidad en los campos de entrada y establecer el ciclo de vida de la sesión.
+## 4. Mejoras de Interfaz: Formato del Mapa y Textos "(Opcionales)"
+* **Objetivo**: Estilizar el mapa y clarificar los formularios.
+* **Archivos implicados**: `lib/features/home/presentation/pages/home_page.dart`, `lib/features/home/presentation/pages/found_form_screen.dart`, `lib/shared/widgets/custom_text_field.dart`.
+* **Instrucciones**:
+    1. Aumentar el `height` del contenedor que envuelve el mapa inicial en la vista de Home para proporcionar un formato más agradable visualmente.
+    2. Modificar el texto del `label` o `hintText` en los campos no obligatorios de los formularios para agregar el string "(Opcional)", asegurando usar la traducción correspondiente.
 
-- [ ] **Emails Case-Insensitive (`login_page.dart` y `register_page.dart`):**
-  - **Normalización Inmediata:** Aplicar la función `.trim().toLowerCase()` al texto extraído de los controladores antes de ejecutar cualquier validación. Esto es vital porque la función del backend `secureUniversityRegistration` usa una división estricta por arroba (`email.split("@")[1]`) para verificar el dominio contra el nodo de centros permitidos.
-  - **Validación Uniforme:** Comprobar que las validaciones RegEx sigan funcionando perfectamente con la cadena convertida a minúsculas.
+## 5. Edición de Texto en Campos (Solución de Cursor)
+* **Objetivo**: Solucionar el problema que obliga al usuario a borrar texto para editar palabras intermedias.
+* **Archivos implicados**: Formularios o `lib/shared/widgets/custom_text_field.dart`.
+* **Instrucciones**:
+    1. Revisar dónde se instancia el `TextEditingController` del input afectado.
+    2. Asegurarse de que el controlador no se esté recreando dentro del método `build()`. Debe declararse, inicializarse en `initState` y liberarse en `dispose()`.
+    3. Verificar que no se estén perdiendo o recreando las `Key` de los widgets padres de forma innecesaria, lo que provoca la pérdida del foco y el reseteo del cursor al final del texto.
 
-- [ ] **Persistencia de Sesión (Límite de 10 días):**
-  - **Registro de Marca de Tiempo:** Modificar el flujo de login y registro para guardar un `login_timestamp` (la fecha de entrada) en almacenamiento local seguro (`SharedPreferences` o equivalente) al iniciarse la sesión.
-  - **Verificación de Caducidad:** Al arrancar la aplicación, si Firebase reporta un usuario activo, comparar la fecha actual con el `login_timestamp`. Si el lapso es superior a 10 días, forzar `FirebaseAuth.instance.signOut()`, borrar la marca de tiempo local y redirigir al login mostrando una advertencia traducida al usuario.
+## 6. Filtrado de Pines en el Mapa
+* **Objetivo**: Que los marcadores del mapa reflejen la búsqueda de texto y/o filtro de categoría activos.
+* **Archivos implicados**: `lib/features/home/presentation/pages/home_page.dart`.
+* **Instrucciones**:
+    1. El `Set<Marker>` usado por el mapa debe generarse iterando sobre la **lista filtrada** de publicaciones, no sobre la lista total.
+    2. Cada vez que cambie el valor del buscador de texto o la categoría seleccionada, regenerar los marcadores.
+    3. Refrescar la vista del mapa para que los pines visibles cambien dinámicamente según lo que ve el usuario en la lista principal.
 
-## FASE 3: Cobertura Total de Internacionalización (i18n)
-**Objetivo:** Erradicar textos estáticos (hardcodeados) y asegurar la triple cobertura idiomática.
-
-- [ ] **Auditoría de Formularios y Errores:** Validar que los SnackBar de fallos (en los bloques catch de las funciones corregidas) usen estrictamente `AppStrings.of(context)`.
-- [ ] **Nuevas Claves en Diccionarios:** Añadir la nueva clave para la sesión caducada ("Tu sesión ha caducado por seguridad después de 10 días...") a los archivos de Español (por defecto), Inglés y Catalán para mantener la simetría de las traducciones.
-
-## FASE 4: Optimización y Seguridad
-**Objetivo:** Garantizar un rendimiento óptimo de la UI y prevenir fugas de datos sensibles.
-
-- [ ] **Gestión de Memoria (Dispose):** Verificar `edit_post_page.dart` y el chat para asegurar que todos los `TextEditingController` sean liberados en los métodos `dispose()`.
-- [ ] **Limpieza de Trazas:** Sustituir los usos de `debugPrint` o `print` que expongan pasos del registro o login por métodos que se oculten automáticamente en modo "Release".
-- [ ] **Reconstrucción del Árbol (FPS):** Intervenir en los ListView de chats y posts para envolver widgets estáticos (iconos fijos, paddings, divisores) con el modificador `const`, ahorrando carga a la GPU.
+## 7. Solución: Subida de Fotos y Guardado en Base de Datos
+* **Objetivo**: Permitir adjuntar y visualizar imágenes en las publicaciones, vinculando el almacenamiento con la base de datos.
+* **Archivos implicados**: `lib/features/home/presentation/pages/found_form_screen.dart`, capa de repositorio (Firestore y Storage).
+* **Instrucciones**:
+    1. Utilizar `image_picker` para seleccionar la imagen localmente.
+    2. Subir el archivo a `FirebaseStorage` en la ruta correspondiente (ej. `posts/{userId}_{timestamp}.jpg`).
+    3. Mostrar un indicador de carga mientras se espera el `await uploadTask`.
+    4. Obtener la URL pública usando `getDownloadURL()` tras la subida exitosa.
+    5. Incluir esta URL en el mapa de datos que se enviará a Firestore (`imageUrl` o `images: []`) al momento de crear el documento de la publicación.
