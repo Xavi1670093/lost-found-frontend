@@ -335,34 +335,34 @@ class _RealObjectCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image/Icon Area with Badge
+          // Area de Imagen/Icono con Badge
           Expanded(
             child: Stack(
               children: [
                 Hero(
                   tag: 'post_image_${post['id']}',
-                    child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                            child: Image.network(
-                              post['imageUrl'],
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => _buildIconFallback(theme),
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                        : null,
-                                  ),
-                                );
-                              },
-                            ),
-                          )
-                        : _buildIconFallback(theme),
-                  ),
+                  child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                          child: Image.network(
+                            post['imageUrl'],
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => _buildIconFallback(theme),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : _buildIconFallback(theme),
                 ),
                 // Status Badge
                 Positioned(
@@ -395,7 +395,7 @@ class _RealObjectCard extends StatelessWidget {
               ],
             ),
           ),
-          // Info Area
+          // Area de Informacion
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -413,7 +413,8 @@ class _RealObjectCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.location_on_rounded, size: 14, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                    Icon(Icons.location_on_rounded,
+                        size: 14, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
