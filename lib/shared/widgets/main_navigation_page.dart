@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
-import 'package:unilost_found/features/auth/presentation/pages/login_page.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/chats/presentation/pages/chats_page.dart';
 import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
 import 'package:unilost_found/features/profile/presentation/pages/profile_page.dart';
 import 'package:unilost_found/features/home/presentation/pages/found_form_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:unilost_found/features/welcome/presentation/pages/welcome_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -16,7 +18,7 @@ class MainNavigationPage extends StatefulWidget {
 }
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
-  int _currentIndex = 1; // Default to Home
+  static int _currentIndex = 1; // Default to Home, static to persist across rebuilds
 
   void _showLogoutDialog() {
     final t = AppStrings.of(context);
@@ -47,15 +49,26 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               elevation: 0,
               minimumSize: const Size(120, 44),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogContext);
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => LoginPage(settingsController: widget.settingsController),
-                ),
-                    (route) => false,
-              );
+              
+              // 1. Sign out from Firebase (clears token on current device)
+              await FirebaseAuth.instance.signOut();
+              
+              // 2. Clear local storage associated with the session
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('login_timestamp');
+
+              // 3. Force redirect to Login/Welcome page clearing navigation history
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WelcomePage(settingsController: widget.settingsController),
+                  ),
+                  (route) => false,
+                );
+              }
             },
             child: Text(t.logout),
           ),

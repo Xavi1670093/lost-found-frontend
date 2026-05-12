@@ -1,38 +1,47 @@
-# 🗺️ Roadmap: Resolución de Bugs, Mejoras Auth y Fase QA
+# Roadmap de Desarrollo - Frontend (Flutter)
 
-Este roadmap guía la implementación de correcciones en la rama `mejorar-UX-UI`, alineando el código del Frontend con la arquitectura actual del Backend (Cloud Functions y RTDB), e incorporando las nuevas mejoras de sesión e internacionalización (i18n).
+Este documento contiene las instrucciones atómicas para implementar las nuevas funcionalidades y correcciones visuales y de interacción en la aplicación Flutter.
 
-## FASE 1: Corrección de Errores Críticos (Integración Backend)
-**Objetivo:** Restaurar la funcionalidad de edición y optimizar la sincronización del chat respetando los triggers del lado del servidor.
+## 1. Corrección de navegación al editar perfil
+**Objetivo:** Evitar que la app regrese a la pantalla inicial tras guardar la configuración.
+* **Paso 1:** Localizar el archivo de la vista de edición de perfil (ej. `lib/features/profile/presentation/pages/profile_page.dart` o `edit_profile_page.dart`).
+* **Paso 2:** Buscar el manejador del botón de "Guardar".
+* **Paso 3:** Reemplazar cualquier uso de `Navigator.pushAndRemoveUntil`, `pushReplacement` o enrutamientos que limpien la pila de navegación. Utilizar `Navigator.pop(context)` una vez que la llamada al backend responda con éxito, para volver limpiamente a la pantalla anterior.
+* **Paso 4:** Manejar correctamente el estado de carga (mostrar un `CircularProgressIndicator` o similar) para evitar que el usuario pulse múltiples veces mientras se guarda.
 
-- [ ] **Fix Edición de Publicaciones (`lib/features/profile/presentation/pages/edit_post_page.dart`):**
-  - **Alinear Payload con Cloud Function:** La función `updatePostStatus` en el backend espera estrictamente los parámetros `postId` y `newStatus`. Actualmente, el frontend envía un mapa con `status` (junto a título, descripción y categoría). Se debe cambiar el parámetro enviado a `newStatus: _selectedStatus`.
-  - **Actualización de Textos:** Como la Cloud Function *solo* actualiza el estado, el título, descripción y categoría deben actualizarse directamente desde el frontend hacia la Realtime Database (`FirebaseDatabase.instance.ref('posts/${widget.postId}').update({...})`), ya que las reglas en `database.rules.json` permiten la escritura en el nodo `posts` si el `user_id` coincide con el del usuario autenticado.
+## 2. Visualización global de fotos
+**Objetivo:** Cargar y mostrar imágenes en vistas de detalle y perfil, no solo en el feed.
+* **Paso 1:** Revisar los archivos `post_detail_page.dart` y `user_posts_page.dart`.
+* **Paso 2:** Implementar el mismo widget de renderizado de imágenes usado en el feed (preferiblemente usando `CachedNetworkImage` para aprovechar el almacenamiento en caché de los archivos `.webp`).
+* **Paso 3:** Manejar los estados de error (imagen no disponible) y carga para una UI fluida.
 
-- [ ] **Fix Fallos y Latencia en el Chat (`lib/features/chats/presentation/pages/chat_detail_page.dart`):**
-  - **Eliminar Redundancia de Actualización:** El backend cuenta con un trigger (`onMessageCreated.ts`) que actualiza atómicamente el último mensaje en el nodo del chat y en los índices de todos los miembros.
-  - **Acción a tomar:** Eliminar la instrucción manual en `_sendMessage` donde el frontend hace el `update` de `chats/${widget.chatId}` con `last_message`. El frontend únicamente debe empujar (`push()`) el nuevo mensaje a la ruta `messages/${widget.chatId}` y dejar que la Cloud Function haga la sincronización. Esto evita conflictos de permisos o colisiones de datos.
+## 3. Botón de centrado de ubicación en el mapa
+**Objetivo:** Añadir un control para que el usuario pueda centrar el mapa en su ubicación actual.
+* **Paso 1:** Localizar el archivo que contiene la vista del mapa (integración con Google Maps o Mapbox).
+* **Paso 2:** Añadir un `FloatingActionButton` posicionado sobre el mapa de forma que no colisione con otros elementos.
+* **Paso 3:** En el evento `onPressed`, utilizar el servicio de ubicación (`lib/core/services/permission_service.dart`) para obtener las coordenadas actuales del dispositivo, solicitando permisos si es necesario.
+* **Paso 4:** Invocar al controlador del mapa para animar la cámara hacia las coordenadas obtenidas con un nivel de zoom adecuado.
 
-## FASE 2: Mejoras de Autenticación e Inicio de Sesión
-**Objetivo:** Añadir flexibilidad en los campos de entrada y establecer el ciclo de vida de la sesión.
+## 4. Edición de foto de perfil y sincronización con el Backend
+**Objetivo:** Permitir cambiar la foto de perfil, enviando la imagen en el formato correcto y reaccionando a la compresión del backend.
+* **Paso 1:** En la interfaz de edición de perfil, añadir un widget interactivo para abrir el `ImagePicker` asegurando que los archivos seleccionables sean compatibles (`jpg/jpeg` o `png`), para cumplir con las nuevas reglas de Storage.
+* **Paso 2:** Subir el archivo original a Firebase Storage en la ruta designada (`users/{userId}/profile_image`), indicando correctamente su `contentType`.
+* **Paso 3:** Puesto que el backend ahora se encarga de reescalar y convertir a `.webp` de forma asíncrona mediante una Cloud Function, mostrar un indicador de carga permanente en la foto de perfil mientras ocurre el proceso en la nube.
+* **Paso 4:** Implementar un `StreamBuilder` (o actualizar el estado del Provider/Bloc escuchando cambios en tiempo real) sobre el documento del usuario en Firestore (`users/{userId}`). Cuando el campo `photoUrl` cambie a la nueva URL `.webp`, ocultar el estado de carga y renderizar la nueva imagen optimizada.
 
-- [ ] **Emails Case-Insensitive (`login_page.dart` y `register_page.dart`):**
-  - **Normalización Inmediata:** Aplicar la función `.trim().toLowerCase()` al texto extraído de los controladores antes de ejecutar cualquier validación. Esto es vital porque la función del backend `secureUniversityRegistration` usa una división estricta por arroba (`email.split("@")[1]`) para verificar el dominio contra el nodo de centros permitidos.
-  - **Validación Uniforme:** Comprobar que las validaciones RegEx sigan funcionando perfectamente con la cadena convertida a minúsculas.
+## 5. Búsqueda extendida en descripciones
+**Objetivo:** Conectar el frontend con la nueva funcionalidad de backend para búsquedas.
+* **Paso 1:** Comprobar el widget del buscador (`custom_text_field.dart` o vista de feed).
+* **Paso 2:** Asegurar que el término de búsqueda se envía correctamente como parámetro en la llamada a Firebase.
+* **Paso 3:** Verificar que los resultados mostrados en la lista pinten correctamente los elementos independientemente de si la coincidencia fue en el título o la descripción.
 
-- [ ] **Persistencia de Sesión (Límite de 10 días):**
-  - **Registro de Marca de Tiempo:** Modificar el flujo de login y registro para guardar un `login_timestamp` (la fecha de entrada) en almacenamiento local seguro (`SharedPreferences` o equivalente) al iniciarse la sesión.
-  - **Verificación de Caducidad:** Al arrancar la aplicación, si Firebase reporta un usuario activo, comparar la fecha actual con el `login_timestamp`. Si el lapso es superior a 10 días, forzar `FirebaseAuth.instance.signOut()`, borrar la marca de tiempo local y redirigir al login mostrando una advertencia traducida al usuario.
+## 6. Corrección de solapamiento de pop-ups y botones (UI)
+**Objetivo:** Solucionar los problemas visuales donde la barra de búsqueda y editar perfil se solapan o desbordan.
+* **Paso 1:** Analizar el árbol de widgets donde ocurre el solapamiento. Comprobar la implementación correcta de `SafeArea`.
+* **Paso 2:** Reemplazar posicionamientos absolutos que generen conflictos. Utilizar `Column`, `Expanded` o envolver elementos en `Flexible` para evitar errores de Overflow.
+* **Paso 3:** Asegurar que los modales y barras de búsqueda respeten el teclado virtual (usando `resizeToAvoidBottomInset: true` en el `Scaffold` o ajustando márgenes dinámicamente con `MediaQuery`).
 
-## FASE 3: Cobertura Total de Internacionalización (i18n)
-**Objetivo:** Erradicar textos estáticos (hardcodeados) y asegurar la triple cobertura idiomática.
-
-- [ ] **Auditoría de Formularios y Errores:** Validar que los SnackBar de fallos (en los bloques catch de las funciones corregidas) usen estrictamente `AppStrings.of(context)`.
-- [ ] **Nuevas Claves en Diccionarios:** Añadir la nueva clave para la sesión caducada ("Tu sesión ha caducado por seguridad después de 10 días...") a los archivos de Español (por defecto), Inglés y Catalán para mantener la simetría de las traducciones.
-
-## FASE 4: Optimización y Seguridad
-**Objetivo:** Garantizar un rendimiento óptimo de la UI y prevenir fugas de datos sensibles.
-
-- [ ] **Gestión de Memoria (Dispose):** Verificar `edit_post_page.dart` y el chat para asegurar que todos los `TextEditingController` sean liberados en los métodos `dispose()`.
-- [ ] **Limpieza de Trazas:** Sustituir los usos de `debugPrint` o `print` que expongan pasos del registro o login por métodos que se oculten automáticamente en modo "Release".
-- [ ] **Reconstrucción del Árbol (FPS):** Intervenir en los ListView de chats y posts para envolver widgets estáticos (iconos fijos, paddings, divisores) con el modificador `const`, ahorrando carga a la GPU.
+## 7. Soporte Multi-idioma (Internacionalización)
+**Objetivo:** Garantizar que los nuevos textos de UI estén disponibles en todos los idiomas soportados.
+* **Paso 1:** Identificar todas las cadenas de texto nuevas (ej. errores de formato de imagen, centrado de mapa).
+* **Paso 2:** Añadir las traducciones correspondientes en el archivo `lib/core/localization/app_strings.dart` o equivalentes, abarcando el español, inglés y el tercer idioma de la app.

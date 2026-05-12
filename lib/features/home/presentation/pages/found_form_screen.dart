@@ -4,12 +4,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class FoundFormScreen extends StatefulWidget {
   final String postType;
@@ -29,8 +31,15 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   bool _isPublishing = false;
 
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
+  late TextEditingController titleController;
+  late TextEditingController descriptionController;
+
+  @override
+  void initState() {
+    super.initState();
+    titleController = TextEditingController();
+    descriptionController = TextEditingController();
+  }
 
   String? selectedCategoryKey;
   DateTime? selectedDate;
@@ -99,6 +108,14 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final postsRef = FirebaseDatabase.instance.ref('posts');
       final newPostRef = postsRef.push();
 
+      String imageUrl = "";
+      if (imageFile != null) {
+        final storageRef = FirebaseStorage.instance.ref().child('posts/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+        final uploadTask = storageRef.putFile(imageFile!);
+        final snapshotTask = await uploadTask;
+        imageUrl = await snapshotTask.ref.getDownloadURL();
+      }
+
       await newPostRef.set({
         'id': newPostRef.key,
         'user_id': user.uid,
@@ -112,9 +129,9 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
           'lat': _currentPosition?.latitude ?? 41.500,
           'lng': _currentPosition?.longitude ?? 2.110,
         },
-        'photo_path': '',
-        'created_at': DateTime.now().millisecondsSinceEpoch,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
+        'imageUrl': imageUrl,
+        'created_at': ServerValue.timestamp,
+        'updated_at': ServerValue.timestamp,
         'is_deleted': false,
       });
 
@@ -144,11 +161,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final isFound = widget.postType == 'found';
 
     final Map<String, String> categories = {
-      'keys': t.keys,
-      'wallets': t.wallets,
-      'devices': t.devices,
-      'clothes': t.clothes,
-      'others': t.others,
+      for (var cat in CategoryUtils.categories) cat: CategoryUtils.getCategoryLabel(cat, t),
     };
 
     return Scaffold(
@@ -230,7 +243,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     const SizedBox(height: 32),
 
                     CustomTextField(
-                      label: t.descriptionDetails,
+                      label: "${t.descriptionDetails} ${t.optional}",
                       hintText: t.descriptionHint,
                       controller: descriptionController,
                       maxLines: 4,
