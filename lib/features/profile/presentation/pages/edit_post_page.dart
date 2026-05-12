@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
@@ -217,13 +216,13 @@ class _EditPostPageState extends State<EditPostPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: const InputDecoration(border: InputBorder.none),
                     items: _categories.map((category) {
                       return DropdownMenuItem(
@@ -245,13 +244,13 @@ class _EditPostPageState extends State<EditPostPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedStatus,
+                    initialValue: _selectedStatus,
                     decoration: const InputDecoration(border: InputBorder.none),
                     items: _statuses.map((status) {
                       return DropdownMenuItem(

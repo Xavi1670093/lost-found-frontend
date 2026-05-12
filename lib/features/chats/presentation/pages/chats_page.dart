@@ -55,7 +55,7 @@ class ChatsPage extends StatelessWidget {
               }
 
               return ListView.separated(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
                 itemCount: chats.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
@@ -157,6 +157,10 @@ class ChatsPage extends StatelessWidget {
                     ),
                   );
                 },
+                // Añadimos un espaciador al final para que la barra de navegación no tape el último chat
+                // Como ListView.separated no permite añadir un ítem extra fácilmente sin cambiar el itemCount,
+                // podemos añadir el espaciador al padding inferior del ListView o añadir un ítem vacío.
+                // Usaremos el padding del ListView para mayor limpieza.
               );
             },
           );

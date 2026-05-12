@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'post_detail_page.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as osm;
+import 'package:geolocator/geolocator.dart';
+import 'package:unilost_found/core/services/permission_service.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class HomePage extends StatefulWidget {
@@ -22,11 +26,13 @@ class _HomePageState extends State<HomePage> {
   String _selectedCategoryLabel = "";
   String _searchQuery = "";
   late TextEditingController _searchController;
+  late MapController _mapController;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _mapController = MapController();
     _loadUserCenter();
   }
 
@@ -51,6 +57,25 @@ class _HomePageState extends State<HomePage> {
     // Comparamos el label localizado de la categoría del post con el label seleccionado
     final categoryLabel = CategoryUtils.getCategoryLabel(backendCategory, t);
     return categoryLabel == selectedLabel;
+  }
+
+  Future<void> _centerOnUserLocation() async {
+    final t = AppStrings.of(context);
+    final hasPermission = await PermissionService.requestLocation();
+    if (!hasPermission) return;
+
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      
+      _mapController.move(
+        osm.LatLng(position.latitude, position.longitude),
+        15.0,
+      );
+    } catch (e) {
+      if (mounted) AppNotifications.showError(context, t.locationError);
+    }
   }
 
   @override
@@ -79,12 +104,16 @@ class _HomePageState extends State<HomePage> {
                 final value = Map<dynamic, dynamic>.from(child.value as Map);
                 value['id'] = child.key;
                 bool categoryMatch = _matchesCategory(value['category']?.toString() ?? '', _selectedCategoryLabel, t);
-                bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+                bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                    (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
 
                 if (value['is_deleted'] == false && value['status'] == 'active' && categoryMatch && searchMatch) {
                   postsList.add(value);
                 }
               }
+              // Ordenar por fecha: más recientes primero
+              postsList.sort((a, b) => (b['created_at'] ?? 0).compareTo(a['created_at'] ?? 0));
+              
               if (postsList.isEmpty) hasNoPosts = true;
             }
           }
@@ -217,36 +246,52 @@ class _HomePageState extends State<HomePage> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: FlutterMap(
-                            options: const MapOptions(
-                              initialCenter: osm.LatLng(41.5000, 2.1075),
-                              initialZoom: 14,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.example.lostfound',
+                        child: Stack(
+                          children: [
+                            FlutterMap(
+                              mapController: _mapController,
+                              options: const MapOptions(
+                                initialCenter: osm.LatLng(41.5000, 2.1075),
+                                initialZoom: 14,
                               ),
-                              MarkerLayer(
-                                markers: postsList.map((post) {
-                                  final coords = post['coords'] as Map<dynamic, dynamic>?;
-                                  final double lat = double.tryParse(coords?['lat'].toString() ?? '0.0') ?? 0.0;
-                                  final double lng = double.tryParse(coords?['lng'].toString() ?? '0.0') ?? 0.0;
+                              children: [
+                                TileLayer(
+                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'com.example.lostfound',
+                                ),
+                                MarkerLayer(
+                                  markers: postsList.map((post) {
+                                    final coords = post['coords'] as Map<dynamic, dynamic>?;
+                                    final double lat = double.tryParse(coords?['lat'].toString() ?? '0.0') ?? 0.0;
+                                    final double lng = double.tryParse(coords?['lng'].toString() ?? '0.0') ?? 0.0;
 
-                                  return Marker(
-                                    point: osm.LatLng(lat, lng),
-                                    width: 40,
-                                    height: 40,
-                                    child: Icon(
-                                      Icons.location_on_rounded,
-                                      color: post['type'] == 'lost' ? Colors.orange : Colors.green,
-                                      size: 30,
-                                    ),
-                                  );
-                                }).toList(),
+                                    return Marker(
+                                      point: osm.LatLng(lat, lng),
+                                      width: 40,
+                                      height: 40,
+                                      child: Icon(
+                                        Icons.location_on_rounded,
+                                        color: post['type'] == 'lost' ? Colors.orange : Colors.green,
+                                        size: 30,
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                            Positioned(
+                              right: 12,
+                              bottom: 12,
+                              child: FloatingActionButton.small(
+                                heroTag: 'center_map_fab',
+                                onPressed: _centerOnUserLocation,
+                                backgroundColor: theme.colorScheme.surface,
+                                foregroundColor: theme.colorScheme.primary,
+                                child: const Icon(Icons.my_location_rounded),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
                         ),
                       ),
                     ),
@@ -344,22 +389,17 @@ class _RealObjectCard extends StatelessWidget {
                   child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
                       ? ClipRRect(
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                          child: Image.network(
-                            post['imageUrl'],
+                          child: CachedNetworkImage(
+                            imageUrl: post['imageUrl'],
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildIconFallback(theme),
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                ),
-                              );
-                            },
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => _buildIconFallback(theme),
                           ),
                         )
                       : _buildIconFallback(theme),

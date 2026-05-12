@@ -86,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // Guardamos marca de tiempo para control de sesión (10 días)
+      // Guardamos marca de tiempo para control de sesión (14 días)
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('login_timestamp', DateTime.now().millisecondsSinceEpoch);
 

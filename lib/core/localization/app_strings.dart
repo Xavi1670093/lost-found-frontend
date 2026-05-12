@@ -187,8 +187,10 @@ class AppStrings {
       'errorSaving': 'Error al guardar',
       'errorDeleting': 'Error al eliminar',
       'mustLogin': 'Debes iniciar sesión para ver tus publicaciones.',
-      'sessionExpired': 'Tu sesión ha caducado por seguridad después de 10 días. Por favor, inicia sesión de nuevo.',
+      'sessionExpired': 'Tu sesión ha caducado por seguridad después de 14 días. Por favor, inicia sesión de nuevo.',
       'optional': '(Opcional)',
+      'unsupportedFormat': 'Formato no soportado. Usa JPG o PNG.',
+      'editPhotoSuccess': 'Foto de perfil actualizada.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -358,8 +360,10 @@ class AppStrings {
       'errorSaving': 'Error en desar',
       'errorDeleting': 'Error en eliminar',
       'mustLogin': 'Has d’iniciar la sessió per veure les teves publicacions.',
-      'sessionExpired': 'La teva sessió ha caducat per seguretat després de 10 dies. Si us plau, inicia la sessió de nou.',
+      'sessionExpired': 'La teva sessió ha caducat per seguretat després de 14 dies. Si us plau, inicia la sessió de nou.',
       'optional': '(Opcional)',
+      'unsupportedFormat': 'Format no suportat. Usa JPG o PNG.',
+      'editPhotoSuccess': 'Foto de perfil actualitzada.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -529,8 +533,10 @@ class AppStrings {
       'errorSaving': 'Error saving',
       'errorDeleting': 'Error deleting',
       'mustLogin': 'You must log in to see your posts.',
-      'sessionExpired': 'Your session has expired for security after 10 days. Please log in again.',
+      'sessionExpired': 'Your session has expired for security after 14 days. Please log in again.',
       'optional': '(Optional)',
+      'unsupportedFormat': 'Unsupported format. Use JPG or PNG.',
+      'editPhotoSuccess': 'Profile picture updated.',
     },
   };
 
@@ -704,6 +710,8 @@ class AppStrings {
   String get mustLogin => _text('mustLogin');
   String get sessionExpired => _text('sessionExpired');
   String get optional => _text('optional');
+  String get unsupportedFormat => _text('unsupportedFormat');
+  String get editPhotoSuccess => _text('editPhotoSuccess');
 
   String _text(String key) {
     return _localizedValues[locale.languageCode]?[key] ??

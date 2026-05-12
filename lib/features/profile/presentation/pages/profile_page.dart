@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'package:unilost_found/core/services/permission_service.dart';
 import 'user_posts_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -22,6 +28,56 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  bool _isUploadingPhoto = false;
+  int _imageVersion = DateTime.now().millisecondsSinceEpoch;
+
+  Future<void> _pickAndUploadPhoto(DatabaseReference ref, String userId) async {
+    final t = AppStrings.of(context);
+    
+    // 1. Solicitar permisos y elegir imagen
+    final hasPermission = await PermissionService.requestCamera();
+    if (!hasPermission) return;
+
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (pickedFile == null) return;
+
+    // 2. Validar formato (jpg/jpeg o png)
+    final path = pickedFile.path.toLowerCase();
+    if (!path.endsWith('.jpg') && !path.endsWith('.jpeg') && !path.endsWith('.png')) {
+      if (mounted) AppNotifications.showError(context, t.unsupportedFormat);
+      return;
+    }
+
+    setState(() => _isUploadingPhoto = true);
+
+    try {
+      // 3. Subir a Firebase Storage
+      final file = File(pickedFile.path);
+      final storageRef = FirebaseStorage.instance.ref().child('users/$userId/profile_image');
+      
+      final metadata = SettableMetadata(
+        contentType: path.endsWith('.png') ? 'image/png' : 'image/jpeg',
+      );
+
+      await storageRef.putFile(file, metadata);
+      
+      // Ya NO actualizamos el RTDB manualmente aquí. 
+      // Dejamos que el backend procese la imagen a .webp y actualice el campo 'photoUrl'.
+      debugPrint("ULF_DEBUG: Upload finished, waiting for backend processing...");
+      
+    } catch (e) {
+      if (mounted) {
+        AppNotifications.showError(context, t.errorSaving);
+        setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
@@ -41,15 +97,43 @@ class _ProfilePageState extends State<ProfilePage> {
           return _buildSkeleton(theme);
         }
 
-        String userName = t.loading;
+        String userName = t.defaultUserName;
         String userRole = t.studentRole;
         String centerId = "UAB";
+        String? photoUrl;
+        String updatedAt = '';
 
         if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
           final data = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
+          updatedAt = data['updated_at']?.toString() ?? '';
           userName = data['name'] ?? t.defaultUserName;
           userRole = data['role'] == 'admin' ? t.adminRole : t.studentRole;
           centerId = (data['center_id'] ?? "uab").toString().toLowerCase();
+          final snakeUrl = data['photo_url']?.toString();
+          final camelUrl = data['photoUrl']?.toString();
+          
+          // Priorizamos la URL que contenga .webp (procesada por el backend)
+          if (camelUrl != null && camelUrl.contains('.webp')) {
+            photoUrl = camelUrl;
+          } else if (snakeUrl != null && snakeUrl.contains('.webp')) {
+            photoUrl = snakeUrl;
+          } else {
+            photoUrl = camelUrl ?? snakeUrl ?? data['imageUrl'];
+          }
+          
+          debugPrint("ULF_DEBUG: Final photoUrl: $photoUrl");
+          
+          if (_isUploadingPhoto && photoUrl != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _isUploadingPhoto = false;
+                  _imageVersion = DateTime.now().millisecondsSinceEpoch;
+                });
+                AppNotifications.showSuccess(context, t.editPhotoSuccess);
+              }
+            });
+          }
         }
 
         return AnimatedBuilder(
@@ -74,13 +158,32 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           Stack(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                                child: CircleAvatar(
-                                  radius: 50,
-                                  backgroundColor: theme.colorScheme.primaryContainer,
-                                  child: Icon(Icons.person_rounded, size: 50, color: theme.colorScheme.primary),
+                              GestureDetector(
+                                onTap: () => _pickAndUploadPhoto(userRef, user.uid),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                  child: CircleAvatar(
+                                    radius: 50,
+                                    backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                    child: _isUploadingPhoto
+                                        ? const CircularProgressIndicator()
+                                        : photoUrl != null
+                                            ? ClipOval(
+                                                child: CachedNetworkImage(
+                                                  imageUrl: "$photoUrl?v=$_imageVersion",
+                                                  width: 100,
+                                                  height: 100,
+                                                  fit: BoxFit.cover,
+                                                  placeholder: (context, url) => const CircularProgressIndicator(),
+                                                  errorWidget: (context, url, error) {
+                                                     debugPrint("ULF_DEBUG: Image load error: $error");
+                                                     return Icon(Icons.person_rounded, size: 50, color: theme.colorScheme.primary);
+                                                   },
+                                                ),
+                                              )
+                                            : Icon(Icons.person_rounded, size: 50, color: theme.colorScheme.primary),
+                                  ),
                                 ),
                               ),
                               Positioned(
@@ -200,7 +303,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 120),
                       ]),
                     ),
                   ),
@@ -216,30 +319,57 @@ class _ProfilePageState extends State<ProfilePage> {
   void _showEditNameDialog(String currentName, DatabaseReference ref) {
     final t = AppStrings.of(context);
     final controller = TextEditingController(text: currentName);
+    bool isSaving = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(t.editNameTitle),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: t.newNameLabel,
-            border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(t.editNameTitle),
+          content: TextField(
+            controller: controller,
+            enabled: !isSaving,
+            decoration: InputDecoration(
+              labelText: t.newNameLabel,
+              border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(context),
+              child: Text(t.cancel),
+            ),
+            ElevatedButton(
+              onPressed: isSaving 
+                ? null 
+                : () async {
+                    if (controller.text.trim().isNotEmpty) {
+                      setState(() => isSaving = true);
+                      try {
+                        await ref.update({
+                          'name': controller.text.trim(), 
+                          'updated_at': DateTime.now().millisecondsSinceEpoch
+                        });
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          AppNotifications.showSuccess(context, t.updateSuccess);
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          setState(() => isSaving = false);
+                          AppNotifications.showError(context, t.errorSaving);
+                        }
+                      }
+                    }
+                  },
+              child: isSaving 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(t.save),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
-          ElevatedButton(
-            onPressed: () async {
-              if (controller.text.trim().isNotEmpty) {
-                await ref.update({'name': controller.text.trim(), 'updated_at': DateTime.now().millisecondsSinceEpoch});
-                if (mounted) Navigator.pop(context);
-              }
-            },
-            child: Text(t.save),
-          ),
-        ],
       ),
     ).then((_) => controller.dispose());
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
-import 'package:unilost_found/features/auth/presentation/pages/login_page.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/chats/presentation/pages/chats_page.dart';
 import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
@@ -19,7 +18,7 @@ class MainNavigationPage extends StatefulWidget {
 }
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
-  int _currentIndex = 1; // Default to Home
+  static int _currentIndex = 1; // Default to Home, static to persist across rebuilds
 
   void _showLogoutDialog() {
     final t = AppStrings.of(context);
