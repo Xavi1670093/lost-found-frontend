@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
@@ -7,6 +6,7 @@ import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class EditPostPage extends StatefulWidget {
   final String postId;
@@ -39,13 +39,7 @@ class _EditPostPageState extends State<EditPostPage> {
     'returned',
   ];
 
-  final List<String> _categories = [
-    'keys',
-    'wallets',
-    'devices',
-    'clothes',
-    'others',
-  ];
+  final List<String> _categories = CategoryUtils.categories;
 
   @override
   void initState() {
@@ -170,13 +164,7 @@ class _EditPostPageState extends State<EditPostPage> {
   }
 
   String _categoryLabel(String category, AppStrings t) {
-    switch (category) {
-      case 'keys': return t.keys;
-      case 'wallets': return t.wallets;
-      case 'devices': return t.devices;
-      case 'clothes': return t.clothes;
-      default: return t.others;
-    }
+    return CategoryUtils.getCategoryLabel(category, t);
   }
 
   @override
@@ -215,7 +203,7 @@ class _EditPostPageState extends State<EditPostPage> {
               _buildSectionTitle(t.descriptionLabel, theme),
               const SizedBox(height: 8),
               CustomTextField(
-                label: t.descriptionLabel,
+                label: "${t.descriptionLabel} ${t.optional}",
                 controller: _descriptionController,
                 maxLines: 4,
                 hintText: t.descriptionHint,
@@ -228,13 +216,13 @@ class _EditPostPageState extends State<EditPostPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: const InputDecoration(border: InputBorder.none),
                     items: _categories.map((category) {
                       return DropdownMenuItem(
@@ -256,13 +244,13 @@ class _EditPostPageState extends State<EditPostPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedStatus,
+                    initialValue: _selectedStatus,
                     decoration: const InputDecoration(border: InputBorder.none),
                     items: _statuses.map((status) {
                       return DropdownMenuItem(

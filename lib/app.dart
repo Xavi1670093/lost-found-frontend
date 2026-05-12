@@ -107,9 +107,9 @@ class _AppRootState extends State<AppRoot> {
 
     final now = DateTime.now().millisecondsSinceEpoch;
     final diff = now - loginTimestamp;
-    const tenDays = 10 * 24 * 60 * 60 * 1000;
+    const twoWeeks = 14 * 24 * 60 * 60 * 1000;
 
-    if (diff > tenDays) {
+    if (diff > twoWeeks) {
       await FirebaseAuth.instance.signOut();
       await prefs.remove('login_timestamp');
 

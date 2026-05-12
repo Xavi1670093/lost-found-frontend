@@ -26,8 +26,15 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  late TextEditingController _emailController;
+  late TextEditingController _passwordController;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
 
   bool _loading = false;
   bool _obscurePassword = true;
@@ -79,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // Guardamos marca de tiempo para control de sesión (10 días)
+      // Guardamos marca de tiempo para control de sesión (14 días)
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('login_timestamp', DateTime.now().millisecondsSinceEpoch);
 

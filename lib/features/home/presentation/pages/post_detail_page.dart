@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
@@ -109,25 +110,17 @@ class _PostDetailPageState extends State<PostDetailPage> {
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'post_image_${post['id']}',
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primaryContainer,
-                        theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      _getCategoryIcon(post['category']?.toString()),
-                      size: 100,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ),
+                child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: post['imageUrl'],
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => _buildImageFallback(theme, post),
+                      )
+                    : _buildImageFallback(theme, post),
               ),
             ),
           ),
@@ -150,7 +143,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       _InfoChip(
                         icon: Icons.calendar_today_rounded,
                         label: _formatDate(post['created_at']),
-                        color: theme.colorScheme.surfaceVariant,
+                        color: theme.colorScheme.surfaceContainerHighest,
                         textColor: theme.colorScheme.onSurfaceVariant,
                       ),
                     ],
@@ -283,6 +276,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
           text: _isLoading ? t.openingChat : t.contactOwner,
           isLoading: _isLoading,
           onPressed: () => _contactOwner(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageFallback(ThemeData theme, Map<dynamic, dynamic> post) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primaryContainer,
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          _getCategoryIcon(post['category']?.toString()),
+          size: 100,
+          color: theme.colorScheme.primary.withValues(alpha: 0.8),
         ),
       ),
     );

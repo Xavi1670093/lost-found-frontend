@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'edit_post_page.dart';
@@ -95,16 +96,20 @@ class UserPostsPage extends StatelessWidget {
                                 child: Container(
                                   width: double.infinity,
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
                                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                                   ),
-                                  child: Center(
-                                    child: Icon(
-                                      isLost ? Icons.search_rounded : Icons.inventory_2_outlined,
-                                      size: 40,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ),
+                                  child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                          child: CachedNetworkImage(
+                                            imageUrl: post['imageUrl'],
+                                            fit: BoxFit.cover,
+                                            placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                            errorWidget: (context, url, error) => _buildCardIconFallback(theme, isLost),
+                                          ),
+                                        )
+                                      : _buildCardIconFallback(theme, isLost),
                                 ),
                               ),
                               Padding(
@@ -137,9 +142,20 @@ class UserPostsPage extends StatelessWidget {
                     ),
                   ),
                 ),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCardIconFallback(ThemeData theme, bool isLost) {
+    return Center(
+      child: Icon(
+        isLost ? Icons.search_rounded : Icons.inventory_2_outlined,
+        size: 40,
+        color: theme.colorScheme.primary.withValues(alpha: 0.5),
       ),
     );
   }
