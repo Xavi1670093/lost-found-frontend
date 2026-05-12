@@ -7,6 +7,7 @@ import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class EditPostPage extends StatefulWidget {
   final String postId;
@@ -39,13 +40,7 @@ class _EditPostPageState extends State<EditPostPage> {
     'returned',
   ];
 
-  final List<String> _categories = [
-    'keys',
-    'wallets',
-    'devices',
-    'clothes',
-    'others',
-  ];
+  final List<String> _categories = CategoryUtils.categories;
 
   @override
   void initState() {
@@ -170,13 +165,7 @@ class _EditPostPageState extends State<EditPostPage> {
   }
 
   String _categoryLabel(String category, AppStrings t) {
-    switch (category) {
-      case 'keys': return t.keys;
-      case 'wallets': return t.wallets;
-      case 'devices': return t.devices;
-      case 'clothes': return t.clothes;
-      default: return t.others;
-    }
+    return CategoryUtils.getCategoryLabel(category, t);
   }
 
   @override
@@ -215,7 +204,7 @@ class _EditPostPageState extends State<EditPostPage> {
               _buildSectionTitle(t.descriptionLabel, theme),
               const SizedBox(height: 8),
               CustomTextField(
-                label: t.descriptionLabel,
+                label: "${t.descriptionLabel} ${t.optional}",
                 controller: _descriptionController,
                 maxLines: 4,
                 hintText: t.descriptionHint,

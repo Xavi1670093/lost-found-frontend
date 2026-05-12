@@ -38,12 +38,13 @@ class AppStrings {
       'Aquí aparecerán próximamente los objetos perdidos y encontrados del campus.',
 
       // 🔹 Categorías
-      'keys': 'Llaves',
-      'wallets': 'Carteras',
-      'devices': 'Dispositivos',
-      'phones': 'Móviles',
+      'accessories': 'Accesorios',
       'clothes': 'Ropa',
-      'bottles': 'Botellas',
+      'devices': 'Dispositivos',
+      'wallets': 'Carteras',
+      'keys': 'Llaves',
+      'bags': 'Bolsas y Mochilas',
+      'study': 'Material de Estudio',
       'others': 'Otros',
 
       'loginTitleAppBar': 'Login',
@@ -187,6 +188,7 @@ class AppStrings {
       'errorDeleting': 'Error al eliminar',
       'mustLogin': 'Debes iniciar sesión para ver tus publicaciones.',
       'sessionExpired': 'Tu sesión ha caducado por seguridad después de 10 días. Por favor, inicia sesión de nuevo.',
+      'optional': '(Opcional)',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -207,12 +209,13 @@ class AppStrings {
       'Aquí apareixeran pròximament els objectes perduts i trobats del campus.',
 
       // 🔹 Categorías
-      'keys': 'Claus',
-      'wallets': 'Carteres',
-      'devices': 'Dispositius',
-      'phones': 'Mòbils',
+      'accessories': 'Accessoris',
       'clothes': 'Roba',
-      'bottles': 'Ampolles',
+      'devices': 'Dispositius',
+      'wallets': 'Carteres',
+      'keys': 'Claus',
+      'bags': 'Bosses i Motxilles',
+      'study': 'Material d’Estudi',
       'others': 'Altres',
 
       'loginTitleAppBar': 'Inici de sessió',
@@ -356,6 +359,7 @@ class AppStrings {
       'errorDeleting': 'Error en eliminar',
       'mustLogin': 'Has d’iniciar la sessió per veure les teves publicacions.',
       'sessionExpired': 'La teva sessió ha caducat per seguretat després de 10 dies. Si us plau, inicia la sessió de nou.',
+      'optional': '(Opcional)',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -376,12 +380,13 @@ class AppStrings {
       'Lost and found campus objects will appear here soon.',
 
       // 🔹 Categorías
-      'keys': 'Keys',
-      'wallets': 'Wallets',
-      'devices': 'Devices',
-      'phones': 'Phones',
+      'accessories': 'Accessories',
       'clothes': 'Clothes',
-      'bottles': 'Bottles',
+      'devices': 'Devices',
+      'wallets': 'Wallets',
+      'keys': 'Keys',
+      'bags': 'Bags and Backpacks',
+      'study': 'Study Material',
       'others': 'Others',
 
       'loginTitleAppBar': 'Login',
@@ -525,6 +530,7 @@ class AppStrings {
       'errorDeleting': 'Error deleting',
       'mustLogin': 'You must log in to see your posts.',
       'sessionExpired': 'Your session has expired for security after 10 days. Please log in again.',
+      'optional': '(Optional)',
     },
   };
 
@@ -545,12 +551,13 @@ class AppStrings {
   String get welcomeDescription => _text('welcomeDescription');
 
   // 🔹 Getters categorías
-  String get keys => _text('keys');
-  String get wallets => _text('wallets');
-  String get devices => _text('devices');
-  String get phones => _text('phones');
+  String get accessories => _text('accessories');
   String get clothes => _text('clothes');
-  String get bottles => _text('bottles');
+  String get devices => _text('devices');
+  String get wallets => _text('wallets');
+  String get keys => _text('keys');
+  String get bags => _text('bags');
+  String get study => _text('study');
   String get others => _text('others');
 
   String get loginTitleAppBar => _text('loginTitleAppBar');
@@ -696,6 +703,7 @@ class AppStrings {
   String get errorDeleting => _text('errorDeleting');
   String get mustLogin => _text('mustLogin');
   String get sessionExpired => _text('sessionExpired');
+  String get optional => _text('optional');
 
   String _text(String key) {
     return _localizedValues[locale.languageCode]?[key] ??
