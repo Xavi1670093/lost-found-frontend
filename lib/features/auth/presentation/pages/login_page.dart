@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/core/theme/app_theme.dart';
+import 'package:unilost_found/shared/widgets/custom_button.dart';
+import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 class LoginPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -21,8 +26,15 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  late TextEditingController _emailController;
+  late TextEditingController _passwordController;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
 
   bool _loading = false;
   bool _obscurePassword = true;
@@ -32,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
     if (value == null || value.trim().isEmpty) {
       return t.loginEmailRequired;
     }
-    final email = value.trim();
+    final email = value.trim().toLowerCase();
     final uabRegex = RegExp(r'^\d{7}@uab\.cat$');
     if (!uabRegex.hasMatch(email)) {
       return t.loginEmailInvalid;
@@ -41,6 +53,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
+    final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -50,35 +63,32 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      debugPrint("🔑 Intentando login REAL para: ${_emailController.text}");
-
-      // 1. Iniciar sesión en Firebase
+      final email = _emailController.text.trim().toLowerCase();
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
       );
 
-      // 2. Comprobar si el email está verificado
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
-        debugPrint("⚠️ Usuario no verificado. Forzando logout.");
-
-        // Si no está verificado, forzar cierre de sesión
         await FirebaseAuth.instance.signOut();
 
         if (!mounted) return;
         setState(() => _loading = false);
 
-        // Notificar al usuario en la UI
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Debes verificar tu cuenta para acceder. Revisa tu correo."),
-            backgroundColor: Colors.orange,
+          SnackBar(
+            content: Text(t.verifyEmailMessage),
+            backgroundColor: AppTheme.warningColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
-        return; // Detener el flujo de navegación
+        return;
       }
 
-      debugPrint("✅ Login exitoso y verificado. UID: ${userCredential.user?.uid}");
+      // Guardamos marca de tiempo para control de sesión (14 días)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('login_timestamp', DateTime.now().millisecondsSinceEpoch);
 
       if (!mounted) return;
 
@@ -86,14 +96,14 @@ class _LoginPageState extends State<LoginPage> {
         _loading = false;
       });
 
-      // 3. El usuario está verificado, navegar a la página principal
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (_) => MainNavigationPage(
             settingsController: widget.settingsController,
           ),
         ),
+        (route) => false,
       );
 
     } on FirebaseAuthException catch (e) {
@@ -102,28 +112,13 @@ class _LoginPageState extends State<LoginPage> {
         _loading = false;
       });
 
-      String message = "Error al iniciar sesión";
-      if (e.code == 'user-not-found') {
-        message = "No existe ningún usuario con este correo.";
-      } else if (e.code == 'wrong-password') {
-        message = "Contraseña incorrecta.";
-      } else if (e.code == 'invalid-email') {
-        message = "El formato del correo no es válido.";
-      } else if (e.code == 'user-disabled') {
-        message = "Esta cuenta ha sido deshabilitada.";
-      }
-
-      debugPrint("❌ Error de Firebase: ${e.code}");
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
+      final message = ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
       });
-      debugPrint("💥 Error inesperado: $e");
     }
   }
 
@@ -141,131 +136,120 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.loginTitleAppBar),
+        backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Icon(
-                          Icons.lock_open_rounded,
-                          size: 56,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          t.loginTitle,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          t.loginSubtitle,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          decoration: InputDecoration(
-                            labelText: t.uabEmailLabel,
-                            hintText: '1234567@uab.cat',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.email_outlined),
-                          ),
-                          validator: _validateUabEmail,
-                        ),
-                        const SizedBox(height: 16),
-
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) {
-                            if (!_loading) {
-                              _login();
-                            }
-                          },
-                          decoration: InputDecoration(
-                            labelText: t.passwordLabel,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return t.passwordRequired;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-
-                        SizedBox(
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _loading ? null : _login,
-                            child: _loading
-                                ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                                : Text(t.loginButton),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        TextButton(
-                          onPressed: _loading
-                              ? null
-                              : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => RegisterPage(
-                                  settingsController:
-                                  widget.settingsController,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Text(t.goToRegister),
-                        ),
-                      ],
-                    ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+                Icon(
+                  Icons.lock_person_rounded,
+                  size: 80,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  t.loginTitle,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  t.loginSubtitle,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 48),
+
+                CustomTextField(
+                  label: t.uabEmailLabel,
+                  hintText: t.emailHint,
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.email_outlined,
+                  textInputAction: TextInputAction.next,
+                  validator: _validateUabEmail,
+                ),
+                const SizedBox(height: 20),
+
+                CustomTextField(
+                  label: t.passwordLabel,
+                  hintText: t.passwordHint,
+                  controller: _passwordController,
+                  isPassword: _obscurePassword,
+                  prefixIcon: Icons.lock_outline_rounded,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _login(),
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                      size: 20,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return t.passwordRequired;
+                    }
+                    if (value.length < 6) {
+                      return t.passwordMinLength;
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 40),
+
+                CustomButton(
+                  text: t.loginButton,
+                  isLoading: _loading,
+                  onPressed: _login,
+                ),
+                const SizedBox(height: 24),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      t.dontHaveAccount,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RegisterPage(
+                              settingsController: widget.settingsController,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        t.signUpLink,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
         ),

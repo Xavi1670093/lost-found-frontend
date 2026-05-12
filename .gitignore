@@ -48,6 +48,9 @@ key.properties
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Podfile.lock
 
 # ==============================================================================
 # Firebase y Secretos (¡Crítico!)
@@ -107,3 +110,5 @@ Thumbs.db
 coverage/
 app.*.symbols
 app.*.map.json
+.metadata
+.packages

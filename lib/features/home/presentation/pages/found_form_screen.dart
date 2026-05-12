@@ -4,15 +4,21 @@ import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:io';
-import '../../../../core/services/permission_service.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/services/permission_service.dart';
+import 'package:unilost_found/shared/widgets/custom_button.dart';
+import 'package:unilost_found/shared/widgets/custom_text_field.dart';
+import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class FoundFormScreen extends StatefulWidget {
-  // 🚀 CORRECCIÓN: Definimos la variable aquí para que widget.postType funcione
   final String postType;
 
   const FoundFormScreen({
     super.key,
-    this.postType = 'found', // Por defecto es 'found'
+    this.postType = 'found',
   });
 
   @override
@@ -20,32 +26,25 @@ class FoundFormScreen extends StatefulWidget {
 }
 
 class _FoundFormScreenState extends State<FoundFormScreen> {
-  // --- ESTADO Y CONTROLADORES ---
   File? imageFile;
-  String locationText = "Tocar para obtener ubicación";
   Position? _currentPosition;
   bool _isPublishing = false;
 
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
+  late TextEditingController titleController;
+  late TextEditingController descriptionController;
 
-  String? selectedCategory;
+  @override
+  void initState() {
+    super.initState();
+    titleController = TextEditingController();
+    descriptionController = TextEditingController();
+  }
+
+  String? selectedCategoryKey;
   DateTime? selectedDate;
 
-  final List<String> categories = ["Llaves", "Cartera", "Dispositivo", "Ropa", "Otros"];
-
-  // --- LÓGICA DE APOYO ---
-
-  String _mapCategoryToBackend(String category) {
-    switch (category) {
-      case "Llaves": return "keys";
-      case "Cartera": return "wallet";
-      case "Dispositivo": return "devices";
-      case "Ropa": return "clothing";
-      default: return "other";
-    }
-  }
+  // Las opciones de categoría se cargan dinámicamente desde AppStrings en el build
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -53,6 +52,16 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => selectedDate = picked);
   }
@@ -61,29 +70,29 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final hasPermission = await PermissionService.requestCamera();
     if (!hasPermission) return;
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera);
+    final picked = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
     if (picked != null) setState(() => imageFile = File(picked.path));
   }
 
   Future<void> _getLocation() async {
+    final t = AppStrings.of(context);
     final hasPermission = await PermissionService.requestLocation();
     if (!hasPermission) return;
     try {
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       setState(() {
         _currentPosition = position;
-        locationText = "Ubicación obtenida ✓";
       });
     } catch (e) {
-      _showError("No se pudo obtener la ubicación");
+      _showError(t.locationError);
     }
   }
 
-  // --- ENVÍO A FIREBASE ---
   Future<void> _submit() async {
+    final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
-    if (selectedCategory == null || selectedDate == null) {
-      _showError("Selecciona categoría y fecha");
+    if (selectedCategoryKey == null || selectedDate == null) {
+      _showError(t.selectCategoryAndDate);
       return;
     }
 
@@ -91,7 +100,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("Sesión no iniciada");
+      if (user == null) throw Exception(t.sessionError);
 
       final userSnapshot = await FirebaseDatabase.instance.ref('users/${user.uid}/center_id').get();
       final centerId = userSnapshot.value?.toString() ?? "uab";
@@ -99,154 +108,239 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final postsRef = FirebaseDatabase.instance.ref('posts');
       final newPostRef = postsRef.push();
 
+      String imageUrl = "";
+      if (imageFile != null) {
+        final storageRef = FirebaseStorage.instance.ref().child('posts/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+        final uploadTask = storageRef.putFile(imageFile!);
+        final snapshotTask = await uploadTask;
+        imageUrl = await snapshotTask.ref.getDownloadURL();
+      }
+
       await newPostRef.set({
         'id': newPostRef.key,
         'user_id': user.uid,
         'center_id': centerId,
-        'type': widget.postType, // ✅ Ahora widget.postType ya está definido
+        'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
-        'category': _mapCategoryToBackend(selectedCategory!),
+        'category': selectedCategoryKey,
         'status': 'active',
         'coords': {
           'lat': _currentPosition?.latitude ?? 41.500,
           'lng': _currentPosition?.longitude ?? 2.110,
         },
-        'photo_path': '',
-        'created_at': DateTime.now().millisecondsSinceEpoch,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
+        'imageUrl': imageUrl,
+        'created_at': ServerValue.timestamp,
+        'updated_at': ServerValue.timestamp,
         'is_deleted': false,
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.postType == 'found' ? "¡Objeto encontrado publicado!" : "¡Alerta de pérdida publicada!"),
-            backgroundColor: widget.postType == 'found' ? Colors.green : Colors.orange,
-          ),
+        AppNotifications.showSuccess(
+          context, 
+          widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      _showError("Error al publicar: $e");
+      final message = ErrorHandler.getMessage(e, t);
+      _showError(message);
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    AppNotifications.showError(context, msg);
   }
 
-  // --- DISEÑO DE LA PANTALLA ---
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final isFound = widget.postType == 'found';
+
+    final Map<String, String> categories = {
+      for (var cat in CategoryUtils.categories) cat: CategoryUtils.getCategoryLabel(cat, t),
+    };
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.postType == 'found' ? "He encontrado" : "He perdido"),
-        backgroundColor: widget.postType == 'found' ? null : Colors.orange.shade100,
+        title: Text(isFound ? t.reportFoundTitle : t.reportLostTitle),
+        backgroundColor: Colors.transparent,
       ),
       body: _isPublishing
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("Título", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: titleController,
-                decoration: const InputDecoration(hintText: "Ej: Llavero rojo", border: OutlineInputBorder()),
-                validator: (value) => value == null || value.isEmpty ? "Campo obligatorio" : null,
-              ),
-              const SizedBox(height: 20),
-
-              const Text("Categoría", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: categories.map((cat) {
-                  return ChoiceChip(
-                    label: Text(cat),
-                    selected: selectedCategory == cat,
-                    onSelected: (_) => setState(() => selectedCategory = cat),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-
-              const Text("Foto", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 120, width: double.infinity,
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
-                  child: imageFile == null
-                      ? const Center(child: Text("Tocar para hacer foto 📷"))
-                      : Image.file(imageFile!, fit: BoxFit.cover),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              const Text("Descripción", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: descriptionController,
-                maxLines: 4,
-                decoration: const InputDecoration(hintText: "Describe dónde lo encontraste...", border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 20),
-
-              const Text("Ubicación", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _getLocation,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  width: double.infinity,
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
-                  child: Text(locationText),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              const Text("Fecha", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: Text(selectedDate == null ? "Selecciona fecha" : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}")),
-                  IconButton(icon: const Icon(Icons.calendar_today), onPressed: _pickDate),
-                ],
-              ),
-              const SizedBox(height: 30),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
-                      child: const Text("Cancelar", style: TextStyle(color: Colors.red)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Image Picker Section
+                    _buildSectionTitle(t.objectPhoto, theme),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
+                        ),
+                        child: imageFile == null
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo_rounded, size: 48, color: theme.colorScheme.primary),
+                                  const SizedBox(height: 12),
+                                  Text(t.tapToTakePhoto, style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                                ],
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(22),
+                                child: Image.file(imageFile!, fit: BoxFit.cover),
+                              ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
+                    const SizedBox(height: 32),
+
+                    // Details Section
+                    _buildSectionTitle(t.basicInfo, theme),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      label: t.objectTitleLabel,
+                      hintText: t.objectTitleHint,
+                      controller: titleController,
+                      validator: (value) => value == null || value.isEmpty ? t.fieldRequired : null,
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    Text(t.category, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 10,
+                      children: categories.entries.map((entry) {
+                        final isSelected = selectedCategoryKey == entry.key;
+                        return ChoiceChip(
+                          label: Text(entry.value),
+                          selected: isSelected,
+                          onSelected: (_) => setState(() => selectedCategoryKey = entry.key),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          showCheckmark: false,
+                          backgroundColor: theme.colorScheme.surface,
+                          selectedColor: theme.colorScheme.primary,
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 32),
+
+                    CustomTextField(
+                      label: "${t.descriptionDetails} ${t.optional}",
+                      hintText: t.descriptionHint,
+                      controller: descriptionController,
+                      maxLines: 4,
+                      textInputAction: TextInputAction.done,
+                    ),
+                    const SizedBox(height: 32),
+
+                    _buildSectionTitle(t.locationAndDate, theme),
+                    const SizedBox(height: 16),
+                    _buildActionTile(
+                      Icons.location_on_rounded,
+                      _currentPosition != null ? t.locationObtained : t.getCurrentLocation,
+                      _getLocation,
+                      _currentPosition != null,
+                      theme,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionTile(
+                      Icons.calendar_today_rounded,
+                      selectedDate == null 
+                        ? t.selectDate
+                        : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+                      _pickDate,
+                      selectedDate != null,
+                      theme,
+                    ),
+                    const SizedBox(height: 48),
+
+                    CustomButton(
+                      text: t.publishButton,
                       onPressed: _submit,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                      child: const Text("Publicar", style: TextStyle(color: Colors.white)),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
-            ],
+            ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, ThemeData theme) {
+    return Text(
+      title.toUpperCase(),
+      style: theme.textTheme.labelMedium?.copyWith(
+        letterSpacing: 1.2,
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
+  Widget _buildActionTile(IconData icon, String text, VoidCallback onTap, bool isCompleted, ThemeData theme) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+            width: isCompleted ? 2 : 1,
           ),
+          boxShadow: isCompleted ? [
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ] : null,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
+                  color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+            if (isCompleted)
+              Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 22),
+          ],
         ),
       ),
     );
+  }
+  @override
+  void dispose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    super.dispose();
   }
 }

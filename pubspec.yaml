@@ -14,23 +14,37 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   shared_preferences: ^2.5.3
-  firebase_core: ^4.7.0
-  cloud_functions: ^6.2.0
-  firebase_database: ^12.3.0
-  firebase_auth: ^6.4.0
-  provider: ^6.1.1
+  firebase_core: ^3.6.0
+  cloud_functions: ^5.2.0
+  firebase_database: ^11.1.0
+  firebase_auth: ^5.3.0
   permission_handler: ^11.0.0
   image_picker: ^1.0.4
   geolocator: ^10.0.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
+  google_fonts: ^8.1.0
+  shimmer: ^3.0.0
+  firebase_storage: ^12.1.0
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   generate: true
 
+  assets:
+    - assets/icon/app_icon.png
+    - assets/images/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"

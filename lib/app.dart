@@ -5,6 +5,11 @@ import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/core/theme/app_theme.dart';
 import 'package:unilost_found/features/welcome/presentation/pages/welcome_page.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
+
 class MyApp extends StatelessWidget {
   final AppSettingsController settingsController;
 
@@ -40,7 +45,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AppRoot extends StatelessWidget {
+class AppRoot extends StatefulWidget {
   final AppSettingsController settingsController;
 
   const AppRoot({
@@ -49,7 +54,74 @@ class AppRoot extends StatelessWidget {
   });
 
   @override
+  State<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<AppRoot> {
+  @override
   Widget build(BuildContext context) {
-    return WelcomePage(settingsController: settingsController);
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final user = snapshot.data;
+
+        if (user != null && user.emailVerified) {
+          return FutureBuilder<bool>(
+            future: _checkSessionValidity(),
+            builder: (context, sessionSnapshot) {
+              if (sessionSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (sessionSnapshot.data == true) {
+                return MainNavigationPage(settingsController: widget.settingsController);
+              } else {
+                return WelcomePage(settingsController: widget.settingsController);
+              }
+            },
+          );
+        }
+
+        return WelcomePage(settingsController: widget.settingsController);
+      },
+    );
+  }
+
+  Future<bool> _checkSessionValidity() async {
+    final prefs = await SharedPreferences.getInstance();
+    final loginTimestamp = prefs.getInt('login_timestamp');
+
+    if (loginTimestamp == null) {
+      // Si no hay marca, la creamos ahora para iniciar el contador
+      await prefs.setInt('login_timestamp', DateTime.now().millisecondsSinceEpoch);
+      return true;
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final diff = now - loginTimestamp;
+    const twoWeeks = 14 * 24 * 60 * 60 * 1000;
+
+    if (diff > twoWeeks) {
+      await FirebaseAuth.instance.signOut();
+      await prefs.remove('login_timestamp');
+
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final t = AppStrings.of(context);
+          AppNotifications.showError(context, t.sessionExpired);
+        });
+      }
+      return false;
+    }
+
+    return true;
   }
 }
