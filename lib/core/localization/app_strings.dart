@@ -196,6 +196,7 @@ class AppStrings {
       'uabAcronym': 'UAB',
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Conversación iniciada',
+      'errorImageUpload': 'Error al subir la imagen. Inténtalo de nuevo.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -374,6 +375,7 @@ class AppStrings {
       'uabAcronym': 'UAB',
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Conversa iniciada',
+      'errorImageUpload': 'Error en pujar la imatge. Torna-ho a provar.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -552,6 +554,7 @@ class AppStrings {
       'uabAcronym': 'UAB',
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Chat started',
+      'errorImageUpload': 'Error uploading image. Please try again.',
     },
   };
 
@@ -731,6 +734,7 @@ class AppStrings {
   String get uabAcronym => _text('uabAcronym');
   String get lostAndFound => _text('lostAndFound');
   String get chatStarted => _text('chatStarted');
+  String get errorImageUpload => _text('errorImageUpload');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);

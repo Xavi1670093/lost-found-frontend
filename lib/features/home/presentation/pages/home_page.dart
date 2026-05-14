@@ -124,21 +124,34 @@ class _HomePageState extends State<HomePage> {
               SliverAppBar(
                 floating: true,
                 pinned: true,
-                snap: true,
-                expandedHeight: 140,
+                snap: false,
+                expandedHeight: 180,
                 backgroundColor: theme.colorScheme.surface,
                 surfaceTintColor: theme.colorScheme.surface,
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(
                     t.appName,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
                       color: theme.colorScheme.onSurface,
+                      letterSpacing: -1,
                     ),
                   ),
                   centerTitle: false,
-                  titlePadding: const EdgeInsets.only(left: 16, bottom: 90),
-                  expandedTitleScale: 1.1,
+                  titlePadding: const EdgeInsets.only(left: 20, bottom: 96),
+                  expandedTitleScale: 1.2,
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+                          theme.colorScheme.surface,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
                 ),
                 actions: [
                   IconButton(
@@ -153,7 +166,6 @@ class _HomePageState extends State<HomePage> {
                   preferredSize: const Size.fromHeight(80),
                   child: Container(
                     width: double.infinity,
-                    color: theme.colorScheme.surface,
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: TextField(
                       controller: _searchController,
@@ -178,10 +190,10 @@ class _HomePageState extends State<HomePage> {
                         filled: true,
                         fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       ),
                     ),
                   ),

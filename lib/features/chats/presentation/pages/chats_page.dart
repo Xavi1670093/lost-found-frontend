@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../data/models/chat_model.dart';
 import 'chat_detail_page.dart';
 
 class ChatsPage extends StatelessWidget {
@@ -42,7 +43,7 @@ class ChatsPage extends StatelessWidget {
           final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
           final chatIds = data.keys.toList();
 
-          return FutureBuilder<List<Map<String, dynamic>>>(
+          return FutureBuilder<List<ChatModel>>(
             future: _fetchChatsDetails(chatIds),
             builder: (context, futureSnapshot) {
               if (futureSnapshot.connectionState == ConnectionState.waiting && !futureSnapshot.hasData) {
@@ -60,17 +61,15 @@ class ChatsPage extends StatelessWidget {
                 itemCount: chats.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final chatId = chats[index]['id'];
-                  final chat = chats[index]['data'] as Map<dynamic, dynamic>;
-                  final lastTime = chat['last_message_time'] ?? chat['created_at'] ?? 0;
-                  final timeStr = _formatTime(lastTime);
+                  final chat = chats[index];
+                  final timeStr = _formatTime(chat.lastMessageTime);
 
                   return InkWell(
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ChatDetailPage(chatId: chatId, chat: chat),
+                          builder: (_) => ChatDetailPage(chatId: chat.id, chat: chat),
                         ),
                       );
                     },
@@ -93,9 +92,9 @@ class ChatsPage extends StatelessWidget {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: chat['postImageUrl'] != null && chat['postImageUrl'].toString().isNotEmpty
+                            child: chat.postImageUrl != null && chat.postImageUrl!.isNotEmpty
                                 ? CachedNetworkImage(
-                                    imageUrl: chat['postImageUrl'],
+                                    imageUrl: chat.postImageUrl!,
                                     width: 56,
                                     height: 56,
                                     fit: BoxFit.cover,
@@ -118,7 +117,7 @@ class ChatsPage extends StatelessWidget {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        chat['post_title'] ?? t.defaultItemTitle,
+                                        chat.postTitle.isNotEmpty ? chat.postTitle : t.defaultItemTitle,
                                         style: theme.textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           letterSpacing: -0.2,
@@ -137,18 +136,31 @@ class ChatsPage extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
-                                 Text(
-                                  _getLastMessageText(chat, t),
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontStyle: (chat['last_message'] == null || chat['last_message'] == 'SYSTEM_MSG_CHAT_STARTED') 
-                                      ? FontStyle.italic 
-                                      : FontStyle.normal,
-                                    height: 1.3,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      "${chat.getOtherUserName(t.defaultUserName)} • ",
+                                      style: theme.textTheme.labelSmall?.copyWith(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        _getLastMessageText(chat, t),
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.colorScheme.onSurfaceVariant,
+                                          fontStyle: (chat.lastMessage == null || chat.lastMessage == 'SYSTEM_MSG_CHAT_STARTED') 
+                                            ? FontStyle.italic 
+                                            : FontStyle.normal,
+                                          height: 1.3,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -164,10 +176,6 @@ class ChatsPage extends StatelessWidget {
                     ),
                   );
                 },
-                // Añadimos un espaciador al final para que la barra de navegación no tape el último chat
-                // Como ListView.separated no permite añadir un ítem extra fácilmente sin cambiar el itemCount,
-                // podemos añadir el espaciador al padding inferior del ListView o añadir un ítem vacío.
-                // Usaremos el padding del ListView para mayor limpieza.
               );
             },
           );
@@ -245,30 +253,23 @@ class ChatsPage extends StatelessWidget {
     );
   }
 
-  Future<List<Map<String, dynamic>>> _fetchChatsDetails(List<dynamic> chatIds) async {
+  Future<List<ChatModel>> _fetchChatsDetails(List<dynamic> chatIds) async {
     if (chatIds.isEmpty) return [];
     final futures = chatIds.map((id) async {
       final snap = await FirebaseDatabase.instance.ref('chats/$id').get();
       if (snap.exists) {
-        return {
-          'id': id.toString(),
-          'data': snap.value as Map<dynamic, dynamic>,
-        };
+        return ChatModel.fromMap(id.toString(), snap.value as Map<dynamic, dynamic>);
       }
       return null;
     });
     final results = await Future.wait(futures);
-    final List<Map<String, dynamic>> fetchedChats = results.whereType<Map<String, dynamic>>().toList();
-    fetchedChats.sort((a, b) {
-      final aTime = a['data']['last_message_time'] ?? a['data']['created_at'] ?? 0;
-      final bTime = b['data']['last_message_time'] ?? b['data']['created_at'] ?? 0;
-      return bTime.compareTo(aTime);
-    });
+    final List<ChatModel> fetchedChats = results.whereType<ChatModel>().toList();
+    fetchedChats.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
     return fetchedChats;
   }
 
-  String _formatTime(dynamic timestamp) {
-    if (timestamp is! int || timestamp == 0) return "";
+  String _formatTime(int timestamp) {
+    if (timestamp == 0) return "";
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
     if (date.year == now.year && date.month == now.month && date.day == now.day) {
@@ -288,18 +289,18 @@ class ChatsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(
-        Icons.inventory_2_outlined,
+        Icons.image_not_supported_rounded,
         color: theme.colorScheme.primary,
         size: 24,
       ),
     );
   }
 
-  String _getLastMessageText(Map<dynamic, dynamic> chat, AppStrings t) {
-    final lastMsg = chat['last_message']?.toString();
-    if (lastMsg == null || lastMsg.isEmpty || lastMsg == 'SYSTEM_MSG_CHAT_STARTED') {
+  String _getLastMessageText(ChatModel chat, AppStrings t) {
+    if (chat.lastMessage == null || chat.lastMessage!.isEmpty || chat.lastMessage == 'SYSTEM_MSG_CHAT_STARTED') {
       return t.chatStarted;
     }
-    return lastMsg;
+    return chat.lastMessage!;
   }
 }
+

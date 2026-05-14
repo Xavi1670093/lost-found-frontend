@@ -6,10 +6,11 @@ import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../data/models/chat_model.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String chatId;
-  final Map<dynamic, dynamic> chat;
+  final ChatModel chat;
 
   const ChatDetailPage({
     super.key,
@@ -47,7 +48,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         'timestamp': ServerValue.timestamp,
       });
 
-      // La sincronización de 'last_message' en el nodo 'chats' la gestiona el trigger 'onMessageCreated' en el servidor
       _messageController.clear();
     } catch (e) {
       if (!mounted) return;
@@ -73,7 +73,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
     final user = FirebaseAuth.instance.currentUser;
-    final postTitle = widget.chat['post_title'] ?? t.defaultItemTitle;
+    final postTitle = widget.chat.postTitle.isNotEmpty ? widget.chat.postTitle : t.defaultItemTitle;
+    final otherUserPhoto = widget.chat.getOtherUserPhoto();
+    final otherUserName = widget.chat.getOtherUserName(t.defaultUserName);
 
     return Scaffold(
       appBar: AppBar(
@@ -83,9 +85,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               radius: 20,
               backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
               child: ClipOval(
-                child: widget.chat['other_user_photo'] != null && widget.chat['other_user_photo'].toString().isNotEmpty
+                child: otherUserPhoto != null && otherUserPhoto.isNotEmpty
                     ? CachedNetworkImage(
-                        imageUrl: widget.chat['other_user_photo'],
+                        imageUrl: otherUserPhoto,
                         width: 40,
                         height: 40,
                         fit: BoxFit.cover,
@@ -105,7 +107,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.chat['other_user_name'] ?? t.defaultUserName,
+                    otherUserName,
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -280,3 +282,4 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     super.dispose();
   }
 }
+
