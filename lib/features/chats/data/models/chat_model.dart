@@ -9,6 +9,7 @@ class ChatModel {
   final int createdAt;
   final Map<String, dynamic> usersInfo;
   final List<String> participants;
+  final String postOwnerId;
 
   ChatModel({
     required this.id,
@@ -19,6 +20,7 @@ class ChatModel {
     required this.createdAt,
     required this.usersInfo,
     required this.participants,
+    required this.postOwnerId,
   });
 
   factory ChatModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -41,6 +43,7 @@ class ChatModel {
           ? Map<String, dynamic>.from(map['usersInfo']) 
           : {},
       participants: participantsList,
+      postOwnerId: map['post_owner_id']?.toString() ?? '',
     );
   }
 
@@ -64,5 +67,19 @@ class ChatModel {
     if (otherUid.isEmpty) return null;
     return usersInfo[otherUid]?['photoUrl']?.toString() ?? 
            usersInfo[otherUid]?['profile_image_url']?.toString();
+  }
+
+  String getPublisherName(String defaultName) {
+    final uid = postOwnerId.isNotEmpty ? postOwnerId : getOtherUserId();
+    if (uid.isEmpty) return defaultName;
+    final info = usersInfo[uid];
+    return info?['displayName'] ?? info?['name'] ?? defaultName;
+  }
+
+  String? getPublisherPhoto() {
+    final uid = postOwnerId.isNotEmpty ? postOwnerId : getOtherUserId();
+    if (uid.isEmpty) return null;
+    final info = usersInfo[uid];
+    return info?['photoUrl']?.toString() ?? info?['profile_image_url']?.toString();
   }
 }

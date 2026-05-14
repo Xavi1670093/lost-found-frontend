@@ -90,22 +90,33 @@ class ChatsPage extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
+                          // Leading: Rounded rectangle for post image
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                            child: chat.getOtherUserPhoto() != null && chat.getOtherUserPhoto()!.isNotEmpty
+                            borderRadius: BorderRadius.circular(12),
+                            child: chat.postImageUrl != null && chat.postImageUrl!.isNotEmpty
                                 ? CachedNetworkImage(
-                                    imageUrl: chat.getOtherUserPhoto()!,
-                                    width: 56,
-                                    height: 56,
+                                    imageUrl: chat.postImageUrl!,
+                                    width: 60,
+                                    height: 60,
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => const SkeletonLoader(
-                                      width: 56,
-                                      height: 56,
-                                      borderRadius: BorderRadius.all(Radius.circular(28)),
+                                      width: 60,
+                                      height: 60,
+                                      borderRadius: BorderRadius.all(Radius.circular(12)),
                                     ),
-                                    errorWidget: (context, url, error) => _buildPlaceholderIcon(theme),
+                                    errorWidget: (context, url, error) => Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                      child: Icon(Icons.image_not_supported, color: theme.colorScheme.primary),
+                                    ),
                                   )
-                                : _buildPlaceholderIcon(theme),
+                                : Container(
+                                    width: 60,
+                                    height: 60,
+                                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                    child: Icon(Icons.image_not_supported, color: theme.colorScheme.primary),
+                                  ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -136,31 +147,56 @@ class ChatsPage extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
+                                // Subtitle: Publisher info
                                 Row(
                                   children: [
-                                    Text(
-                                      "${chat.getOtherUserName(t.defaultUserName)} • ",
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    ClipOval(
+                                      child: chat.getPublisherPhoto() != null
+                                          ? CachedNetworkImage(
+                                              imageUrl: chat.getPublisherPhoto()!,
+                                              width: 24,
+                                              height: 24,
+                                              fit: BoxFit.cover,
+                                              errorWidget: (context, url, error) => Icon(
+                                                Icons.person,
+                                                size: 16,
+                                                color: theme.colorScheme.onSurfaceVariant,
+                                              ),
+                                            )
+                                          : Icon(
+                                              Icons.person,
+                                              size: 16,
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        _getLastMessageText(chat, t),
-                                        style: theme.textTheme.bodySmall?.copyWith(
+                                        chat.getPublisherName(t.defaultUserName),
+                                        style: theme.textTheme.labelMedium?.copyWith(
                                           color: theme.colorScheme.onSurfaceVariant,
-                                          fontStyle: (chat.lastMessage == null || chat.lastMessage == 'SYSTEM_MSG_CHAT_STARTED') 
-                                            ? FontStyle.italic 
-                                            : FontStyle.normal,
-                                          height: 1.3,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
+                                ),
+                                const SizedBox(height: 4),
+                                // Last message
+                                Text(
+                                  _getLastMessageText(chat, t),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                    fontStyle: (chat.lastMessage == null || chat.lastMessage == 'SYSTEM_MSG_CHAT_STARTED') 
+                                      ? FontStyle.italic 
+                                      : FontStyle.normal,
+                                    height: 1.3,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
