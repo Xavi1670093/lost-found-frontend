@@ -68,8 +68,11 @@ class ChatModel {
   String? getOtherUserPhoto() {
     final otherUid = getOtherUserId();
     if (otherUid.isEmpty) return null;
-    return usersInfo[otherUid]?['photoUrl']?.toString() ?? 
-           usersInfo[otherUid]?['profile_image_url']?.toString();
+    final info = usersInfo[otherUid];
+    return info?['photoUrl']?.toString() ?? 
+           info?['photo_url']?.toString() ?? 
+           info?['profile_image_url']?.toString() ??
+           info?['imageUrl']?.toString();
   }
 
   String getPublisherName(String defaultName) {
@@ -83,6 +86,9 @@ class ChatModel {
     final uid = postOwnerId.isNotEmpty ? postOwnerId : getOtherUserId();
     if (uid.isEmpty) return null;
     final info = usersInfo[uid];
-    return info?['photoUrl']?.toString() ?? info?['profile_image_url']?.toString();
+    return info?['photoUrl']?.toString() ?? 
+           info?['photo_url']?.toString() ?? 
+           info?['profile_image_url']?.toString() ??
+           info?['imageUrl']?.toString();
   }
 }

@@ -169,7 +169,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                         : photoUrl != null
                                             ? ClipOval(
                                                 child: CachedNetworkImage(
-                                                  imageUrl: "$photoUrl?v=$_imageVersion",
+                                                  imageUrl: photoUrl.contains('?') 
+                                                      ? "$photoUrl&v=$_imageVersion" 
+                                                      : "$photoUrl?v=$_imageVersion",
                                                   width: 100,
                                                   height: 100,
                                                   fit: BoxFit.cover,
