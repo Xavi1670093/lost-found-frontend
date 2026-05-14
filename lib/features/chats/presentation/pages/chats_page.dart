@@ -109,14 +109,14 @@ class ChatsPage extends StatelessWidget {
                                       width: 60,
                                       height: 60,
                                       color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                                      child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary),
+                                      child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary, size: 28),
                                     ),
                                   )
                                 : Container(
                                     width: 60,
                                     height: 60,
                                     color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                                    child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary),
+                                    child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary, size: 28),
                                   ),
                           ),
                           const SizedBox(width: 16),

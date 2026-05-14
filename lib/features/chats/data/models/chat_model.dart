@@ -38,7 +38,7 @@ class ChatModel {
       id: id,
       postTitle: map['postTitle'] ?? map['post_title'] ?? '',
       postImageUrl: map['postImageUrl']?.toString() ?? map['post_image_url']?.toString(),
-      postCategory: map['postCategory']?.toString() ?? map['post_category']?.toString() ?? 'others',
+      postCategory: map['post_category']?.toString() ?? map['postCategory']?.toString() ?? map['category']?.toString() ?? 'others',
       lastMessage: map['last_message']?.toString(),
       lastMessageTime: map['last_message_time'] ?? map['created_at'] ?? 0,
       createdAt: map['created_at'] ?? 0,

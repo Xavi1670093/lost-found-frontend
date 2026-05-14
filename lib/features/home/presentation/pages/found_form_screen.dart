@@ -111,7 +111,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       String imageUrl = "";
       if (imageFile != null) {
         try {
-          final storageRef = FirebaseStorage.instance.ref().child('posts/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
           final uploadTask = storageRef.putFile(
             imageFile!,
             SettableMetadata(contentType: 'image/jpeg'),
