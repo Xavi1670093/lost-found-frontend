@@ -167,7 +167,7 @@ class UserPostsPage extends StatelessWidget {
         children: [
           Icon(Icons.inventory_2_outlined, size: 64, color: theme.colorScheme.outline),
           const SizedBox(height: 16),
-          Text("${t.noObjectsFound} ($title)", style: theme.textTheme.titleMedium),
+          Text(t.noObjectsFoundForTitle(title), style: theme.textTheme.titleMedium),
         ],
       ),
     );

@@ -77,7 +77,7 @@ class _WelcomeLogo extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'UAB',
+          t.uabAcronym,
           textAlign: TextAlign.center,
           style: GoogleFonts.poppins(
             fontSize: 100,
@@ -88,7 +88,7 @@ class _WelcomeLogo extends StatelessWidget {
           ),
         ),
         Text(
-          t.appName.replaceAll('UniLost & Found', 'Lost & Found'),
+          t.lostAndFound,
           textAlign: TextAlign.center,
           style: GoogleFonts.poppins(
             fontSize: 28,
