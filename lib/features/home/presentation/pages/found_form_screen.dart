@@ -112,7 +112,10 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       if (imageFile != null) {
         try {
           final storageRef = FirebaseStorage.instance.ref().child('posts/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-          final uploadTask = storageRef.putFile(imageFile!);
+          final uploadTask = storageRef.putFile(
+            imageFile!,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
           final snapshotTask = await uploadTask;
           imageUrl = await snapshotTask.ref.getDownloadURL();
         } on FirebaseException catch (e) {

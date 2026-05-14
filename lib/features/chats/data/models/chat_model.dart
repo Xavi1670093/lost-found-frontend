@@ -56,12 +56,13 @@ class ChatModel {
     final otherUid = getOtherUserId();
     if (otherUid.isEmpty) return defaultName;
     final info = usersInfo[otherUid];
-    return info?['displayName'] ?? info?['name'] ?? defaultName;
+    return info?['displayName'] ?? info?['name'] ?? 'Usuario';
   }
 
   String? getOtherUserPhoto() {
     final otherUid = getOtherUserId();
     if (otherUid.isEmpty) return null;
-    return usersInfo[otherUid]?['photoUrl']?.toString();
+    return usersInfo[otherUid]?['photoUrl']?.toString() ?? 
+           usersInfo[otherUid]?['profile_image_url']?.toString();
   }
 }

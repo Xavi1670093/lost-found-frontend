@@ -1,23 +1,22 @@
-## Corrección de Errores Críticos (Parseo de Modelos y Legacy Data)
+## Corrección Definitiva: Metadata de Subida y Mapeo de Nombres
 
-### 1. Sincronización del Modelo `ChatModel`
-**Objetivo:** Adaptar el factory y los getters del modelo de chat para que lean correctamente la estructura de datos real que devuelve Firebase.
-* **Archivo principal a modificar:** `lib/features/chats/data/models/chat_model.dart`.
+### 1. Especificar el Content-Type explícito al subir a Storage
+**Objetivo:** Evitar que Firebase Storage rechace la imagen por llegar como `application/octet-stream`.
+* **Archivos principales:** `lib/features/home/presentation/pages/found_form_screen.dart` (y la parte de edición de perfil).
 * **Instrucciones:**
-  1. **Parseo de Participantes:** En el `factory fromMap`, el backend envía un mapa `members` (ej: `{ "uid1": true, "uid2": true }`). Cambiar la asignación de `participants` para que extraiga las claves de `map['members']` y las convierta en una lista de Strings. (Dejar soporte fallback a `map['participants']` por si acaso).
-  2. **Parseo del Título:** En `fromMap`, cambiar `postTitle: map['post_title'] ?? ''` por `postTitle: map['postTitle'] ?? map['post_title'] ?? ''`.
-  3. **Getters de Usuario:** En el método `getOtherUserName`, cambiar la lectura a `usersInfo[otherUid]?['displayName'] ?? usersInfo[otherUid]?['name'] ?? defaultName`. En `getOtherUserPhoto`, asegurar que lea `photoUrl`.
+  1. En la llamada a `putFile` o `putData` de `FirebaseStorage.instance.ref()`, añadir el objeto `SettableMetadata` explícitamente.
+  2. Ejemplo: `SettableMetadata(contentType: 'image/jpeg')`. Asegurarse de enviarlo en cada subida.
 
-### 2. Soporte a Chats Legacy (Traducción Forzada)
-**Objetivo:** Traducir los chats antiguos que se crearon antes de implementar la constante de internacionalización.
-* **Archivo principal a modificar:** `lib/features/chats/presentation/pages/chats_page.dart`.
+### 2. Tolerancia a Fallos en el Parseo de Nombres en Chats
+**Objetivo:** Asegurar que si el mapa de `usersInfo` guarda el nombre como `displayName` (o `name`), el frontend lo recupere sin lanzar nulo.
+* **Archivos principales:** `lib/features/chats/data/models/chat_model.dart`.
 * **Instrucciones:**
-  1. Buscar el método `_getLastMessageText`.
-  2. Ampliar la condición `if` para que no solo detecte `'SYSTEM_MSG_CHAT_STARTED'`, sino que también detecte cadenas estáticas antiguas usando `.toLowerCase()`. Ejemplo: `chat.lastMessage!.toLowerCase() == 'conversación iniciada'`.
-  3. De esta forma, los chats antiguos también aplicarán la traducción dinámica `t.chatStarted`.
+  1. En el getter `getOtherUserName(String currentUserUid)` del modelo `ChatModel`, actualizar la lectura para soportar ambos formatos:
+     `return usersInfo[otherUid]?['displayName'] ?? usersInfo[otherUid]?['name'] ?? 'Usuario';`
+  2. Verificar que `getOtherUserPhoto` haga lo mismo: `return usersInfo[otherUid]?['photoUrl'] ?? usersInfo[otherUid]?['profile_image_url'];`
 
-### 3. Evitar Crasheos Visuales por Datos Incompletos
-**Objetivo:** Si un chat legacy no tiene `usersInfo` o `postImageUrl`, asegurar que la UI muestre avatares por defecto y no lance errores.
-* **Archivo principal:** `lib/features/chats/presentation/pages/chats_page.dart`.
+### 3. Red de Seguridad Visual (Avatares)
+**Objetivo:** Evitar espacios vacíos si una imagen falla al cargar.
+* **Archivos principales:** `lib/features/chats/presentation/pages/chats_page.dart` (y detalle de chat).
 * **Instrucciones:**
-  1. Revisar dónde se pinta la foto de perfil en el feed. Asegurar que si `chat.getOtherUserPhoto()` es nulo o vacío, renderice de forma segura un `Icon(Icons.person)` en lugar de intentar cargar un `CachedNetworkImage`.
+  1. Todo widget `CachedNetworkImage` debe tener un `errorWidget: (context, url, error) => Icon(Icons.person)`.
