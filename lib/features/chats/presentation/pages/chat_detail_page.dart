@@ -4,6 +4,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String chatId;
@@ -34,8 +36,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     setState(() => _sending = true);
 
     try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-
       final messageRef = FirebaseDatabase.instance
           .ref('messages/${widget.chatId}')
           .push();
@@ -50,6 +50,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       // La sincronización de 'last_message' en el nodo 'chats' la gestiona el trigger 'onMessageCreated' en el servidor
       _messageController.clear();
     } catch (e) {
+      if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
       AppNotifications.showError(context, message);
     } finally {
@@ -73,15 +74,51 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final theme = Theme.of(context);
     final user = FirebaseAuth.instance.currentUser;
     final postTitle = widget.chat['post_title'] ?? t.defaultItemTitle;
-    final postStatus = widget.chat['post_status'] ?? 'active';
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text(postTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text(_statusLabel(postStatus, t), style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+              child: ClipOval(
+                child: widget.chat['other_user_photo'] != null && widget.chat['other_user_photo'].toString().isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: widget.chat['other_user_photo'],
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const SkeletonLoader(
+                          width: 40,
+                          height: 40,
+                          borderRadius: BorderRadius.all(Radius.circular(20)),
+                        ),
+                        errorWidget: (context, url, error) => Icon(Icons.person_rounded, color: theme.colorScheme.primary, size: 24),
+                      )
+                    : Icon(Icons.person_rounded, color: theme.colorScheme.primary, size: 24),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.chat['other_user_name'] ?? t.defaultUserName,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    postTitle,
+                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
         centerTitle: false,
@@ -140,7 +177,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                           decoration: BoxDecoration(
                             color: isMe
                                 ? theme.colorScheme.primary
-                                : theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
+                                : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.only(
                               topLeft: const Radius.circular(20),
                               topRight: const Radius.circular(20),
@@ -198,7 +235,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextField(
@@ -235,14 +272,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         ],
       ),
     );
-  }
-
-  String _statusLabel(String status, AppStrings t) {
-    switch (status) {
-      case 'matched': return t.statusMatched;
-      case 'returned': return t.statusReturned;
-      default: return t.statusInProcess;
-    }
   }
 
   @override

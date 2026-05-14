@@ -101,11 +101,9 @@ class _ProfilePageState extends State<ProfilePage> {
         String userRole = t.studentRole;
         String centerId = t.uabAcronym;
         String? photoUrl;
-        String updatedAt = '';
 
         if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
           final data = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
-          updatedAt = data['updated_at']?.toString() ?? '';
           userName = data['name'] ?? t.defaultUserName;
           userRole = data['role'] == 'admin' ? t.adminRole : t.studentRole;
           centerId = (data['center_id'] ?? t.uabAcronym).toString().toUpperCase();

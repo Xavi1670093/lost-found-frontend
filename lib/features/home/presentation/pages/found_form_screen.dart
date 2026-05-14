@@ -179,14 +179,26 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Image Picker Section
-                    _buildSectionTitle(t.objectPhoto, theme),
+                    Row(
+                      children: [
+                        _buildSectionTitle(t.objectPhoto, theme),
+                        const SizedBox(width: 8),
+                        Text(
+                          t.recommended,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: _pickImage,
                       child: Container(
                         height: 200,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
                         ),

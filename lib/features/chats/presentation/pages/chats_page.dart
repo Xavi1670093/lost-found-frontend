@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'chat_detail_page.dart';
 
 class ChatsPage extends StatelessWidget {
@@ -90,18 +91,22 @@ class ChatsPage extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.person_outline_rounded,
-                              color: theme.colorScheme.primary,
-                              size: 28,
-                            ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: chat['postImageUrl'] != null && chat['postImageUrl'].toString().isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: chat['postImageUrl'],
+                                    width: 56,
+                                    height: 56,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const SkeletonLoader(
+                                      width: 56,
+                                      height: 56,
+                                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                                    ),
+                                    errorWidget: (context, url, error) => _buildPlaceholderIcon(theme),
+                                  )
+                                : _buildPlaceholderIcon(theme),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -133,11 +138,13 @@ class ChatsPage extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 6),
-                                Text(
-                                  chat['last_message'] ?? t.noMessagesYet,
+                                 Text(
+                                  _getLastMessageText(chat, t),
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
-                                    fontStyle: chat['last_message'] == null ? FontStyle.italic : FontStyle.normal,
+                                    fontStyle: (chat['last_message'] == null || chat['last_message'] == 'SYSTEM_MSG_CHAT_STARTED') 
+                                      ? FontStyle.italic 
+                                      : FontStyle.normal,
                                     height: 1.3,
                                   ),
                                   maxLines: 1,
@@ -270,5 +277,29 @@ class ChatsPage extends StatelessWidget {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     return "$day/$month";
+  }
+
+  Widget _buildPlaceholderIcon(ThemeData theme) {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        Icons.inventory_2_outlined,
+        color: theme.colorScheme.primary,
+        size: 24,
+      ),
+    );
+  }
+
+  String _getLastMessageText(Map<dynamic, dynamic> chat, AppStrings t) {
+    final lastMsg = chat['last_message']?.toString();
+    if (lastMsg == null || lastMsg.isEmpty || lastMsg == 'SYSTEM_MSG_CHAT_STARTED') {
+      return t.chatStarted;
+    }
+    return lastMsg;
   }
 }

@@ -124,10 +124,21 @@ class _HomePageState extends State<HomePage> {
               SliverAppBar(
                 floating: true,
                 pinned: true,
-                snap: false,
-                title: Text(
-                  t.appName,
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                snap: true,
+                expandedHeight: 140,
+                backgroundColor: theme.colorScheme.surface,
+                surfaceTintColor: theme.colorScheme.surface,
+                flexibleSpace: FlexibleSpaceBar(
+                  title: Text(
+                    t.appName,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  centerTitle: false,
+                  titlePadding: const EdgeInsets.only(left: 16, bottom: 90),
+                  expandedTitleScale: 1.1,
                 ),
                 actions: [
                   IconButton(
@@ -140,7 +151,9 @@ class _HomePageState extends State<HomePage> {
                 ],
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(80),
-                  child: Padding(
+                  child: Container(
+                    width: double.infinity,
+                    color: theme.colorScheme.surface,
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: TextField(
                       controller: _searchController,
@@ -163,7 +176,7 @@ class _HomePageState extends State<HomePage> {
                                 },
                               ),
                         filled: true,
-                        fillColor: theme.colorScheme.surface,
+                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,

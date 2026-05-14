@@ -190,10 +190,12 @@ class AppStrings {
       'mustLogin': 'Debes iniciar sesión para ver tus publicaciones.',
       'sessionExpired': 'Tu sesión ha caducado por seguridad después de 14 días. Por favor, inicia sesión de nuevo.',
       'optional': '(Opcional)',
+      'recommended': '(Recomendable)',
       'unsupportedFormat': 'Formato no soportado. Usa JPG o PNG.',
       'editPhotoSuccess': 'Foto de perfil actualizada.',
       'uabAcronym': 'UAB',
       'lostAndFound': 'Lost & Found',
+      'chatStarted': 'Conversación iniciada',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -366,10 +368,12 @@ class AppStrings {
       'mustLogin': 'Has d’iniciar la sessió per veure les teves publicacions.',
       'sessionExpired': 'La teva sessió ha caducat per seguretat després de 14 dies. Si us plau, inicia la sessió de nou.',
       'optional': '(Opcional)',
+      'recommended': '(Recomanable)',
       'unsupportedFormat': 'Format no suportat. Usa JPG o PNG.',
       'editPhotoSuccess': 'Foto de perfil actualitzada.',
       'uabAcronym': 'UAB',
       'lostAndFound': 'Lost & Found',
+      'chatStarted': 'Conversa iniciada',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -542,10 +546,12 @@ class AppStrings {
       'mustLogin': 'You must log in to see your posts.',
       'sessionExpired': 'Your session has expired for security after 14 days. Please log in again.',
       'optional': '(Optional)',
+      'recommended': '(Recommended)',
       'unsupportedFormat': 'Unsupported format. Use JPG or PNG.',
       'editPhotoSuccess': 'Profile picture updated.',
       'uabAcronym': 'UAB',
       'lostAndFound': 'Lost & Found',
+      'chatStarted': 'Chat started',
     },
   };
 
@@ -719,10 +725,12 @@ class AppStrings {
   String get mustLogin => _text('mustLogin');
   String get sessionExpired => _text('sessionExpired');
   String get optional => _text('optional');
+  String get recommended => _text('recommended');
   String get unsupportedFormat => _text('unsupportedFormat');
   String get editPhotoSuccess => _text('editPhotoSuccess');
   String get uabAcronym => _text('uabAcronym');
   String get lostAndFound => _text('lostAndFound');
+  String get chatStarted => _text('chatStarted');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);
