@@ -313,7 +313,7 @@ class _HomePageState extends State<HomePage> {
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(40),
-                      child: Text(postsList.isEmpty && _searchQuery.isNotEmpty ? t.noObjectsFound : t.noObjectsIn(centerId ?? "UAB")),
+                      child: Text(postsList.isEmpty && _searchQuery.isNotEmpty ? t.noObjectsFound : t.noObjectsIn(centerId?.toUpperCase() ?? t.uabAcronym)),
                     ),
                   ),
                 )

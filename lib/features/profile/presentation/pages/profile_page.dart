@@ -99,7 +99,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         String userName = t.defaultUserName;
         String userRole = t.studentRole;
-        String centerId = "UAB";
+        String centerId = t.uabAcronym;
         String? photoUrl;
         String updatedAt = '';
 
@@ -108,7 +108,7 @@ class _ProfilePageState extends State<ProfilePage> {
           updatedAt = data['updated_at']?.toString() ?? '';
           userName = data['name'] ?? t.defaultUserName;
           userRole = data['role'] == 'admin' ? t.adminRole : t.studentRole;
-          centerId = (data['center_id'] ?? "uab").toString().toLowerCase();
+          centerId = (data['center_id'] ?? t.uabAcronym).toString().toUpperCase();
           final snakeUrl = data['photo_url']?.toString();
           final camelUrl = data['photoUrl']?.toString();
           

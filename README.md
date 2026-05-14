@@ -1,17 +1,59 @@
-# UniLost & Found
+# UniLost & Found - UAB Campus
 
-Projecto LIS UniLost & Found
+![App Header](https://img.shields.io/badge/Flutter-v3.22+-blue?logo=flutter)
+![Firebase](https://img.shields.io/badge/Firebase-Backend-orange?logo=firebase)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-## Getting Started
+**UniLost & Found (ULF)** es una aplicación móvil diseñada para la gestión de objetos perdidos y encontrados en el campus de la Universidad Autónoma de Barcelona (UAB).
 
-This project is a starting point for a Flutter application.
+## 🚀 Características Principales
 
-A few resources to get you started if this is your first Flutter project:
+- **Internacionalización**: Soporte completo para Español, Catalán e Inglés.
+- **Autenticación Segura**: Acceso restringido a usuarios con correo institucional `@uab.cat`.
+- **Feed en Tiempo Real**: Visualización instantánea de objetos mediante Firebase Realtime Database.
+- **Geolocalización**: Mapa interactivo para ubicar hallazgos y pérdidas.
+- **Chat Integrado**: Comunicación directa entre los usuarios involucrados.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## 🛠️ Requisitos e Instalación
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Prerrequisitos
+- Flutter SDK (versión estable recomendada)
+- Dart SDK
+- Android Studio / VS Code con plugins de Flutter y Dart
+
+### Configuración Inicial
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/Xavi1670093/lost-found-frontend.git
+   ```
+2. Instala las dependencias:
+   ```bash
+   flutter pub get
+   ```
+3. Configura Firebase:
+   - Asegúrate de tener el archivo `lib/firebase_options.dart` generado mediante `flutterfire configure`.
+   - Verifica los archivos `google-services.json` (Android) y `GoogleService-Info.plist` (iOS) si es necesario.
+
+## 📱 Ejecución
+
+Para ejecutar la aplicación en modo desarrollo:
+
+```bash
+# Ejecutar en el dispositivo conectado (Android/iOS)
+flutter run
+
+# Ejecutar en modo Web
+flutter run -d chrome
+```
+
+## 🏗️ Arquitectura y Componentes
+
+Para detalles técnicos sobre la estructura del proyecto, consulta nuestra [Guía de Arquitectura](docs/architecture.md).
+
+### Componentes Core
+- **Localization**: Sistema propio en `lib/core/localization/`.
+- **Theme**: Estilo Material 3 centralizado en `lib/core/theme/`.
+- **Services**: Gestión de permisos y errores en `lib/core/services/`.
+
+---
+© 2026 UniLost & Found Project - UAB

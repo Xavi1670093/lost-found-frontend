@@ -28,8 +28,8 @@ class AppStrings {
       'darkMode': 'Modo oscuro',
       'language': 'Idioma',
       'spanish': 'Español',
-      'catalan': 'Català',
-      'english': 'English',
+      'catalan': 'Catalán',
+      'english': 'Inglés',
       'publishedObjects': 'Objetos publicados',
       'futureOptions': 'Opciones futuras de la aplicación',
       'welcome': 'Bienvenido a ULF',
@@ -113,6 +113,7 @@ class AppStrings {
       'recentObjects': 'Objetos recientes',
       'noObjectsIn': 'No hay objetos todavía en {center}',
       'noObjectsFound': 'No se encontraron objetos.',
+      'noObjectsFoundForTitle': 'No se encontraron objetos para {title}.',
       'campusLocationDetail': 'Cerdanyola del Vallès, Barcelona',
       'lostStatus': 'PERDIDO',
       'foundStatus': 'ENCONTRADO',
@@ -191,6 +192,8 @@ class AppStrings {
       'optional': '(Opcional)',
       'unsupportedFormat': 'Formato no soportado. Usa JPG o PNG.',
       'editPhotoSuccess': 'Foto de perfil actualizada.',
+      'uabAcronym': 'UAB',
+      'lostAndFound': 'Lost & Found',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -202,7 +205,7 @@ class AppStrings {
       'language': 'Idioma',
       'spanish': 'Espanyol',
       'catalan': 'Català',
-      'english': 'English',
+      'english': 'Anglès',
       'publishedObjects': 'Objectes publicats',
       'futureOptions': 'Opcions futures de l’aplicació',
       'welcome': 'Benvingut a ULF',
@@ -286,6 +289,7 @@ class AppStrings {
       'recentObjects': 'Objectes recents',
       'noObjectsIn': 'Encara no hi ha objectes a {center}',
       'noObjectsFound': 'No s’han trobat objectes.',
+      'noObjectsFoundForTitle': 'No s’han trobat objectes per a {title}.',
       'campusLocationDetail': 'Cerdanyola del Vallès, Barcelona',
       'lostStatus': 'PERDUT',
       'foundStatus': 'TROBAT',
@@ -364,6 +368,8 @@ class AppStrings {
       'optional': '(Opcional)',
       'unsupportedFormat': 'Format no suportat. Usa JPG o PNG.',
       'editPhotoSuccess': 'Foto de perfil actualitzada.',
+      'uabAcronym': 'UAB',
+      'lostAndFound': 'Lost & Found',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -459,6 +465,7 @@ class AppStrings {
       'recentObjects': 'Recent items',
       'noObjectsIn': 'No items yet in {center}',
       'noObjectsFound': 'No items found.',
+      'noObjectsFoundForTitle': 'No items found for {title}.',
       'campusLocationDetail': 'Cerdanyola del Vallès, Barcelona',
       'lostStatus': 'LOST',
       'foundStatus': 'FOUND',
@@ -537,6 +544,8 @@ class AppStrings {
       'optional': '(Optional)',
       'unsupportedFormat': 'Unsupported format. Use JPG or PNG.',
       'editPhotoSuccess': 'Profile picture updated.',
+      'uabAcronym': 'UAB',
+      'lostAndFound': 'Lost & Found',
     },
   };
 
@@ -712,6 +721,11 @@ class AppStrings {
   String get optional => _text('optional');
   String get unsupportedFormat => _text('unsupportedFormat');
   String get editPhotoSuccess => _text('editPhotoSuccess');
+  String get uabAcronym => _text('uabAcronym');
+  String get lostAndFound => _text('lostAndFound');
+
+  String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
+  String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);
 
   String _text(String key) {
     return _localizedValues[locale.languageCode]?[key] ??
