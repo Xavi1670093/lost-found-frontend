@@ -403,38 +403,40 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildSkeleton(ThemeData theme) {
     return Scaffold(
-      body: Column(
-        children: [
-          SkeletonLoader(
-            height: 250,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonLoader(width: 150, height: 20),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
-                    const SizedBox(width: 16),
-                    Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                SkeletonLoader(width: 150, height: 20),
-                const SizedBox(height: 16),
-                SkeletonLoader(height: 120, borderRadius: BorderRadius.circular(16)),
-              ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SkeletonLoader(
+              height: 250,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SkeletonLoader(width: 150, height: 20),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
+                      const SizedBox(width: 16),
+                      Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  const SkeletonLoader(width: 150, height: 20),
+                  const SizedBox(height: 16),
+                  SkeletonLoader(height: 120, borderRadius: BorderRadius.circular(16)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
+  
   String _languageLabel(BuildContext context, String code) {
     final t = AppStrings.of(context);
     switch (code) {

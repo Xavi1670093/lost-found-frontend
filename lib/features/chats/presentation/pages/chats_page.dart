@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:unilost_found/shared/utils/category_utils.dart';
 import '../../data/models/chat_model.dart';
 import 'chat_detail_page.dart';
 
@@ -90,7 +91,7 @@ class ChatsPage extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          // Leading: Rounded rectangle for post image
+                          // Leading: Imagen del post o Icono de Categoría
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: chat.postImageUrl != null && chat.postImageUrl!.isNotEmpty
@@ -108,14 +109,14 @@ class ChatsPage extends StatelessWidget {
                                       width: 60,
                                       height: 60,
                                       color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                                      child: Icon(Icons.image_not_supported, color: theme.colorScheme.primary),
+                                      child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary),
                                     ),
                                   )
                                 : Container(
                                     width: 60,
                                     height: 60,
                                     color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                                    child: Icon(Icons.image_not_supported, color: theme.colorScheme.primary),
+                                    child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary),
                                   ),
                           ),
                           const SizedBox(width: 16),
@@ -148,13 +149,13 @@ class ChatsPage extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 6),
-                                // Subtitle: Publisher info
+                                // Subtitle: Información del OTRO usuario
                                 Row(
                                   children: [
                                     ClipOval(
-                                      child: chat.getPublisherPhoto() != null
+                                      child: chat.getOtherUserPhoto() != null
                                           ? CachedNetworkImage(
-                                              imageUrl: chat.getPublisherPhoto()!,
+                                              imageUrl: chat.getOtherUserPhoto()!,
                                               width: 24,
                                               height: 24,
                                               fit: BoxFit.cover,
@@ -173,7 +174,7 @@ class ChatsPage extends StatelessWidget {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        chat.getPublisherName(t.defaultUserName),
+                                        chat.getOtherUserName(t.defaultUserName),
                                         style: theme.textTheme.labelMedium?.copyWith(
                                           color: theme.colorScheme.onSurfaceVariant,
                                           fontWeight: FontWeight.w500,
@@ -316,22 +317,6 @@ class ChatsPage extends StatelessWidget {
     return "$day/$month";
   }
 
-  Widget _buildPlaceholderIcon(ThemeData theme) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.person,
-        color: theme.colorScheme.primary,
-        size: 32,
-      ),
-    );
-  }
-
   String _getLastMessageText(ChatModel chat, AppStrings t) {
     if (chat.lastMessage == null || chat.lastMessage!.isEmpty) {
       return t.chatStarted;
@@ -345,4 +330,3 @@ class ChatsPage extends StatelessWidget {
     return msg;
   }
 }
-

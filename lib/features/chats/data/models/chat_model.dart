@@ -4,6 +4,7 @@ class ChatModel {
   final String id;
   final String postTitle;
   final String? postImageUrl;
+  final String postCategory;
   final String? lastMessage;
   final int lastMessageTime;
   final int createdAt;
@@ -15,6 +16,7 @@ class ChatModel {
     required this.id,
     required this.postTitle,
     this.postImageUrl,
+    required this.postCategory,
     this.lastMessage,
     required this.lastMessageTime,
     required this.createdAt,
@@ -36,6 +38,7 @@ class ChatModel {
       id: id,
       postTitle: map['postTitle'] ?? map['post_title'] ?? '',
       postImageUrl: map['postImageUrl']?.toString() ?? map['post_image_url']?.toString(),
+      postCategory: map['postCategory']?.toString() ?? map['post_category']?.toString() ?? 'others',
       lastMessage: map['last_message']?.toString(),
       lastMessageTime: map['last_message_time'] ?? map['created_at'] ?? 0,
       createdAt: map['created_at'] ?? 0,

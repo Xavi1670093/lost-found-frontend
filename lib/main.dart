@@ -16,12 +16,6 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Initialize App Check for security
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug,
-    appleProvider: AppleProvider.deviceCheck,
-  );
-
   // (Sprint 5) Configuración de persistencia local para asegurar que el token se mantenga
   // y se pueda gestionar manualmente el cierre de sesión por dispositivo.
   try {
