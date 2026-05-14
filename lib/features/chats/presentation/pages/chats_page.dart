@@ -91,17 +91,17 @@ class ChatsPage extends StatelessWidget {
                       child: Row(
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: chat.postImageUrl != null && chat.postImageUrl!.isNotEmpty
+                            borderRadius: BorderRadius.circular(28),
+                            child: chat.getOtherUserPhoto() != null && chat.getOtherUserPhoto()!.isNotEmpty
                                 ? CachedNetworkImage(
-                                    imageUrl: chat.postImageUrl!,
+                                    imageUrl: chat.getOtherUserPhoto()!,
                                     width: 56,
                                     height: 56,
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => const SkeletonLoader(
                                       width: 56,
                                       height: 56,
-                                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                                      borderRadius: BorderRadius.all(Radius.circular(28)),
                                     ),
                                     errorWidget: (context, url, error) => _buildPlaceholderIcon(theme),
                                   )
@@ -286,21 +286,27 @@ class ChatsPage extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12),
+        shape: BoxShape.circle,
       ),
       child: Icon(
-        Icons.image_not_supported_rounded,
+        Icons.person,
         color: theme.colorScheme.primary,
-        size: 24,
+        size: 32,
       ),
     );
   }
 
   String _getLastMessageText(ChatModel chat, AppStrings t) {
-    if (chat.lastMessage == null || chat.lastMessage!.isEmpty || chat.lastMessage == 'SYSTEM_MSG_CHAT_STARTED') {
+    if (chat.lastMessage == null || chat.lastMessage!.isEmpty) {
       return t.chatStarted;
     }
-    return chat.lastMessage!;
+    
+    final msg = chat.lastMessage!;
+    if (msg == 'SYSTEM_MSG_CHAT_STARTED' || msg.toLowerCase() == 'conversación iniciada') {
+      return t.chatStarted;
+    }
+    
+    return msg;
   }
 }
 

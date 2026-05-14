@@ -22,19 +22,25 @@ class ChatModel {
   });
 
   factory ChatModel.fromMap(String id, Map<dynamic, dynamic> map) {
+    // Parse participants from 'members' map (new) or 'participants' list (old)
+    List<String> participantsList = [];
+    if (map['members'] != null && map['members'] is Map) {
+      participantsList = (map['members'] as Map).keys.map((e) => e.toString()).toList();
+    } else if (map['participants'] != null) {
+      participantsList = List<String>.from(map['participants']);
+    }
+
     return ChatModel(
       id: id,
-      postTitle: map['post_title'] ?? '',
-      postImageUrl: map['postImageUrl']?.toString(),
+      postTitle: map['postTitle'] ?? map['post_title'] ?? '',
+      postImageUrl: map['postImageUrl']?.toString() ?? map['post_image_url']?.toString(),
       lastMessage: map['last_message']?.toString(),
       lastMessageTime: map['last_message_time'] ?? map['created_at'] ?? 0,
       createdAt: map['created_at'] ?? 0,
       usersInfo: map['usersInfo'] != null 
           ? Map<String, dynamic>.from(map['usersInfo']) 
           : {},
-      participants: map['participants'] != null 
-          ? List<String>.from(map['participants']) 
-          : [],
+      participants: participantsList,
     );
   }
 
@@ -49,7 +55,8 @@ class ChatModel {
   String getOtherUserName(String defaultName) {
     final otherUid = getOtherUserId();
     if (otherUid.isEmpty) return defaultName;
-    return usersInfo[otherUid]?['name'] ?? defaultName;
+    final info = usersInfo[otherUid];
+    return info?['displayName'] ?? info?['name'] ?? defaultName;
   }
 
   String? getOtherUserPhoto() {
