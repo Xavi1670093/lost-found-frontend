@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dart_geohash/dart_geohash.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -35,6 +36,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Position? _currentPosition;
   String _locationMethod = 'gps'; // 'gps' o 'map'
   Map<String, dynamic>? _centerBounds;
+  String? _centerId;
+  String? _userName;
   bool _isPublishing = false;
 
   final _formKey = GlobalKey<FormState>();
@@ -53,15 +56,24 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
-      final userSnap = await FirebaseDatabase.instance.ref('users/${user.uid}/center_id').get();
-      final centerId = userSnap.value?.toString().toLowerCase() ?? 'uab';
       
-      final boundsSnap = await FirebaseDatabase.instance.ref('centers/$centerId/bounds').get();
+      final userSnap = await FirebaseDatabase.instance.ref('users/${user.uid}').get();
+      if (userSnap.exists) {
+        final userData = Map<dynamic, dynamic>.from(userSnap.value as Map);
+        _centerId = userData['center_id']?.toString().toLowerCase() ?? 'uab';
+        _userName = userData['name']?.toString() ?? user.displayName;
+      } else {
+        _centerId = 'uab';
+        _userName = user.displayName;
+      }
+      
+      final fetchId = _centerId!;
+      final boundsSnap = await FirebaseDatabase.instance.ref('centers/$fetchId/bounds').get();
       if (boundsSnap.exists) {
         setState(() {
           _centerBounds = Map<String, dynamic>.from(boundsSnap.value as Map);
         });
-      } else if (centerId == 'uab') {
+      } else if (fetchId == 'uab') {
         // Fallback para UAB si no está en la DB
         _centerBounds = {
           'minLat': 41.490,
@@ -224,8 +236,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     // 1. Obtener centro y límites para valores por defecto seguros
-    final centerId = _centerBounds?['centerId']?.toString().toLowerCase() ?? 'uab';
-    final centerName = _centerBounds?['name']?.toString() ?? 'UAB';
+    final centerId = _centerId ?? 'uab';
+    final centerName = _centerBounds?['name']?.toString() ?? 'UAB Campus';
     
     // Cálculo del centroide para el fallback (evita valores fuera de rango)
     final double defaultLat = ((_centerBounds?['minLat'] as double? ?? 41.490) + (_centerBounds?['maxLat'] as double? ?? 41.510)) / 2;
@@ -270,11 +282,17 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         }
       }
 
+      // Cálculo del Geohash (Requerido por Security Rules)
+      final lat = _currentPosition?.latitude ?? defaultLat;
+      final lng = _currentPosition?.longitude ?? defaultLng;
+      final geohash = GeoHasher().encode(lng, lat);
+
       // 3. Envío de datos con estructura compatible con Security Rules
       await newPostRef.set({
         'id': newPostRef.key,
         'user_id': user.uid,
-        'center_id': centerId, // Aseguramos minúsculas
+        'user_name': _userName ?? 'Estudiante', // Campo requerido para denormalización
+        'center_id': centerId.toLowerCase(),
         'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
@@ -282,8 +300,9 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'status': 'active',
         'location': centerName, // CAMPO CRÍTICO: Requerido por la DB
         'coords': {
-          'lat': _currentPosition?.latitude ?? defaultLat,
-          'lng': _currentPosition?.longitude ?? defaultLng,
+          'lat': lat,
+          'lng': lng,
+          'geohash': geohash, // CAMPO CRÍTICO: Requerido por la DB
         },
         'imageUrl': imageUrl,
         'date': selectedDate.millisecondsSinceEpoch,

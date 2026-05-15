@@ -760,6 +760,7 @@ class AppStrings {
   String get outsideBoundsErrorRaw => _text('outsideBoundsError');
   String outsideBoundsError(String center) => outsideBoundsErrorRaw.replaceAll('{center}', center);
   String get centerLocationError => _text('centerLocationError');
+  String get emailNotVerified => _text('emailNotVerified');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);
