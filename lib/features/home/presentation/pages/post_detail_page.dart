@@ -22,7 +22,8 @@ class PostDetailPage extends StatefulWidget {
 class _PostDetailPageState extends State<PostDetailPage> {
   bool _isLoading = false;
 
-  Future<void> _contactOwner(BuildContext context) async {
+  Future<void> _contactOwner() async {
+    if (!mounted) return;
     final t = AppStrings.of(context);
     final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -284,7 +285,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         child: CustomButton(
           text: _isLoading ? t.openingChat : t.contactOwner,
           isLoading: _isLoading,
-          onPressed: () => _contactOwner(context),
+          onPressed: () => _contactOwner(),
         ),
       ),
     );

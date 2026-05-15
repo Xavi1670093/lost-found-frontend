@@ -80,10 +80,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     if (!hasPermission) return;
     try {
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      if (!mounted) return;
       setState(() {
         _currentPosition = position;
       });
     } catch (e) {
+      if (!mounted) return;
       _showError(t.locationError);
     }
   }
@@ -155,6 +157,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
+      if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
       _showError(message);
     } finally {
