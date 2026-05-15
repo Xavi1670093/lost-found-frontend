@@ -159,6 +159,11 @@ class ChatsPage extends StatelessWidget {
                                               width: 24,
                                               height: 24,
                                               fit: BoxFit.cover,
+                                              placeholder: (context, url) => const SkeletonLoader(
+                                                width: 24,
+                                                height: 24,
+                                                borderRadius: BorderRadius.all(Radius.circular(12)),
+                                              ),
                                               errorWidget: (context, url, error) => Icon(
                                                 Icons.person,
                                                 size: 16,

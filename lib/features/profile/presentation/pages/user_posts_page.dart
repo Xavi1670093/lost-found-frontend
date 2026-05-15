@@ -21,12 +21,16 @@ class UserPostsPage extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     final theme = Theme.of(context);
 
+    final title = type == 'lost' ? t.myLosses : t.myFindings;
+
     if (user == null) {
-      return Scaffold(body: Center(child: Text(t.mustLogin)));
+      return Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: Center(child: Text(t.mustLogin)),
+      );
     }
 
     final query = FirebaseDatabase.instance.ref('posts').orderByChild('user_id').equalTo(user.uid);
-    final title = type == 'lost' ? t.myLosses : t.myFindings;
 
     return Scaffold(
       appBar: AppBar(
@@ -105,7 +109,11 @@ class UserPostsPage extends StatelessWidget {
                                           child: CachedNetworkImage(
                                             imageUrl: post['imageUrl'],
                                             fit: BoxFit.cover,
-                                            placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                            placeholder: (context, url) => const SkeletonLoader(
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                            ),
                                             errorWidget: (context, url, error) => _buildCardIconFallback(theme, isLost),
                                           ),
                                         )

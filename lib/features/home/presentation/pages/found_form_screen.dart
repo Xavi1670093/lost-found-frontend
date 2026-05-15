@@ -12,6 +12,9 @@ import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/widgets/map_picker_page.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as osm;
 
 class FoundFormScreen extends StatefulWidget {
   final String postType;
@@ -28,6 +31,8 @@ class FoundFormScreen extends StatefulWidget {
 class _FoundFormScreenState extends State<FoundFormScreen> {
   File? imageFile;
   Position? _currentPosition;
+  String _locationMethod = 'gps'; // 'gps' o 'map'
+  Map<String, dynamic>? _centerBounds;
   bool _isPublishing = false;
 
   final _formKey = GlobalKey<FormState>();
@@ -39,6 +44,42 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     super.initState();
     titleController = TextEditingController();
     descriptionController = TextEditingController();
+    _loadCenterBounds();
+  }
+
+  Future<void> _loadCenterBounds() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final userSnap = await FirebaseDatabase.instance.ref('users/${user.uid}/center_id').get();
+      final centerId = userSnap.value?.toString().toLowerCase() ?? 'uab';
+      
+      final boundsSnap = await FirebaseDatabase.instance.ref('centers/$centerId/bounds').get();
+      if (boundsSnap.exists) {
+        setState(() {
+          _centerBounds = Map<String, dynamic>.from(boundsSnap.value as Map);
+        });
+      } else if (centerId == 'uab') {
+        // Fallback para UAB si no está en la DB
+        _centerBounds = {
+          'minLat': 41.490,
+          'maxLat': 41.510,
+          'minLng': 2.090,
+          'maxLng': 2.120,
+          'name': 'UAB'
+        };
+      }
+    } catch (_) {}
+  }
+
+  bool _isWithinBounds(double lat, double lng) {
+    if (_centerBounds == null) return true;
+    final minLat = _centerBounds!['minLat'] as double;
+    final maxLat = _centerBounds!['maxLat'] as double;
+    final minLng = _centerBounds!['minLng'] as double;
+    final maxLng = _centerBounds!['maxLng'] as double;
+    
+    return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
   }
 
   String? selectedCategoryKey;
@@ -81,12 +122,55 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     try {
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       if (!context.mounted) return;
+
+      if (!_isWithinBounds(position.latitude, position.longitude)) {
+        _showError(t.outsideBoundsError(_centerBounds?['name'] ?? 'UAB'));
+        return;
+      }
+
       setState(() {
         _currentPosition = position;
       });
     } catch (e) {
       if (!context.mounted) return;
       _showError(t.locationError);
+    }
+  }
+
+  Future<void> _openMapPicker() async {
+    if (_centerBounds == null) return;
+    
+    final initialLat = (_centerBounds!['minLat'] + _centerBounds!['maxLat']) / 2;
+    final initialLng = (_centerBounds!['minLng'] + _centerBounds!['maxLng']) / 2;
+    
+    final osm.LatLng? pickedPoint = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapPickerPage(
+          initialCenter: osm.LatLng(initialLat, initialLng),
+          bounds: LatLngBounds(
+            osm.LatLng(_centerBounds!['minLat'], _centerBounds!['minLng']),
+            osm.LatLng(_centerBounds!['maxLat'], _centerBounds!['maxLng']),
+          ),
+        ),
+      ),
+    );
+
+    if (pickedPoint != null) {
+      setState(() {
+        _currentPosition = Position(
+          latitude: pickedPoint.latitude,
+          longitude: pickedPoint.longitude,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
+      });
     }
   }
 
@@ -278,12 +362,41 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    _buildSectionTitle(t.locationAndDate, theme),
+                    _buildSectionTitle(t.locationOptional, theme),
+                    const SizedBox(height: 16),
+                    SegmentedButton<String>(
+                      segments: [
+                        ButtonSegment(
+                          value: 'gps',
+                          label: Text(t.gpsLocation),
+                          icon: const Icon(Icons.my_location_rounded, size: 18),
+                        ),
+                        ButtonSegment(
+                          value: 'map',
+                          label: Text(t.mapLocation),
+                          icon: const Icon(Icons.map_rounded, size: 18),
+                        ),
+                      ],
+                      selected: {_locationMethod},
+                      onSelectionChanged: (newSelection) {
+                        setState(() {
+                          _locationMethod = newSelection.first;
+                          _currentPosition = null;
+                        });
+                      },
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: VisualDensity.comfortable,
+                        selectedBackgroundColor: theme.colorScheme.primaryContainer,
+                        selectedForegroundColor: theme.colorScheme.primary,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _buildActionTile(
-                      Icons.location_on_rounded,
-                      _currentPosition != null ? t.locationObtained : t.getCurrentLocation,
-                      _getLocation,
+                      _locationMethod == 'gps' ? Icons.location_on_rounded : Icons.map_outlined,
+                      _currentPosition != null 
+                        ? t.locationObtained 
+                        : (_locationMethod == 'gps' ? t.getCurrentLocation : t.mapLocation),
+                      _locationMethod == 'gps' ? _getLocation : _openMapPicker,
                       _currentPosition != null,
                       theme,
                     ),

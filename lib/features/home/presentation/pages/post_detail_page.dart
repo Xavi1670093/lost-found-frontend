@@ -9,6 +9,7 @@ import '../../../chats/data/models/chat_model.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 
 class PostDetailPage extends StatefulWidget {
   final Map<dynamic, dynamic> post;
@@ -117,6 +118,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
             expandedHeight: 320,
             pinned: true,
             stretch: true,
+            leading: const BackButton(),
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'post_image_${post['id']}',
@@ -124,9 +126,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     ? CachedNetworkImage(
                         imageUrl: post['imageUrl'],
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-                          child: const Center(child: CircularProgressIndicator()),
+                        placeholder: (context, url) => const SkeletonLoader(
+                          width: double.infinity,
+                          height: 320,
                         ),
                         errorWidget: (context, url, error) => _buildImageFallback(theme, post),
                       )

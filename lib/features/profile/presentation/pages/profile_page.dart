@@ -175,7 +175,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                                   width: 100,
                                                   height: 100,
                                                   fit: BoxFit.cover,
-                                                  placeholder: (context, url) => const CircularProgressIndicator(),
+                                                  placeholder: (context, url) => const SkeletonLoader(
+                                                    width: 100,
+                                                    height: 100,
+                                                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                                                  ),
                                                   errorWidget: (context, url, error) {
                                                      debugPrint("ULF_DEBUG: Image load error: $error");
                                                      return Icon(Icons.person_rounded, size: 50, color: theme.colorScheme.primary);

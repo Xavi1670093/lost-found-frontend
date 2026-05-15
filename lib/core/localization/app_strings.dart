@@ -197,6 +197,10 @@ class AppStrings {
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Conversación iniciada',
       'errorImageUpload': 'Error al subir la imagen. Inténtalo de nuevo.',
+      'locationOptional': 'Ubicación (Opcional)',
+      'gpsLocation': 'GPS Actual',
+      'mapLocation': 'Seleccionar en Mapa',
+      'outsideBoundsError': 'Estás fuera del perímetro permitido para el centro {center}',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -376,6 +380,10 @@ class AppStrings {
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Conversa iniciada',
       'errorImageUpload': 'Error en pujar la imatge. Torna-ho a provar.',
+      'locationOptional': 'Ubicació (Opcional)',
+      'gpsLocation': 'GPS Actual',
+      'mapLocation': 'Seleccionar en Mapa',
+      'outsideBoundsError': 'Estàs fora del perímetre permès per al centre {center}',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -555,6 +563,10 @@ class AppStrings {
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Chat started',
       'errorImageUpload': 'Error uploading image. Please try again.',
+      'locationOptional': 'Location (Optional)',
+      'gpsLocation': 'Current GPS',
+      'mapLocation': 'Select on Map',
+      'outsideBoundsError': 'You are outside the allowed perimeter for center {center}',
     },
   };
 
@@ -735,6 +747,11 @@ class AppStrings {
   String get lostAndFound => _text('lostAndFound');
   String get chatStarted => _text('chatStarted');
   String get errorImageUpload => _text('errorImageUpload');
+  String get locationOptional => _text('locationOptional');
+  String get gpsLocation => _text('gpsLocation');
+  String get mapLocation => _text('mapLocation');
+  String get outsideBoundsErrorRaw => _text('outsideBoundsError');
+  String outsideBoundsError(String center) => outsideBoundsErrorRaw.replaceAll('{center}', center);
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);
