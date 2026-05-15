@@ -74,7 +74,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       final chatData = Map<String, dynamic>.from(chatSnap.value as Map);
       final chatModel = ChatModel.fromMap(chatId, chatData);
 
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       Navigator.push(
         context,
@@ -86,7 +86,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ),
       );
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       // Get localization and navigator state before the next build context usage
       final messenger = ScaffoldMessenger.of(context);
       final t = AppStrings.of(context);
@@ -97,7 +97,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         SnackBar(content: Text(message), backgroundColor: theme.colorScheme.error),
       );
     } finally {
-      if (context.mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

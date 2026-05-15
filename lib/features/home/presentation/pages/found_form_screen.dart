@@ -149,7 +149,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'is_deleted': false,
       });
 
-      if (context.mounted) {
+      if (mounted) {
         AppNotifications.showSuccess(
           context, 
           widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
@@ -157,11 +157,11 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
       _showError(message);
     } finally {
-      if (context.mounted) setState(() => _isPublishing = false);
+      if (mounted) setState(() => _isPublishing = false);
     }
   }
 
