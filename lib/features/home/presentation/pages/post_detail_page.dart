@@ -23,7 +23,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   bool _isLoading = false;
 
   Future<void> _contactOwner() async {
-    if (!mounted) return;
+    if (!context.mounted) return;
     final t = AppStrings.of(context);
     final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -74,7 +74,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       final chatData = Map<String, dynamic>.from(chatSnap.value as Map);
       final chatModel = ChatModel.fromMap(chatId, chatData);
 
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       Navigator.push(
         context,
@@ -86,7 +86,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ),
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       // Get localization and navigator state before the next build context usage
       final messenger = ScaffoldMessenger.of(context);
       final t = AppStrings.of(context);
@@ -97,7 +97,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         SnackBar(content: Text(message), backgroundColor: theme.colorScheme.error),
       );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (context.mounted) setState(() => _isLoading = false);
     }
   }
 

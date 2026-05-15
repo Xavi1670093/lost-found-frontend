@@ -80,12 +80,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     if (!hasPermission) return;
     try {
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      if (!mounted) return;
+      if (!context.mounted) return;
       setState(() {
         _currentPosition = position;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       _showError(t.locationError);
     }
   }
@@ -149,7 +149,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'is_deleted': false,
       });
 
-      if (mounted) {
+      if (context.mounted) {
         AppNotifications.showSuccess(
           context, 
           widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
@@ -157,11 +157,11 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       final message = ErrorHandler.getMessage(e, t);
       _showError(message);
     } finally {
-      if (mounted) setState(() => _isPublishing = false);
+      if (context.mounted) setState(() => _isPublishing = false);
     }
   }
 
