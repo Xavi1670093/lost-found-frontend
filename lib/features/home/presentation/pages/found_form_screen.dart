@@ -77,17 +77,21 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   bool _isWithinBounds(double lat, double lng) {
     if (_centerBounds == null) return true;
     
-    final minLat = _centerBounds!['minLat'] as double;
-    final maxLat = _centerBounds!['maxLat'] as double;
-    final minLng = _centerBounds!['minLng'] as double;
-    final maxLng = _centerBounds!['maxLng'] as double;
+    // Extracción segura de límites con fallback para evitar NoSuchMethodError
+    final double? minLat = _centerBounds!['minLat'] as double?;
+    final double? maxLat = _centerBounds!['maxLat'] as double?;
+    final double? minLng = _centerBounds!['minLng'] as double?;
+    final double? maxLng = _centerBounds!['maxLng'] as double?;
+
+    if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
+      return true; // Si los límites son corruptos, permitimos por defecto para no bloquear al usuario
+    }
     
-    // Calculamos el centroide de la universidad
+    // Calculamos el centroide de la universidad (garantizado no nulo)
     final centerLat = (minLat + maxLat) / 2;
     final centerLng = (minLng + maxLng) / 2;
     
     // Validamos que el usuario esté en un radio de 1.5km del centro de la uni
-    // Esto es más flexible y preciso que un simple rectángulo
     return LocationService.isWithinRadius(lat, lng, centerLat, centerLng, 1500);
   }
 
@@ -128,29 +132,61 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final t = AppStrings.of(context);
     final hasPermission = await PermissionService.requestLocation();
     if (!hasPermission) return;
+    
     try {
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      if (!context.mounted) return;
+      // Obtenemos la posición con un timeout de 10 segundos para no bloquear la UI indefinidamente
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+      
+      if (!mounted) return;
 
+      // Validación en tiempo real (Tarea 3)
       if (!_isWithinBounds(position.latitude, position.longitude)) {
         _showError(t.outsideBoundsError(_centerBounds?['name'] ?? 'UAB'));
+        // IMPORTANTE: No sobreescribimos _currentPosition si está fuera de rango
         return;
       }
 
       setState(() {
         _currentPosition = position;
       });
+      
+      // Feedback visual de éxito
+      if (mounted) {
+        AppNotifications.showSuccess(context, t.locationObtained);
+      }
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       _showError(t.locationError);
     }
   }
 
   Future<void> _openMapPicker() async {
-    if (_centerBounds == null) return;
+    final t = AppStrings.of(context);
     
-    final initialLat = (_centerBounds!['minLat'] + _centerBounds!['maxLat']) / 2;
-    final initialLng = (_centerBounds!['minLng'] + _centerBounds!['maxLng']) / 2;
+    // Comprobación de nulidad exhaustiva (Prioridad Cero)
+    if (_centerBounds == null) {
+      _showError(t.centerLocationError);
+      return;
+    }
+
+    // Extracción segura de coordenadas con respaldo (fallback) preventivo
+    final double? minLat = _centerBounds!['minLat'] as double?;
+    final double? maxLat = _centerBounds!['maxLat'] as double?;
+    final double? minLng = _centerBounds!['minLng'] as double?;
+    final double? maxLng = _centerBounds!['maxLng'] as double?;
+
+    // Si falta algún dato crítico, abortamos la apertura para evitar el Crash
+    if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
+      _showError(t.centerLocationError);
+      return;
+    }
+    
+    // Cálculo seguro del centroide (garantizado no nulo)
+    final initialLat = (minLat + maxLat) / 2;
+    final initialLng = (minLng + maxLng) / 2;
     
     final osm.LatLng? pickedPoint = await Navigator.push(
       context,
@@ -158,8 +194,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         builder: (context) => MapPickerPage(
           initialCenter: osm.LatLng(initialLat, initialLng),
           bounds: LatLngBounds(
-            osm.LatLng(_centerBounds!['minLat'], _centerBounds!['minLng']),
-            osm.LatLng(_centerBounds!['maxLat'], _centerBounds!['maxLng']),
+            osm.LatLng(minLat, minLng),
+            osm.LatLng(maxLat, maxLng),
           ),
         ),
       ),
@@ -186,6 +222,21 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Future<void> _submit() async {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
+    
+    // 1. Obtener centro y límites para valores por defecto seguros
+    final centerId = _centerBounds?['centerId']?.toString().toLowerCase() ?? 'uab';
+    final centerName = _centerBounds?['name']?.toString() ?? 'UAB';
+    
+    // Cálculo del centroide para el fallback (evita valores fuera de rango)
+    final double defaultLat = ((_centerBounds?['minLat'] as double? ?? 41.490) + (_centerBounds?['maxLat'] as double? ?? 41.510)) / 2;
+    final double defaultLng = ((_centerBounds?['minLng'] as double? ?? 2.090) + (_centerBounds?['maxLng'] as double? ?? 2.120)) / 2;
+
+    // 2. Validación de ubicación (Tarea 3)
+    if (_currentPosition != null && !_isWithinBounds(_currentPosition!.latitude, _currentPosition!.longitude)) {
+      _showError(t.outsideBoundsError(centerName));
+      return;
+    }
+
     if (selectedCategoryKey == null) {
       _showError(t.selectCategoryAndDate);
       return;
@@ -197,22 +248,18 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception(t.sessionError);
 
-      final userSnapshot = await FirebaseDatabase.instance.ref('users/${user.uid}/center_id').get();
-      final centerId = userSnapshot.value?.toString() ?? "uab";
-
       final postsRef = FirebaseDatabase.instance.ref('posts');
       final newPostRef = postsRef.push();
 
       String imageUrl = "";
       if (imageFile != null) {
         try {
-          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-          final uploadTask = storageRef.putFile(
+          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.jpg');
+          final uploadTask = await storageRef.putFile(
             imageFile!,
             SettableMetadata(contentType: 'image/jpeg'),
           );
-          final snapshotTask = await uploadTask;
-          imageUrl = await snapshotTask.ref.getDownloadURL();
+          imageUrl = await uploadTask.ref.getDownloadURL();
         } on FirebaseException catch (e) {
           if (e.code == 'permission-denied') {
              throw Exception(t.errorImageUpload);
@@ -223,18 +270,20 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         }
       }
 
+      // 3. Envío de datos con estructura compatible con Security Rules
       await newPostRef.set({
         'id': newPostRef.key,
         'user_id': user.uid,
-        'center_id': centerId,
+        'center_id': centerId, // Aseguramos minúsculas
         'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
         'category': selectedCategoryKey,
         'status': 'active',
+        'location': centerName, // CAMPO CRÍTICO: Requerido por la DB
         'coords': {
-          'lat': _currentPosition?.latitude ?? 41.502,
-          'lng': _currentPosition?.longitude ?? 2.103,
+          'lat': _currentPosition?.latitude ?? defaultLat,
+          'lng': _currentPosition?.longitude ?? defaultLng,
         },
         'imageUrl': imageUrl,
         'date': selectedDate.millisecondsSinceEpoch,

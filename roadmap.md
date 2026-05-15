@@ -1,40 +1,39 @@
-## Tareas Pendientes: Mejoras y Correcciones de UI/UX y Lógica de Ubicación
+## Correcciones de Emergencia: Fallo en Selección de Ubicación y Ajustes del Mapa
 
-A continuación se detallan las tareas que el agente de IA debe implementar en el repositorio del Frontend. Cada tarea debe desarrollarse comprobando el correcto funcionamiento, la integridad del código y asegurando el soporte a los 3 idiomas (Español, Catalán, Inglés).
+Las siguientes tareas deben ser abordadas de inmediato para solucionar un cierre inesperado (`Crash`) al intentar abrir el selector de mapas y para mejorar la experiencia de navegación geográfica. El agente debe mantener el código seguro (Null-Safety) y asegurar el funcionamiento en los 3 idiomas.
 
-### 1. Añadir Títulos a los Campos del Formulario de Publicación
-**Objetivo:** Mejorar la accesibilidad y claridad del formulario añadiendo títulos descriptivos encima o en el borde de cada campo de entrada.
-* **Archivos implicados:** `lib/features/home/presentation/pages/found_form_screen.dart` (y cualquier otro formulario de publicación de objetos perdidos), `lib/shared/widgets/custom_text_field.dart`, `lib/core/localization/app_strings.dart`.
+### 1. Corregir `NoSuchMethodError` en `_openMapPicker` (Formulario de Publicación)
+**Objetivo:** Solucionar el error `The method '+' was called on null` detectado en la línea 152 de `lib/features/home/presentation/pages/found_form_screen.dart`, que impide abrir el mapa.
+* **Archivos implicados:** `lib/features/home/presentation/pages/found_form_screen.dart`.
 * **Instrucciones:**
-  1. Modificar el componente `CustomTextField` (o los campos directos en el formulario) para aceptar una nueva propiedad `label` o `title` que renderice un widget `Text` antes del campo de entrada o use la propiedad `labelText` de `InputDecoration`.
-  2. Aplicar el estilo tipográfico definido en `app_theme.dart` para que los títulos mantengan la coherencia visual.
-  3. Añadir las claves de traducción necesarias en `app_strings.dart` para cada campo (ej. Título, Descripción, Categoría, Ubicación) en los 3 idiomas soportados.
-  4. Verificar que no se produzcan desbordamientos visuales (overflows) en pantallas pequeñas tras añadir los textos.
+  1. Localizar la función `_openMapPicker` alrededor de la línea 152.
+  2. Identificar la variable que está siendo operada con el símbolo `+` (probablemente el cálculo de límites geográficos `bounds` o el `offset` utilizando la ubicación del centro/universidad).
+  3. Implementar comprobaciones de nulidad (`null checks`). Si las coordenadas del centro no están disponibles en el estado actual, mostrar un `SnackBar` de error ("No se pudo cargar la ubicación del centro", traducido a ES, CA, EN) y abortar la apertura del mapa en lugar de procesar la suma.
+  4. Proveer coordenadas de respaldo (fallback) seguras por si la ubicación inicial es nula, asegurando que `LatLng` nunca reciba valores nulos.
 
-### 2. Aumentar el Ancho de Exploración (Paneo) del Mapa
-**Objetivo:** Permitir al usuario desplazar la cámara del mapa lateralmente para una mejor visualización, ya que el ancho actual está muy restringido.
+### 2. Ampliar los Límites de Paneo del Mapa Principal y Selector
+**Objetivo:** Permitir al usuario explorar un área más amplia alrededor del centro en todos los mapas interactivos de la aplicación.
+* **Archivos implicados:** `lib/shared/widgets/map_picker_page.dart` y el widget del mapa principal (ej. `lib/features/home/presentation/pages/home_page.dart` o componentes equivalentes).
+* **Instrucciones:**
+  1. Localizar la propiedad `cameraTargetBounds` en el widget `GoogleMap` (o el paquete de mapas correspondiente).
+  2. Modificar el cálculo del `LatLngBounds` sumando un `offset` mayor (por ejemplo, incrementar en `0.01` o `0.02` grados tanto a la latitud como a la longitud) para generar un cuadro delimitador más ancho.
+  3. Asegurar de nuevo que los cálculos matemáticos para los límites suroeste (`southwest`) y noreste (`northeast`) manejen variables no nulas.
+  4. Comprobar que al compilar, el usuario pueda arrastrar el mapa hacia las calles adyacentes a la universidad sin ser bloqueado abruptamente.
+
+### 3. Reparar Lógica de Validación GPS en Tiempo Real
+**Objetivo:** Garantizar que la validación de ubicación actual funcione correctamente, deteniendo la publicación si el usuario está fuera de la universidad.
+* **Archivos implicados:** `lib/features/home/presentation/pages/found_form_screen.dart`, `lib/core/services/location_service.dart`.
+* **Instrucciones:**
+  1. Revisar la función vinculada al botón "Usar ubicación actual" en el formulario.
+  2. Envolver la llamada al GPS en un bloque `try-catch`. 
+  3. Calcular la distancia usando una función de Haversine local segura.
+  4. Si la distancia es mayor al radio permitido (ej. 1.5 km), lanzar una alerta visual inmediata (Diálogo o Snackbar) usando la clave de traducción existente para el error de "Ubicación fuera de rango".
+  5. Evitar que las coordenadas fuera de rango sobreescriban el estado de la ubicación seleccionada.
+
+### 4. Restaurar Selección Manual de Marcador en el Mapa
+**Objetivo:** Permitir que el toque del usuario en el mapa actualice el marcador visual.
 * **Archivos implicados:** `lib/shared/widgets/map_picker_page.dart`.
 * **Instrucciones:**
-  1. Localizar la configuración de la cámara del mapa (`CameraTargetBounds` o los límites de paneo de la librería de mapas utilizada).
-  2. Modificar las coordenadas `LatLngBounds` de restricción sumando un margen (offset) de longitud (este/oeste) al polígono del centro/universidad para permitir el desplazamiento horizontal.
-  3. Ajustar el `minMaxZoomPreference` si es necesario, para que al hacer zoom out el usuario no vea un mapa vacío, pero tenga suficiente libertad de paneo.
-  4. Probar en simuladores para asegurar que el área expandida permite una navegación cómoda sin salirse completamente del contexto de la universidad.
-
-### 3. Validar Rango del GPS Actual en las Publicaciones
-**Objetivo:** Evitar que los usuarios publiquen objetos utilizando su ubicación GPS si se encuentran físicamente fuera del recinto de la universidad/centro.
-* **Archivos implicados:** `lib/features/home/presentation/pages/found_form_screen.dart`, un servicio de ubicación (ej. `lib/core/services/location_service.dart` o utilidades equivalentes), `lib/core/localization/app_strings.dart`, `lib/core/services/error_handler.dart`.
-* **Instrucciones:**
-  1. Al pulsar la opción "Usar ubicación actual", obtener las coordenadas GPS del dispositivo.
-  2. Calcular la distancia (usando la fórmula de Haversine o utilidades integradas) entre las coordenadas obtenidas y el centroide (o polígono) de la universidad activa.
-  3. Establecer un radio de tolerancia lógico (ej. 1km o los límites de la universidad).
-  4. Si las coordenadas exceden el radio, cancelar el proceso y mostrar un Snackbar/Diálogo de error.
-  5. Añadir el mensaje de error "Tu ubicación actual está fuera del recinto de la universidad" (o similar) en `app_strings.dart` para los 3 idiomas.
-
-### 4. Corregir Selección Manual de Ubicación en el Mapa
-**Objetivo:** Reparar el fallo que impide al usuario colocar un marcador seleccionando un punto manualmente en el mapa.
-* **Archivos implicados:** `lib/shared/widgets/map_picker_page.dart`.
-* **Instrucciones:**
-  1. Inspeccionar el evento `onTap` o `onMapCreated` del widget del mapa.
-  2. Asegurar que al dispararse el evento táctil en una coordenada válida (`LatLng`), el estado del widget (`setState` o controlador del estado actual) se actualice colocando un `Marker` visual en dicha posición.
-  3. Sobrescribir la variable local de ubicación seleccionada con las nuevas coordenadas.
-  4. Validar que el botón de confirmación/guardado envíe la coordenada correcta mediante `Navigator.pop(context, selectedLocation)`.
+  1. Verificar que el parámetro `onTap` del mapa está asignado a un método que actualice el estado.
+  2. Confirmar que dentro del `onTap(LatLng coord)`, se ejecuta `setState(() { selectedLocation = coord; })`.
+  3. Asegurarse de que la capa de marcadores (`Set<Marker>`) se esté redibujando con un marcador cuya posición sea `selectedLocation`.

@@ -202,6 +202,7 @@ class AppStrings {
       'gpsLocation': 'GPS Actual',
       'mapLocation': 'Seleccionar en Mapa',
       'outsideBoundsError': 'Estás fuera del perímetro permitido para el centro {center}',
+      'centerLocationError': 'No se pudo cargar la ubicación del centro',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -386,6 +387,7 @@ class AppStrings {
       'gpsLocation': 'GPS Actual',
       'mapLocation': 'Seleccionar en Mapa',
       'outsideBoundsError': 'Estàs fora del perímetre permès per al centre {center}',
+      'centerLocationError': "No s'ha pogut carregar la ubicació del centre",
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -570,6 +572,7 @@ class AppStrings {
       'gpsLocation': 'Current GPS',
       'mapLocation': 'Select on Map',
       'outsideBoundsError': 'You are outside the allowed perimeter for center {center}',
+      'centerLocationError': 'Could not load center location',
     },
   };
 
@@ -756,6 +759,7 @@ class AppStrings {
   String get mapLocation => _text('mapLocation');
   String get outsideBoundsErrorRaw => _text('outsideBoundsError');
   String outsideBoundsError(String center) => outsideBoundsErrorRaw.replaceAll('{center}', center);
+  String get centerLocationError => _text('centerLocationError');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);

@@ -18,23 +18,22 @@ class MapPickerPage extends StatefulWidget {
 }
 
 class _MapPickerPageState extends State<MapPickerPage> {
-  late LatLng _selectedPoint;
+  late LatLng selectedLocation;
   final MapController _mapController = MapController();
 
   @override
   void initState() {
     super.initState();
-    _selectedPoint = widget.initialCenter;
+    selectedLocation = widget.initialCenter;
   }
 
   LatLngBounds _expandBounds(LatLngBounds bounds) {
-    // Añadimos un margen horizontal (longitud) para permitir más desplazamiento lateral
-    // 0.015 grados de longitud son ~1.2km en estas latitudes, suficiente para navegar cómodamente
-    const double horizontalMargin = 0.015;
+    // Añadimos un margen de 0.02 grados (~2km) para permitir mayor exploración lateral y vertical
+    const double margin = 0.020;
     
     return LatLngBounds(
-      LatLng(bounds.south, bounds.west - horizontalMargin),
-      LatLng(bounds.north, bounds.east + horizontalMargin),
+      LatLng(bounds.south - margin, bounds.west - margin),
+      LatLng(bounds.north + margin, bounds.east + margin),
     );
   }
 
@@ -48,7 +47,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
         title: Text(t.mapLocation),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, _selectedPoint),
+            onPressed: () => Navigator.pop(context, selectedLocation),
             child: Text(t.save, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
@@ -62,7 +61,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
           maxZoom: 19,
           onTap: (tapPosition, point) {
             setState(() {
-              _selectedPoint = point;
+              selectedLocation = point;
             });
           },
           interactionOptions: const InteractionOptions(
@@ -80,7 +79,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
           MarkerLayer(
             markers: [
               Marker(
-                point: _selectedPoint,
+                point: selectedLocation,
                 width: 40,
                 height: 40,
                 alignment: Alignment.topCenter,
@@ -98,7 +97,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
         onPressed: () {
           _mapController.move(widget.initialCenter, 16);
           setState(() {
-            _selectedPoint = widget.initialCenter;
+            selectedLocation = widget.initialCenter;
           });
         },
         child: const Icon(Icons.center_focus_strong),

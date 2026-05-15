@@ -329,7 +329,7 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(t.editNameTitle),
           content: TextField(
@@ -342,7 +342,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           actions: [
             TextButton(
-              onPressed: isSaving ? null : () => Navigator.pop(context),
+              onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
               child: Text(t.cancel),
             ),
             ElevatedButton(
@@ -350,20 +350,20 @@ class _ProfilePageState extends State<ProfilePage> {
                 ? null 
                 : () async {
                     if (controller.text.trim().isNotEmpty) {
-                      setState(() => isSaving = true);
+                      setDialogState(() => isSaving = true);
                       try {
                         await ref.update({
                           'name': controller.text.trim(), 
                           'updated_at': DateTime.now().millisecondsSinceEpoch
                         });
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          AppNotifications.showSuccess(context, t.updateSuccess);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                          AppNotifications.showSuccess(dialogContext, t.updateSuccess);
                         }
                       } catch (e) {
-                        if (context.mounted) {
-                          setState(() => isSaving = false);
-                          AppNotifications.showError(context, t.errorSaving);
+                        if (dialogContext.mounted) {
+                          setDialogState(() => isSaving = false);
+                          AppNotifications.showError(dialogContext, t.errorSaving);
                         }
                       }
                     }

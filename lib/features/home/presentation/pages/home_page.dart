@@ -290,8 +290,8 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 cameraConstraint: CameraConstraint.contain(
                                   bounds: LatLngBounds(
-                                    const osm.LatLng(41.485, 2.095),
-                                    const osm.LatLng(41.515, 2.125),
+                                    const osm.LatLng(41.480, 2.085),
+                                    const osm.LatLng(41.520, 2.130),
                                   ),
                                 ),
                               ),
