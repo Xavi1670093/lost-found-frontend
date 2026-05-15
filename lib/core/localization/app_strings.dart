@@ -150,6 +150,7 @@ class AppStrings {
       'locationError': 'No se pudo obtener la ubicación',
       'selectDate': 'Seleccionar fecha',
       'publishButton': 'Publicar anuncio',
+      'dateLabel': 'Fecha',
       'selectCategoryAndDate': 'Selecciona categoría y fecha',
       'sessionError': 'Sesión no iniciada',
       'publishSuccessFound': '¡Objeto encontrado publicado!',
@@ -322,7 +323,7 @@ class AppStrings {
       'tapToTakePhoto': 'Toca per fer una foto',
       'basicInfo': 'Informació bàsica',
       'objectTitleLabel': 'Títol de l’objecte',
-      'objectTitleHint': 'ex: Llaver de la UAB',
+      'objectTitleHint': 'ex: Clauer de la UAB',
       'fieldRequired': 'Camp obligatori',
       'category': 'Categoria',
       'descriptionDetails': 'Descripció i detalls',
@@ -333,6 +334,7 @@ class AppStrings {
       'locationError': 'No s’ha pogut obtenir la ubicació',
       'selectDate': 'Seleccionar data',
       'publishButton': 'Publicar anunci',
+      'dateLabel': 'Data',
       'selectCategoryAndDate': 'Selecciona categoria i data',
       'sessionError': 'Sessió no iniciada',
       'publishSuccessFound': '¡Objecte trobat publicat!',
@@ -516,6 +518,7 @@ class AppStrings {
       'locationError': 'Could not get location',
       'selectDate': 'Select date',
       'publishButton': 'Publish ad',
+      'dateLabel': 'Date',
       'selectCategoryAndDate': 'Select category and date',
       'sessionError': 'Session not started',
       'publishSuccessFound': '¡Found object published!',
@@ -700,6 +703,7 @@ class AppStrings {
   String get locationError => _text('locationError');
   String get selectDate => _text('selectDate');
   String get publishButton => _text('publishButton');
+  String get dateLabel => _text('dateLabel');
   String get selectCategoryAndDate => _text('selectCategoryAndDate');
   String get sessionError => _text('sessionError');
   String get publishSuccessFound => _text('publishSuccessFound');

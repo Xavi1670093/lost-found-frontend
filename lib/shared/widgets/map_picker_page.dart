@@ -27,6 +27,17 @@ class _MapPickerPageState extends State<MapPickerPage> {
     _selectedPoint = widget.initialCenter;
   }
 
+  LatLngBounds _expandBounds(LatLngBounds bounds) {
+    // Añadimos un margen horizontal (longitud) para permitir más desplazamiento lateral
+    // 0.015 grados de longitud son ~1.2km en estas latitudes, suficiente para navegar cómodamente
+    const double horizontalMargin = 0.015;
+    
+    return LatLngBounds(
+      LatLng(bounds.south, bounds.west - horizontalMargin),
+      LatLng(bounds.north, bounds.east + horizontalMargin),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
@@ -47,7 +58,9 @@ class _MapPickerPageState extends State<MapPickerPage> {
         options: MapOptions(
           initialCenter: widget.initialCenter,
           initialZoom: 16,
-          onTap: (_, point) {
+          minZoom: 14,
+          maxZoom: 19,
+          onTap: (tapPosition, point) {
             setState(() {
               _selectedPoint = point;
             });
@@ -56,7 +69,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
             flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
           ),
           cameraConstraint: widget.bounds != null 
-            ? CameraConstraint.contain(bounds: widget.bounds!)
+            ? CameraConstraint.contain(bounds: _expandBounds(widget.bounds!))
             : const CameraConstraint.unconstrained(),
         ),
         children: [
@@ -68,8 +81,9 @@ class _MapPickerPageState extends State<MapPickerPage> {
             markers: [
               Marker(
                 point: _selectedPoint,
-                width: 80,
-                height: 80,
+                width: 40,
+                height: 40,
+                alignment: Alignment.topCenter,
                 child: Icon(
                   Icons.location_on_rounded,
                   color: theme.colorScheme.primary,

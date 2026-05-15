@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'field_label.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
@@ -12,6 +13,8 @@ class CustomTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final void Function(String)? onFieldSubmitted;
   final int maxLines;
+  final bool showLabel;
+  final bool isRequired;
 
   const CustomTextField({
     super.key,
@@ -26,6 +29,8 @@ class CustomTextField extends StatelessWidget {
     this.validator,
     this.suffixIcon,
     this.maxLines = 1,
+    this.showLabel = true,
+    this.isRequired = false,
   });
 
   @override
@@ -35,16 +40,8 @@ class CustomTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            label,
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
+        if (showLabel)
+          FieldLabel(label: label, isRequired: isRequired),
         TextFormField(
           controller: controller,
           obscureText: isPassword,

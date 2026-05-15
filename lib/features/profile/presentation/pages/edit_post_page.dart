@@ -4,6 +4,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
+import 'package:unilost_found/shared/widgets/field_label.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
@@ -189,19 +190,16 @@ class _EditPostPageState extends State<EditPostPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionTitle(t.titleLabel, theme),
-              const SizedBox(height: 8),
               CustomTextField(
                 label: t.titleLabel,
                 controller: _titleController,
                 hintText: t.objectTitleHint,
+                isRequired: true,
                 validator: (value) => (value == null || value.trim().isEmpty) ? t.fieldRequired : null,
               ),
 
               const SizedBox(height: 24),
 
-              _buildSectionTitle(t.descriptionLabel, theme),
-              const SizedBox(height: 8),
               CustomTextField(
                 label: "${t.descriptionLabel} ${t.optional}",
                 controller: _descriptionController,
@@ -211,8 +209,7 @@ class _EditPostPageState extends State<EditPostPage> {
 
               const SizedBox(height: 24),
 
-              _buildSectionTitle(t.category, theme),
-              const SizedBox(height: 8),
+              FieldLabel(label: t.category, isRequired: true),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -239,8 +236,7 @@ class _EditPostPageState extends State<EditPostPage> {
 
               const SizedBox(height: 24),
 
-              _buildSectionTitle(t.currentStatus, theme),
-              const SizedBox(height: 8),
+              FieldLabel(label: t.currentStatus, isRequired: true),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -291,17 +287,6 @@ class _EditPostPageState extends State<EditPostPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, ThemeData theme) {
-    return Text(
-      title.toUpperCase(),
-      style: theme.textTheme.labelMedium?.copyWith(
-        letterSpacing: 1.1,
-        fontWeight: FontWeight.bold,
-        color: theme.colorScheme.onSurfaceVariant,
       ),
     );
   }

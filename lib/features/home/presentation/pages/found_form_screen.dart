@@ -9,7 +9,9 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
+import 'package:unilost_found/shared/widgets/field_label.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/core/services/location_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 import 'package:unilost_found/shared/widgets/map_picker_page.dart';
@@ -74,16 +76,23 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
 
   bool _isWithinBounds(double lat, double lng) {
     if (_centerBounds == null) return true;
+    
     final minLat = _centerBounds!['minLat'] as double;
     final maxLat = _centerBounds!['maxLat'] as double;
     final minLng = _centerBounds!['minLng'] as double;
     final maxLng = _centerBounds!['maxLng'] as double;
     
-    return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+    // Calculamos el centroide de la universidad
+    final centerLat = (minLat + maxLat) / 2;
+    final centerLng = (minLng + maxLng) / 2;
+    
+    // Validamos que el usuario esté en un radio de 1.5km del centro de la uni
+    // Esto es más flexible y preciso que un simple rectángulo
+    return LocationService.isWithinRadius(lat, lng, centerLat, centerLng, 1500);
   }
 
   String? selectedCategoryKey;
-  DateTime? selectedDate;
+  DateTime selectedDate = DateTime.now();
 
   // Las opciones de categoría se cargan dinámicamente desde AppStrings en el build
 
@@ -177,7 +186,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Future<void> _submit() async {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
-    if (selectedCategoryKey == null || selectedDate == null) {
+    if (selectedCategoryKey == null) {
       _showError(t.selectCategoryAndDate);
       return;
     }
@@ -228,6 +237,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
           'lng': _currentPosition?.longitude ?? 2.103,
         },
         'imageUrl': imageUrl,
+        'date': selectedDate.millisecondsSinceEpoch,
         'created_at': ServerValue.timestamp,
         'updated_at': ServerValue.timestamp,
         'is_deleted': false,
@@ -325,11 +335,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                       label: t.objectTitleLabel,
                       hintText: t.objectTitleHint,
                       controller: titleController,
+                      isRequired: true,
                       validator: (value) => value == null || value.isEmpty ? t.fieldRequired : null,
                     ),
                     const SizedBox(height: 24),
                     
-                    Text(t.category, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    FieldLabel(label: t.category, isRequired: true),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
@@ -401,13 +412,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                       theme,
                     ),
                     const SizedBox(height: 12),
+                    FieldLabel(label: t.dateLabel, isRequired: true),
                     _buildActionTile(
                       Icons.calendar_today_rounded,
-                      selectedDate == null 
-                        ? t.selectDate
-                        : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+                       "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
                       _pickDate,
-                      selectedDate != null,
+                      true,
                       theme,
                     ),
                     const SizedBox(height: 48),
