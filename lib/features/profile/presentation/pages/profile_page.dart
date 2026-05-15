@@ -101,11 +101,9 @@ class _ProfilePageState extends State<ProfilePage> {
         String userRole = t.studentRole;
         String centerId = t.uabAcronym;
         String? photoUrl;
-        String updatedAt = '';
 
         if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
           final data = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
-          updatedAt = data['updated_at']?.toString() ?? '';
           userName = data['name'] ?? t.defaultUserName;
           userRole = data['role'] == 'admin' ? t.adminRole : t.studentRole;
           centerId = (data['center_id'] ?? t.uabAcronym).toString().toUpperCase();
@@ -171,7 +169,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                         : photoUrl != null
                                             ? ClipOval(
                                                 child: CachedNetworkImage(
-                                                  imageUrl: "$photoUrl?v=$_imageVersion",
+                                                  imageUrl: photoUrl.contains('?') 
+                                                      ? "$photoUrl&v=$_imageVersion" 
+                                                      : "$photoUrl?v=$_imageVersion",
                                                   width: 100,
                                                   height: 100,
                                                   fit: BoxFit.cover,
@@ -405,38 +405,40 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildSkeleton(ThemeData theme) {
     return Scaffold(
-      body: Column(
-        children: [
-          SkeletonLoader(
-            height: 250,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonLoader(width: 150, height: 20),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
-                    const SizedBox(width: 16),
-                    Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                SkeletonLoader(width: 150, height: 20),
-                const SizedBox(height: 16),
-                SkeletonLoader(height: 120, borderRadius: BorderRadius.circular(16)),
-              ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SkeletonLoader(
+              height: 250,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SkeletonLoader(width: 150, height: 20),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
+                      const SizedBox(width: 16),
+                      Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  const SkeletonLoader(width: 150, height: 20),
+                  const SizedBox(height: 16),
+                  SkeletonLoader(height: 120, borderRadius: BorderRadius.circular(16)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
+  
   String _languageLabel(BuildContext context, String code) {
     final t = AppStrings.of(context);
     switch (code) {

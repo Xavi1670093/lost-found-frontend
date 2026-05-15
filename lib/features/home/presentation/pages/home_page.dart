@@ -125,9 +125,33 @@ class _HomePageState extends State<HomePage> {
                 floating: true,
                 pinned: true,
                 snap: false,
-                title: Text(
-                  t.appName,
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                expandedHeight: 180,
+                backgroundColor: theme.colorScheme.surface,
+                surfaceTintColor: theme.colorScheme.surface,
+                flexibleSpace: FlexibleSpaceBar(
+                  title: Text(
+                    t.appName,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: theme.colorScheme.onSurface,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  centerTitle: false,
+                  titlePadding: const EdgeInsets.only(left: 20, bottom: 96),
+                  expandedTitleScale: 1.2,
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+                          theme.colorScheme.surface,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
                 ),
                 actions: [
                   IconButton(
@@ -140,7 +164,8 @@ class _HomePageState extends State<HomePage> {
                 ],
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(80),
-                  child: Padding(
+                  child: Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: TextField(
                       controller: _searchController,
@@ -163,12 +188,12 @@ class _HomePageState extends State<HomePage> {
                                 },
                               ),
                         filled: true,
-                        fillColor: theme.colorScheme.surface,
+                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       ),
                     ),
                   ),

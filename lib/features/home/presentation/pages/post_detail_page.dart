@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
+import '../../../chats/data/models/chat_model.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
@@ -21,7 +22,8 @@ class PostDetailPage extends StatefulWidget {
 class _PostDetailPageState extends State<PostDetailPage> {
   bool _isLoading = false;
 
-  Future<void> _contactOwner(BuildContext context) async {
+  Future<void> _contactOwner() async {
+    if (!context.mounted) return;
     final t = AppStrings.of(context);
     final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -70,6 +72,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       }
 
       final chatData = Map<String, dynamic>.from(chatSnap.value as Map);
+      final chatModel = ChatModel.fromMap(chatId, chatData);
 
       if (!mounted) return;
 
@@ -78,14 +81,21 @@ class _PostDetailPageState extends State<PostDetailPage> {
         MaterialPageRoute(
           builder: (_) => ChatDetailPage(
             chatId: chatId,
-            chat: chatData,
+            chat: chatModel,
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
+      // Get localization and navigator state before the next build context usage
+      final messenger = ScaffoldMessenger.of(context);
+      final t = AppStrings.of(context);
+      final theme = Theme.of(context);
       final message = ErrorHandler.getMessage(e, t);
-      AppNotifications.showError(context, message);
+      
+      messenger.showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: theme.colorScheme.error),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -275,7 +285,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         child: CustomButton(
           text: _isLoading ? t.openingChat : t.contactOwner,
           isLoading: _isLoading,
-          onPressed: () => _contactOwner(context),
+          onPressed: () => _contactOwner(),
         ),
       ),
     );

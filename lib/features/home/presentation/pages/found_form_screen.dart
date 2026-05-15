@@ -80,10 +80,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     if (!hasPermission) return;
     try {
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      if (!context.mounted) return;
       setState(() {
         _currentPosition = position;
       });
     } catch (e) {
+      if (!context.mounted) return;
       _showError(t.locationError);
     }
   }
@@ -110,10 +112,22 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
 
       String imageUrl = "";
       if (imageFile != null) {
-        final storageRef = FirebaseStorage.instance.ref().child('posts/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-        final uploadTask = storageRef.putFile(imageFile!);
-        final snapshotTask = await uploadTask;
-        imageUrl = await snapshotTask.ref.getDownloadURL();
+        try {
+          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+          final uploadTask = storageRef.putFile(
+            imageFile!,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
+          final snapshotTask = await uploadTask;
+          imageUrl = await snapshotTask.ref.getDownloadURL();
+        } on FirebaseException catch (e) {
+          if (e.code == 'permission-denied') {
+             throw Exception(t.errorImageUpload);
+          }
+          rethrow;
+        } catch (e) {
+          rethrow;
+        }
       }
 
       await newPostRef.set({
@@ -126,8 +140,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'category': selectedCategoryKey,
         'status': 'active',
         'coords': {
-          'lat': _currentPosition?.latitude ?? 41.500,
-          'lng': _currentPosition?.longitude ?? 2.110,
+          'lat': _currentPosition?.latitude ?? 41.502,
+          'lng': _currentPosition?.longitude ?? 2.103,
         },
         'imageUrl': imageUrl,
         'created_at': ServerValue.timestamp,
@@ -143,6 +157,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
+      if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
       _showError(message);
     } finally {
@@ -179,14 +194,26 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Image Picker Section
-                    _buildSectionTitle(t.objectPhoto, theme),
+                    Row(
+                      children: [
+                        _buildSectionTitle(t.objectPhoto, theme),
+                        const SizedBox(width: 8),
+                        Text(
+                          t.recommended,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: _pickImage,
                       child: Container(
                         height: 200,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
                         ),
