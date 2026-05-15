@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../features/auth/presentation/pages/login_page.dart';
-import '../../core/settings/app_settings_controller.dart';
-import '../../features/chats/presentation/pages/chats_page.dart';
-import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
-import '../../features/home/presentation/pages/found_form_screen.dart';
+import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/settings/app_settings_controller.dart';
+import 'package:unilost_found/features/chats/presentation/pages/chats_page.dart';
+import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
+import 'package:unilost_found/features/profile/presentation/pages/profile_page.dart';
+import 'package:unilost_found/features/home/presentation/pages/found_form_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:unilost_found/features/welcome/presentation/pages/welcome_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -15,43 +18,59 @@ class MainNavigationPage extends StatefulWidget {
 }
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
-  int _currentIndex = 0;
+  static int _currentIndex = 1; // Default to Home, static to persist across rebuilds
 
   void _showLogoutDialog() {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+    
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
           children: [
-            Icon(Icons.logout_rounded, color: Colors.red),
-            SizedBox(width: 10),
-            Text('¿Cerrar sesión?'),
+            Icon(Icons.logout_rounded, color: theme.colorScheme.error),
+            const SizedBox(width: 12),
+            Text(t.logoutTitle),
           ],
         ),
-        content: const Text('¿Estás seguro de que quieres salir de ULF?'),
+        content: Text(t.logoutConfirmation),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
+            child: Text(t.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade50,
-              foregroundColor: Colors.red,
+              backgroundColor: theme.colorScheme.errorContainer,
+              foregroundColor: theme.colorScheme.error,
+              elevation: 0,
+              minimumSize: const Size(120, 44),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogContext);
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => LoginPage(settingsController: widget.settingsController),
-                ),
-                    (route) => false,
-              );
+              
+              // 1. Sign out from Firebase (clears token on current device)
+              await FirebaseAuth.instance.signOut();
+              
+              // 2. Clear local storage associated with the session
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('login_timestamp');
+
+              // 3. Force redirect to Login/Welcome page clearing navigation history
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WelcomePage(settingsController: widget.settingsController),
+                  ),
+                  (route) => false,
+                );
+              }
             },
-            child: const Text('Cerrar sesión'),
+            child: Text(t.logout),
           ),
         ],
       ),
@@ -59,32 +78,65 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   }
 
   void _openOptions() {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+    
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => SafeArea(
-        child: Wrap(
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text("He encontrado"),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle_outline_rounded, color: Colors.green),
+              ),
+              title: Text(t.reportFound, style: const TextStyle(fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const FoundFormScreen(),
-                  ),
+                    context,
+                    MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'found'))
                 );
               },
             ),
+            const SizedBox(height: 12),
             ListTile(
-              leading: const Icon(Icons.warning),
-              title: const Text("He perdido"),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.help_outline_rounded, color: Colors.orange),
+              ),
+              title: Text(t.reportLost, style: const TextStyle(fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'lost'))
+                );
               },
             ),
           ],
@@ -95,9 +147,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+    
     final pages = [
-      const HomePage(),
       const ChatsPage(),
+      const HomePage(),
       ProfilePage(
         settingsController: widget.settingsController,
         onLogout: _showLogoutDialog,
@@ -105,95 +160,123 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('UniLost & Found'),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          pages[_currentIndex],
-          Positioned(
-            right: 16,
-            bottom: 120,
-            child: FloatingActionButton(
-              heroTag: "addButton",
-              mini: true,
-              onPressed: _openOptions,
-              backgroundColor: Colors.green,
-              child: const Icon(Icons.add),
+      extendBody: true,
+      body: pages[_currentIndex],
+      bottomNavigationBar: BottomAppBar(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        height: 65,
+        color: theme.colorScheme.surface.withValues(alpha: 0.95),
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 10,
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            // Chat Tab
+            Expanded(
+              child: _NavigationTab(
+                icon: _currentIndex == 0 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
+                label: t.chats,
+                isSelected: _currentIndex == 0,
+                onTap: () => setState(() => _currentIndex = 0),
+              ),
             ),
-          ),
-        ],
+            
+            // Central Space for FAB
+            const Expanded(child: SizedBox()),
+            
+            // Profile Tab
+            Expanded(
+              child: _NavigationTab(
+                icon: _currentIndex == 2 ? Icons.person_rounded : Icons.person_outline_rounded,
+                label: t.profile,
+                isSelected: _currentIndex == 2,
+                onTap: () => setState(() => _currentIndex = 2),
+              ),
+            ),
+          ],
+        ),
       ),
-
-      floatingActionButton: Transform.translate(
-        offset: const Offset(0, 32),
-        child: Container(
-          height: 70, width: 70,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              if (_currentIndex == 0)
-                BoxShadow(
-                  // 🚀 CORRECCIÓN AQUÍ: withValues en lugar de withOpacity
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
-                  blurRadius: 20, spreadRadius: 5,
-                ),
-            ],
+      floatingActionButton: Container(
+        height: 70,
+        width: 70,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          child: FloatingActionButton(
-            onPressed: () => setState(() => _currentIndex = 0),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            elevation: _currentIndex == 0 ? 8 : 0,
-            shape: const CircleBorder(),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: _currentIndex == 1 ? _openOptions : () => setState(() => _currentIndex = 1),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          highlightElevation: 0,
+          shape: const CircleBorder(),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, anim) => RotationTransition(
+              turns: anim,
+              child: ScaleTransition(scale: anim, child: child),
+            ),
             child: Icon(
-                _currentIndex == 0 ? Icons.home : Icons.home_outlined,
-                color: Colors.white, size: 35
+              _currentIndex == 1 ? Icons.add_rounded : Icons.home_rounded,
+              key: ValueKey(_currentIndex == 1 ? 'add' : 'home'),
+              size: 36,
             ),
           ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+}
 
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              // 🚀 CORRECCIÓN AQUÍ: withValues en lugar de withOpacity
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 15, spreadRadius: 2, offset: const Offset(0, -2),
+class _NavigationTab extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _NavigationTab({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 26),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ],
-        ),
-        child: BottomAppBar(
-          padding: EdgeInsets.zero,
-          height: 65,
-          color: Theme.of(context).scaffoldBackgroundColor,
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 6.0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconButton(
-                icon: Icon(_currentIndex == 1 ? Icons.chat_bubble : Icons.chat_bubble_outline),
-                color: _currentIndex == 1 ? Theme.of(context).colorScheme.primary : Colors.grey,
-                onPressed: () => setState(() => _currentIndex = 1),
-              ),
-              const SizedBox(width: 48),
-              IconButton(
-                icon: Icon(_currentIndex == 2 ? Icons.person : Icons.person_outline),
-                color: _currentIndex == 2 ? Theme.of(context).colorScheme.primary : Colors.grey,
-                onPressed: () => setState(() => _currentIndex = 2),
-              ),
-            ],
-          ),
         ),
       ),
     );

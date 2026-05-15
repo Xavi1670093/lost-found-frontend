@@ -1,52 +1,94 @@
+import 'package:firebase_auth/firebase_auth.dart';
+
 class ChatModel {
   final String id;
-  final String centerId;
-  final String postId;
-  final Map<String, bool> members;
+  final String postTitle;
+  final String? postImageUrl;
+  final String postCategory;
   final String? lastMessage;
-  final int? lastMessageTime;
+  final int lastMessageTime;
   final int createdAt;
+  final Map<String, dynamic> usersInfo;
+  final List<String> participants;
+  final String postOwnerId;
 
   ChatModel({
     required this.id,
-    required this.centerId,
-    required this.postId,
-    required this.members,
+    required this.postTitle,
+    this.postImageUrl,
+    required this.postCategory,
     this.lastMessage,
-    this.lastMessageTime,
+    required this.lastMessageTime,
     required this.createdAt,
+    required this.usersInfo,
+    required this.participants,
+    required this.postOwnerId,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'center_id': centerId,
-      'post_id': postId,
-      'members': members,
-      'last_message': lastMessage,
-      'last_message_time': lastMessageTime,
-      'created_at': createdAt,
-    };
+  factory ChatModel.fromMap(String id, Map<dynamic, dynamic> map) {
+    // Parse participants from 'members' map (new) or 'participants' list (old)
+    List<String> participantsList = [];
+    if (map['members'] != null && map['members'] is Map) {
+      participantsList = (map['members'] as Map).keys.map((e) => e.toString()).toList();
+    } else if (map['participants'] != null) {
+      participantsList = List<String>.from(map['participants']);
+    }
+
+    return ChatModel(
+      id: id,
+      postTitle: map['postTitle'] ?? map['post_title'] ?? '',
+      postImageUrl: map['postImageUrl']?.toString() ?? map['post_image_url']?.toString(),
+      postCategory: map['post_category']?.toString() ?? map['postCategory']?.toString() ?? map['category']?.toString() ?? 'others',
+      lastMessage: map['last_message']?.toString(),
+      lastMessageTime: map['last_message_time'] ?? map['created_at'] ?? 0,
+      createdAt: map['created_at'] ?? 0,
+      usersInfo: map['usersInfo'] != null 
+          ? Map<String, dynamic>.from(map['usersInfo']) 
+          : {},
+      participants: participantsList,
+      postOwnerId: map['post_owner_id']?.toString() ?? '',
+    );
   }
-}
 
-class MessageModel {
-  final String id;
-  final String senderId;
-  final String text;
-  final int timestamp;
+  String getOtherUserId() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    return participants.firstWhere(
+      (uid) => uid != currentUserId,
+      orElse: () => '',
+    );
+  }
 
-  MessageModel({
-    required this.id,
-    required this.senderId,
-    required this.text,
-    required this.timestamp,
-  });
+  String getOtherUserName(String defaultName) {
+    final otherUid = getOtherUserId();
+    if (otherUid.isEmpty) return defaultName;
+    final info = usersInfo[otherUid];
+    return info?['displayName'] ?? info?['name'] ?? 'Usuario';
+  }
 
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'sender_id': senderId,
-    'text': text,
-    'timestamp': timestamp,
-  };
+  String? getOtherUserPhoto() {
+    final otherUid = getOtherUserId();
+    if (otherUid.isEmpty) return null;
+    final info = usersInfo[otherUid];
+    return info?['photoUrl']?.toString() ?? 
+           info?['photo_url']?.toString() ?? 
+           info?['profile_image_url']?.toString() ??
+           info?['imageUrl']?.toString();
+  }
+
+  String getPublisherName(String defaultName) {
+    final uid = postOwnerId.isNotEmpty ? postOwnerId : getOtherUserId();
+    if (uid.isEmpty) return defaultName;
+    final info = usersInfo[uid];
+    return info?['displayName'] ?? info?['name'] ?? defaultName;
+  }
+
+  String? getPublisherPhoto() {
+    final uid = postOwnerId.isNotEmpty ? postOwnerId : getOtherUserId();
+    if (uid.isEmpty) return null;
+    final info = usersInfo[uid];
+    return info?['photoUrl']?.toString() ?? 
+           info?['photo_url']?.toString() ?? 
+           info?['profile_image_url']?.toString() ??
+           info?['imageUrl']?.toString();
+  }
 }
