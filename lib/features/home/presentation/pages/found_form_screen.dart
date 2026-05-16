@@ -16,8 +16,8 @@ import 'package:unilost_found/core/services/location_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 import 'package:unilost_found/shared/widgets/map_picker_page.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' as osm;
 
 class FoundFormScreen extends StatefulWidget {
   final String postType;
@@ -36,7 +36,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Position? _currentPosition;
   String _locationMethod = 'gps'; // 'gps' o 'map'
   Map<String, dynamic>? _centerBounds;
-  List<osm.LatLng>? _centerPolygon;
+  List<LatLng>? _centerPolygon;
   String? _centerId;
   String? _userName;
   bool _isPublishing = false;
@@ -81,7 +81,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
           if (centerData['polygon'] != null) {
             _centerPolygon = (centerData['polygon'] as List).map((point) {
               final p = Map<dynamic, dynamic>.from(point as Map);
-              return osm.LatLng(
+              return LatLng(
                 (p['lat'] as num).toDouble(),
                 (p['lng'] as num).toDouble(),
               );
@@ -113,7 +113,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   bool _isWithinBounds(double lat, double lng) {
     // 1. Prioridad: Validación por Polígono (Ray-Casting)
     if (_centerPolygon != null && _centerPolygon!.isNotEmpty) {
-      return LocationService.isPointInPolygon(osm.LatLng(lat, lng), _centerPolygon!);
+      return LocationService.isPointInPolygon(LatLng(lat, lng), _centerPolygon!);
     }
 
     // 2. Fallback: Validación por Bounding Box + Radio
@@ -205,59 +205,52 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   }
 
   Future<void> _openMapPicker() async {
-    final t = AppStrings.of(context);
+    debugPrint("ULF_DEBUG: _openMapPicker triggered. _centerBounds: $_centerBounds");
     
-    // Comprobación de nulidad exhaustiva (Prioridad Cero)
-    if (_centerBounds == null) {
-      _showError(t.centerLocationError);
-      return;
-    }
-
     // Extracción segura de coordenadas con respaldo (fallback) preventivo
-    final double? minLat = _centerBounds!['minLat'] as double?;
-    final double? maxLat = _centerBounds!['maxLat'] as double?;
-    final double? minLng = _centerBounds!['minLng'] as double?;
-    final double? maxLng = _centerBounds!['maxLng'] as double?;
+    final double minLat = (_centerBounds?['minLat'] as num? ?? 41.496).toDouble();
+    final double maxLat = (_centerBounds?['maxLat'] as num? ?? 41.512).toDouble();
+    final double minLng = (_centerBounds?['minLng'] as num? ?? 2.095).toDouble();
+    final double maxLng = (_centerBounds?['maxLng'] as num? ?? 2.115).toDouble();
 
-    // Si falta algún dato crítico, abortamos la apertura para evitar el Crash
-    if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
-      _showError(t.centerLocationError);
-      return;
-    }
-    
-    // Cálculo seguro del centroide (garantizado no nulo)
     final initialLat = (minLat + maxLat) / 2;
     final initialLng = (minLng + maxLng) / 2;
+    debugPrint("ULF_DEBUG: Calculated initial center: $initialLat, $initialLng");
     
-    final osm.LatLng? pickedPoint = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MapPickerPage(
-          initialCenter: osm.LatLng(initialLat, initialLng),
-          bounds: LatLngBounds(
-            osm.LatLng(minLat, minLng),
-            osm.LatLng(maxLat, maxLng),
+    try {
+      final LatLng? pickedPoint = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapPickerPage(
+            initialCenter: LatLng(initialLat, initialLng),
+            bounds: LatLngBounds(
+              LatLng(minLat, minLng),
+              LatLng(maxLat, maxLng),
+            ),
+            polygon: _centerPolygon,
           ),
-          polygon: _centerPolygon,
         ),
-      ),
-    );
-
-    if (pickedPoint != null) {
-      setState(() {
-        _currentPosition = Position(
-          latitude: pickedPoint.latitude,
-          longitude: pickedPoint.longitude,
-          timestamp: DateTime.now(),
-          accuracy: 0,
-          altitude: 0,
-          heading: 0,
-          speed: 0,
-          speedAccuracy: 0,
-          altitudeAccuracy: 0,
-          headingAccuracy: 0,
-        );
-      });
+      );
+      debugPrint("ULF_DEBUG: Navigator returned: $pickedPoint");
+      
+      if (pickedPoint != null) {
+        setState(() {
+          _currentPosition = Position(
+            latitude: pickedPoint.latitude,
+            longitude: pickedPoint.longitude,
+            timestamp: DateTime.now(),
+            accuracy: 0,
+            altitude: 0,
+            heading: 0,
+            speed: 0,
+            speedAccuracy: 0,
+            altitudeAccuracy: 0,
+            headingAccuracy: 0,
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint("ULF_DEBUG: Error opening MapPickerPage: $e");
     }
   }
 
@@ -525,7 +518,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                           borderRadius: BorderRadius.circular(20),
                           child: FlutterMap(
                             options: MapOptions(
-                              initialCenter: osm.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                              initialCenter: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
                               initialZoom: 16,
                               interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
                             ),
@@ -537,7 +530,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                               MarkerLayer(
                                 markers: [
                                   Marker(
-                                    point: osm.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                                    point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
                                     width: 40,
                                     height: 40,
                                     child: Icon(Icons.location_on_rounded, color: theme.colorScheme.primary, size: 30),
