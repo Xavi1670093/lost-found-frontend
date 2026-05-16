@@ -88,17 +88,26 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
             }).toList();
           }
         });
-      } else if (fetchId == 'uab') {
-        // Fallback para UAB si no está en la DB
+      } else {
+        // Fallback robusto para UAB si no hay conexión o no existe en la DB
         _centerBounds = {
-          'minLat': 41.490,
-          'maxLat': 41.510,
-          'minLng': 2.090,
-          'maxLng': 2.120,
-          'name': 'UAB'
+          'minLat': 41.496,
+          'maxLat': 41.512,
+          'minLng': 2.095,
+          'maxLng': 2.115,
+          'name': 'UAB Campus'
         };
       }
-    } catch (_) {}
+    } catch (_) {
+      // Garantizar que siempre haya algo para no romper el mapa
+      _centerBounds ??= {
+        'minLat': 41.496,
+        'maxLat': 41.512,
+        'minLng': 2.095,
+        'maxLng': 2.115,
+        'name': 'UAB Campus'
+      };
+    }
   }
 
   bool _isWithinBounds(double lat, double lng) {
@@ -264,10 +273,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final double defaultLat = ((_centerBounds?['minLat'] as double? ?? 41.490) + (_centerBounds?['maxLat'] as double? ?? 41.510)) / 2;
     final double defaultLng = ((_centerBounds?['minLng'] as double? ?? 2.090) + (_centerBounds?['maxLng'] as double? ?? 2.120)) / 2;
 
-    // 2. Validación de ubicación (Paso 1.3 Roadmap)
-    if (_currentPosition != null && !_isWithinBounds(_currentPosition!.latitude, _currentPosition!.longitude)) {
-      _showError(t.errorLocationOutsideCenter);
-      return;
+    // 2. Validación de ubicación estricta (Paso 1.3 Roadmap)
+    if (_currentPosition != null) {
+      if (!_isWithinBounds(_currentPosition!.latitude, _currentPosition!.longitude)) {
+        _showError(t.errorLocationOutsideRecinct);
+        return;
+      }
     }
 
     if (selectedCategoryKey == null) {
@@ -500,6 +511,44 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                       _currentPosition != null,
                       theme,
                     ),
+                    
+                    // Vista previa del mapa si hay ubicación seleccionada
+                    if (_currentPosition != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        height: 160,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: FlutterMap(
+                            options: MapOptions(
+                              initialCenter: osm.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                              initialZoom: 16,
+                              interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.unilost.app',
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: osm.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(Icons.location_on_rounded, color: theme.colorScheme.primary, size: 30),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     FieldLabel(label: t.dateLabel, isRequired: true),
                     _buildActionTile(

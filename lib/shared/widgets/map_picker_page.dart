@@ -60,7 +60,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
               if (!isInside) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(t.errorLocationOutsideCenter),
+                    content: Text(t.errorLocationOutsideRecinct),
                     backgroundColor: theme.colorScheme.error,
                     duration: const Duration(seconds: 2),
                   ),
@@ -80,7 +80,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
         children: [
           TileLayer(
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.lostfound',
+            userAgentPackageName: 'com.unilost.app',
           ),
           if (widget.polygon != null && widget.polygon!.isNotEmpty)
             PolygonLayer(
