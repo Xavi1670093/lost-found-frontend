@@ -204,6 +204,7 @@ class AppStrings {
       'outsideBoundsError': 'Estás fuera del perímetro permitido para el centro {center}',
       'centerLocationError': 'No se pudo cargar la ubicación del centro',
       'error_location_outside_center': 'La ubicación debe estar dentro del recinto del centro.',
+      'error_location_outside_recinct': 'La ubicación está fuera del recinto universitario permitido.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -390,6 +391,7 @@ class AppStrings {
       'outsideBoundsError': 'Estàs fora del perímetre permès per al centre {center}',
       'centerLocationError': "No s'ha pogut carregar la ubicació del centre",
       'error_location_outside_center': "La ubicació ha d'estar dins del recinte del centre.",
+      'error_location_outside_recinct': "La ubicació està fora del recinte universitari permès.",
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -576,6 +578,7 @@ class AppStrings {
       'outsideBoundsError': 'You are outside the allowed perimeter for center {center}',
       'centerLocationError': 'Could not load center location',
       'error_location_outside_center': "Location must be within the center's premises.",
+      'error_location_outside_recinct': 'The location is outside the allowed university recinct.',
     },
   };
 
@@ -764,6 +767,7 @@ class AppStrings {
   String outsideBoundsError(String center) => outsideBoundsErrorRaw.replaceAll('{center}', center);
   String get centerLocationError => _text('centerLocationError');
   String get errorLocationOutsideCenter => _text('error_location_outside_center');
+  String get errorLocationOutsideRecinct => _text('error_location_outside_recinct');
   String get emailNotVerified => _text('emailNotVerified');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');

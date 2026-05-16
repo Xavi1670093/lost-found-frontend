@@ -15,8 +15,7 @@ class LocationService {
 
   /// Determina si un punto está dentro de un polígono usando Ray-Casting.
   static bool isPointInPolygon(LatLng point, List<LatLng> polygon) {
-    if (polygon.isEmpty) return true; // Si no hay polígono, permitimos (o manejamos según lógica de negocio)
-    if (polygon.length < 3) return false;
+    if (polygon.isEmpty || polygon.length < 3) return false;
 
     bool isInside = false;
     int j = polygon.length - 1;

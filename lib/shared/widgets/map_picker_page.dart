@@ -30,15 +30,6 @@ class _MapPickerPageState extends State<MapPickerPage> {
     selectedLocation = widget.initialCenter;
   }
 
-  LatLngBounds _expandBounds(LatLngBounds bounds) {
-    // Reducimos el margen para restringir más la vista al centro (Paso 2.2 Roadmap)
-    const double margin = 0.005;
-    
-    return LatLngBounds(
-      LatLng(bounds.south - margin, bounds.west - margin),
-      LatLng(bounds.north + margin, bounds.east + margin),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +75,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
           interactionOptions: const InteractionOptions(
             flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
           ),
-          cameraConstraint: widget.bounds != null 
-            ? CameraConstraint.contain(bounds: _expandBounds(widget.bounds!))
-            : const CameraConstraint.unconstrained(),
+          cameraConstraint: const CameraConstraint.unconstrained(),
         ),
         children: [
           TileLayer(

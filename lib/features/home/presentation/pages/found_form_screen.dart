@@ -175,9 +175,9 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       
       if (!mounted) return;
 
-      // Validación en tiempo real (Paso 1.3 Roadmap)
+      // Validación en tiempo real (Paso 1 del Roadmap Definitivo)
       if (!_isWithinBounds(position.latitude, position.longitude)) {
-        _showError(t.errorLocationOutsideCenter);
+        _showError(t.errorLocationOutsideRecinct);
         return;
       }
 
