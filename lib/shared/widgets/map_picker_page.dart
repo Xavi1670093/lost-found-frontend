@@ -8,12 +8,14 @@ class MapPickerPage extends StatefulWidget {
   final LatLng initialCenter;
   final LatLngBounds? bounds;
   final List<LatLng>? polygon;
+  final double radius; // Radio en metros
 
   const MapPickerPage({
     super.key,
     required this.initialCenter,
     this.bounds,
     this.polygon,
+    this.radius = 1500,
   });
 
   @override
@@ -50,23 +52,35 @@ class _MapPickerPageState extends State<MapPickerPage> {
         mapController: _mapController,
         options: MapOptions(
           initialCenter: widget.initialCenter,
-          initialZoom: 16,
-          minZoom: 14,
+          initialZoom: 13.5,
+          minZoom: 10,
           maxZoom: 19,
           onTap: (tapPosition, point) {
-            // Validación visual y lógica del marcador (Paso 2.2 Roadmap)
+            bool isAllowed = true;
+            
+            // 1. Prioridad: Validación por Polígono
             if (widget.polygon != null && widget.polygon!.isNotEmpty) {
-              final isInside = LocationService.isPointInPolygon(point, widget.polygon!);
-              if (!isInside) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(t.errorLocationOutsideRecinct),
-                    backgroundColor: theme.colorScheme.error,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
+              isAllowed = LocationService.isPointInPolygon(point, widget.polygon!);
+            } else {
+              // 2. Fallback: Validación por Radio desde el centro inicial (1500m solicitado)
+              isAllowed = LocationService.isWithinRadius(
+                point.latitude, 
+                point.longitude, 
+                widget.initialCenter.latitude, 
+                widget.initialCenter.longitude, 
+                widget.radius
+              );
+            }
+
+            if (!isAllowed) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(t.errorLocationOutsideRecinct),
+                  backgroundColor: theme.colorScheme.error,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              return;
             }
             setState(() {
               selectedLocation = point;
@@ -89,6 +103,19 @@ class _MapPickerPageState extends State<MapPickerPage> {
                   points: widget.polygon!,
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderColor: theme.colorScheme.primary,
+                  borderStrokeWidth: 2,
+                ),
+              ],
+            ),
+          if (widget.polygon == null || widget.polygon!.isEmpty)
+            CircleLayer(
+              circles: [
+                CircleMarker(
+                  point: widget.initialCenter,
+                  radius: widget.radius,
+                  useRadiusInMeter: true,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                  borderColor: theme.colorScheme.primary.withValues(alpha: 0.3),
                   borderStrokeWidth: 2,
                 ),
               ],

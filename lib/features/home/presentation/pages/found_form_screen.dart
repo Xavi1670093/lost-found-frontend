@@ -90,23 +90,40 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         });
       } else {
         // Fallback robusto para UAB si no hay conexión o no existe en la DB
-        _centerBounds = {
-          'minLat': 41.496,
-          'maxLat': 41.512,
-          'minLng': 2.095,
-          'maxLng': 2.115,
-          'name': 'UAB Campus'
-        };
+        setState(() {
+          _centerBounds = {
+            'minLat': 41.450,
+            'maxLat': 41.560,
+            'minLng': 2.040,
+            'maxLng': 2.170,
+            'name': 'UAB Campus'
+          };
+          _centerPolygon ??= [
+            const LatLng(41.507, 2.095),
+            const LatLng(41.512, 2.105),
+            const LatLng(41.505, 2.115),
+            const LatLng(41.498, 2.108),
+            const LatLng(41.496, 2.100),
+          ];
+        });
       }
     } catch (_) {
-      // Garantizar que siempre haya algo para no romper el mapa
-      _centerBounds ??= {
-        'minLat': 41.496,
-        'maxLat': 41.512,
-        'minLng': 2.095,
-        'maxLng': 2.115,
-        'name': 'UAB Campus'
-      };
+      setState(() {
+        _centerBounds = {
+          'minLat': 41.450,
+          'maxLat': 41.560,
+          'minLng': 2.040,
+          'maxLng': 2.170,
+          'name': 'UAB Campus'
+        };
+        _centerPolygon = [
+          const LatLng(41.507, 2.095),
+          const LatLng(41.512, 2.105),
+          const LatLng(41.505, 2.115),
+          const LatLng(41.498, 2.108),
+          const LatLng(41.496, 2.100),
+        ];
+      });
     }
   }
 
@@ -116,24 +133,17 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       return LocationService.isPointInPolygon(LatLng(lat, lng), _centerPolygon!);
     }
 
-    // 2. Fallback: Validación por Bounding Box + Radio
-    if (_centerBounds == null) return true;
+    // 2. Fallback: Validación por Bounding Box + Radio (1500m)
+    if (_centerBounds == null || _centerBounds!.isEmpty) return true;
     
-    // Extracción segura de límites con fallback para evitar NoSuchMethodError
-    final double? minLat = _centerBounds!['minLat'] as double?;
-    final double? maxLat = _centerBounds!['maxLat'] as double?;
-    final double? minLng = _centerBounds!['minLng'] as double?;
-    final double? maxLng = _centerBounds!['maxLng'] as double?;
-
-    if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
-      return true; // Si los límites son corruptos, permitimos por defecto para no bloquear al usuario
-    }
+    final double minLat = (_centerBounds!['minLat'] as num? ?? 41.480).toDouble();
+    final double maxLat = (_centerBounds!['maxLat'] as num? ?? 41.520).toDouble();
+    final double minLng = (_centerBounds!['minLng'] as num? ?? 2.085).toDouble();
+    final double maxLng = (_centerBounds!['maxLng'] as num? ?? 2.130).toDouble();
     
-    // Calculamos el centroide de la universidad (garantizado no nulo)
     final centerLat = (minLat + maxLat) / 2;
     final centerLng = (minLng + maxLng) / 2;
     
-    // Validamos que el usuario esté en un radio de 1.5km del centro de la uni
     return LocationService.isWithinRadius(lat, lng, centerLat, centerLng, 1500);
   }
 
@@ -207,15 +217,15 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Future<void> _openMapPicker() async {
     debugPrint("ULF_DEBUG: _openMapPicker triggered. _centerBounds: $_centerBounds");
     
-    // Extracción segura de coordenadas con respaldo (fallback) preventivo
-    final double minLat = (_centerBounds?['minLat'] as num? ?? 41.496).toDouble();
-    final double maxLat = (_centerBounds?['maxLat'] as num? ?? 41.512).toDouble();
-    final double minLng = (_centerBounds?['minLng'] as num? ?? 2.095).toDouble();
-    final double maxLng = (_centerBounds?['maxLng'] as num? ?? 2.115).toDouble();
+    // Extracción ultra-segura de coordenadas soportando múltiples formatos de nombres (minLat vs latMin)
+    final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.430).toDouble();
+    final double maxLat = (_centerBounds?['maxLat'] as num? ?? _centerBounds?['latMax'] as num? ?? 41.580).toDouble();
+    final double minLng = (_centerBounds?['minLng'] as num? ?? _centerBounds?['lngMin'] as num? ?? 2.020).toDouble();
+    final double maxLng = (_centerBounds?['maxLng'] as num? ?? _centerBounds?['lngMax'] as num? ?? 2.190).toDouble();
 
     final initialLat = (minLat + maxLat) / 2;
     final initialLng = (minLng + maxLng) / 2;
-    debugPrint("ULF_DEBUG: Calculated initial center: $initialLat, $initialLng");
+    debugPrint("ULF_DEBUG: Final Calculated initial center: $initialLat, $initialLng");
     
     try {
       final LatLng? pickedPoint = await Navigator.push(
@@ -223,6 +233,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         MaterialPageRoute(
           builder: (context) => MapPickerPage(
             initialCenter: LatLng(initialLat, initialLng),
+            // Pasamos los límites para dibujar el círculo/polígono, pero el panning será libre para evitar crashes
             bounds: LatLngBounds(
               LatLng(minLat, minLng),
               LatLng(maxLat, maxLng),
@@ -509,7 +520,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     if (_currentPosition != null) ...[
                       const SizedBox(height: 16),
                       Container(
-                        height: 160,
+                        height: 240,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
