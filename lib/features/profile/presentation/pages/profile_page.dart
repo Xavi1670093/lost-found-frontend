@@ -10,6 +10,7 @@ import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'user_posts_page.dart';
 
@@ -172,6 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                                   imageUrl: photoUrl.contains('?') 
                                                       ? "$photoUrl&v=$_imageVersion" 
                                                       : "$photoUrl?v=$_imageVersion",
+                                                  cacheManager: CustomCacheManager.instance,
                                                   width: 100,
                                                   height: 100,
                                                   fit: BoxFit.cover,

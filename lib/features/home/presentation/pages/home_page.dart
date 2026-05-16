@@ -5,6 +5,7 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'post_detail_page.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as osm;
@@ -445,6 +446,7 @@ class _RealObjectCard extends StatelessWidget {
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                           child: CachedNetworkImage(
                             imageUrl: post['imageUrl'],
+                            cacheManager: CustomCacheManager.instance,
                             width: double.infinity,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => const SkeletonLoader(

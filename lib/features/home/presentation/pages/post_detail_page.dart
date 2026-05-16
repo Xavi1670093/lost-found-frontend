@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import '../../../chats/data/models/chat_model.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
@@ -125,6 +126,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: post['imageUrl'],
+                        cacheManager: CustomCacheManager.instance,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const SkeletonLoader(
                           width: double.infinity,

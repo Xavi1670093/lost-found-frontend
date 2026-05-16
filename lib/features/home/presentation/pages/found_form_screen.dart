@@ -36,6 +36,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Position? _currentPosition;
   String _locationMethod = 'gps'; // 'gps' o 'map'
   Map<String, dynamic>? _centerBounds;
+  List<osm.LatLng>? _centerPolygon;
   String? _centerId;
   String? _userName;
   bool _isPublishing = false;
@@ -68,10 +69,24 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       }
       
       final fetchId = _centerId!;
-      final boundsSnap = await FirebaseDatabase.instance.ref('centers/$fetchId/bounds').get();
-      if (boundsSnap.exists) {
+      final centerRef = FirebaseDatabase.instance.ref('centers/$fetchId');
+      final centerSnap = await centerRef.get();
+      
+      if (centerSnap.exists) {
+        final centerData = Map<dynamic, dynamic>.from(centerSnap.value as Map);
         setState(() {
-          _centerBounds = Map<String, dynamic>.from(boundsSnap.value as Map);
+          if (centerData['bounds'] != null) {
+            _centerBounds = Map<String, dynamic>.from(centerData['bounds'] as Map);
+          }
+          if (centerData['polygon'] != null) {
+            _centerPolygon = (centerData['polygon'] as List).map((point) {
+              final p = Map<dynamic, dynamic>.from(point as Map);
+              return osm.LatLng(
+                (p['lat'] as num).toDouble(),
+                (p['lng'] as num).toDouble(),
+              );
+            }).toList();
+          }
         });
       } else if (fetchId == 'uab') {
         // Fallback para UAB si no está en la DB
@@ -87,6 +102,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   }
 
   bool _isWithinBounds(double lat, double lng) {
+    // 1. Prioridad: Validación por Polígono (Ray-Casting)
+    if (_centerPolygon != null && _centerPolygon!.isNotEmpty) {
+      return LocationService.isPointInPolygon(osm.LatLng(lat, lng), _centerPolygon!);
+    }
+
+    // 2. Fallback: Validación por Bounding Box + Radio
     if (_centerBounds == null) return true;
     
     // Extracción segura de límites con fallback para evitar NoSuchMethodError
@@ -154,10 +175,9 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       
       if (!mounted) return;
 
-      // Validación en tiempo real (Tarea 3)
+      // Validación en tiempo real (Paso 1.3 Roadmap)
       if (!_isWithinBounds(position.latitude, position.longitude)) {
-        _showError(t.outsideBoundsError(_centerBounds?['name'] ?? 'UAB'));
-        // IMPORTANTE: No sobreescribimos _currentPosition si está fuera de rango
+        _showError(t.errorLocationOutsideCenter);
         return;
       }
 
@@ -209,6 +229,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
             osm.LatLng(minLat, minLng),
             osm.LatLng(maxLat, maxLng),
           ),
+          polygon: _centerPolygon,
         ),
       ),
     );
@@ -243,9 +264,9 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final double defaultLat = ((_centerBounds?['minLat'] as double? ?? 41.490) + (_centerBounds?['maxLat'] as double? ?? 41.510)) / 2;
     final double defaultLng = ((_centerBounds?['minLng'] as double? ?? 2.090) + (_centerBounds?['maxLng'] as double? ?? 2.120)) / 2;
 
-    // 2. Validación de ubicación (Tarea 3)
+    // 2. Validación de ubicación (Paso 1.3 Roadmap)
     if (_currentPosition != null && !_isWithinBounds(_currentPosition!.latitude, _currentPosition!.longitude)) {
-      _showError(t.outsideBoundsError(centerName));
+      _showError(t.errorLocationOutsideCenter);
       return;
     }
 

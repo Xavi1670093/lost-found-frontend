@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/services/location_service.dart';
 
 class MapPickerPage extends StatefulWidget {
   final LatLng initialCenter;
   final LatLngBounds? bounds;
+  final List<LatLng>? polygon;
 
   const MapPickerPage({
     super.key,
     required this.initialCenter,
     this.bounds,
+    this.polygon,
   });
 
   @override
@@ -28,8 +31,8 @@ class _MapPickerPageState extends State<MapPickerPage> {
   }
 
   LatLngBounds _expandBounds(LatLngBounds bounds) {
-    // Añadimos un margen de 0.02 grados (~2km) para permitir mayor exploración lateral y vertical
-    const double margin = 0.020;
+    // Reducimos el margen para restringir más la vista al centro (Paso 2.2 Roadmap)
+    const double margin = 0.005;
     
     return LatLngBounds(
       LatLng(bounds.south - margin, bounds.west - margin),
@@ -60,6 +63,20 @@ class _MapPickerPageState extends State<MapPickerPage> {
           minZoom: 14,
           maxZoom: 19,
           onTap: (tapPosition, point) {
+            // Validación visual y lógica del marcador (Paso 2.2 Roadmap)
+            if (widget.polygon != null && widget.polygon!.isNotEmpty) {
+              final isInside = LocationService.isPointInPolygon(point, widget.polygon!);
+              if (!isInside) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(t.errorLocationOutsideCenter),
+                    backgroundColor: theme.colorScheme.error,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+            }
             setState(() {
               selectedLocation = point;
             });
@@ -76,6 +93,17 @@ class _MapPickerPageState extends State<MapPickerPage> {
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'com.example.lostfound',
           ),
+          if (widget.polygon != null && widget.polygon!.isNotEmpty)
+            PolygonLayer(
+              polygons: [
+                Polygon(
+                  points: widget.polygon!,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderColor: theme.colorScheme.primary,
+                  borderStrokeWidth: 2,
+                ),
+              ],
+            ),
           MarkerLayer(
             markers: [
               Marker(

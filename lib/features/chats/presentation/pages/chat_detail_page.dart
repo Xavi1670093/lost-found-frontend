@@ -6,6 +6,7 @@ import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import '../../data/models/chat_model.dart';
 
 class ChatDetailPage extends StatefulWidget {
@@ -76,6 +77,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 child: otherUserPhoto != null && otherUserPhoto.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: otherUserPhoto,
+                        cacheManager: CustomCacheManager.instance,
                         width: 40,
                         height: 40,
                         fit: BoxFit.cover,

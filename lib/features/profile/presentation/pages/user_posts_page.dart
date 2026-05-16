@@ -5,6 +5,7 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'edit_post_page.dart';
 
 class UserPostsPage extends StatelessWidget {
@@ -108,6 +109,7 @@ class UserPostsPage extends StatelessWidget {
                                           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                                           child: CachedNetworkImage(
                                             imageUrl: post['imageUrl'],
+                                            cacheManager: CustomCacheManager.instance,
                                             fit: BoxFit.cover,
                                             placeholder: (context, url) => const SkeletonLoader(
                                               width: double.infinity,

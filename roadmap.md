@@ -1,39 +1,40 @@
-## Correcciones de Emergencia: Fallo en Selección de Ubicación y Ajustes del Mapa
+## Tareas Pendientes: Ubicación e Imágenes (Flutter)
 
-Las siguientes tareas deben ser abordadas de inmediato para solucionar un cierre inesperado (`Crash`) al intentar abrir el selector de mapas y para mejorar la experiencia de navegación geográfica. El agente debe mantener el código seguro (Null-Safety) y asegurar el funcionamiento en los 3 idiomas.
+Este bloque define las instrucciones para corregir y optimizar la selección de ubicación y la gestión de caché de imágenes. Ejecuta cada paso de forma atómica y verifica su funcionamiento antes de pasar al siguiente.
 
-### 1. Corregir `NoSuchMethodError` en `_openMapPicker` (Formulario de Publicación)
-**Objetivo:** Solucionar el error `The method '+' was called on null` detectado en la línea 152 de `lib/features/home/presentation/pages/found_form_screen.dart`, que impide abrir el mapa.
-* **Archivos implicados:** `lib/features/home/presentation/pages/found_form_screen.dart`.
-* **Instrucciones:**
-  1. Localizar la función `_openMapPicker` alrededor de la línea 152.
-  2. Identificar la variable que está siendo operada con el símbolo `+` (probablemente el cálculo de límites geográficos `bounds` o el `offset` utilizando la ubicación del centro/universidad).
-  3. Implementar comprobaciones de nulidad (`null checks`). Si las coordenadas del centro no están disponibles en el estado actual, mostrar un `SnackBar` de error ("No se pudo cargar la ubicación del centro", traducido a ES, CA, EN) y abortar la apertura del mapa en lugar de procesar la suma.
-  4. Proveer coordenadas de respaldo (fallback) seguras por si la ubicación inicial es nula, asegurando que `LatLng` nunca reciba valores nulos.
+### 1. Validación de Coordenadas GPS (Ubicación Actual)
+**Objetivo:** Validar que la ubicación actual del dispositivo se encuentre dentro de los límites (geocerca) del centro seleccionado (ej. UAB) y mostrar un error en 3 idiomas si no es válido.
 
-### 2. Ampliar los Límites de Paneo del Mapa Principal y Selector
-**Objetivo:** Permitir al usuario explorar un área más amplia alrededor del centro en todos los mapas interactivos de la aplicación.
-* **Archivos implicados:** `lib/shared/widgets/map_picker_page.dart` y el widget del mapa principal (ej. `lib/features/home/presentation/pages/home_page.dart` o componentes equivalentes).
-* **Instrucciones:**
-  1. Localizar la propiedad `cameraTargetBounds` en el widget `GoogleMap` (o el paquete de mapas correspondiente).
-  2. Modificar el cálculo del `LatLngBounds` sumando un `offset` mayor (por ejemplo, incrementar en `0.01` o `0.02` grados tanto a la latitud como a la longitud) para generar un cuadro delimitador más ancho.
-  3. Asegurar de nuevo que los cálculos matemáticos para los límites suroeste (`southwest`) y noreste (`northeast`) manejen variables no nulas.
-  4. Comprobar que al compilar, el usuario pueda arrastrar el mapa hacia las calles adyacentes a la universidad sin ser bloqueado abruptamente.
+* **Paso 1.1: Internacionalización (i18n):**
+    * Abre el sistema de traducciones (ej. `lib/core/localization/app_strings.dart` o archivos `.arb`).
+    * Añade la clave `error_location_outside_center` con sus traducciones en Español, Catalán e Inglés. (Ej. ES: "La ubicación debe estar dentro del recinto del centro.", CA: "La ubicació ha d'estar dins del recinte del centre.", EN: "Location must be within the center's premises.").
+* **Paso 1.2: Lógica de Validación de Geocerca:**
+    * Abre `lib/core/services/location_service.dart`.
+    * Crea una función `bool isPointInPolygon(LatLng point, List<LatLng> polygon)` utilizando el algoritmo de Ray-Casting para determinar si las coordenadas actuales caen dentro de los límites del centro.
+    * Asegúrate de obtener el polígono del centro actual desde el estado global o la base de datos de Firebase.
+* **Paso 1.3: Integración en la Interfaz de Usuario:**
+    * Abre `lib/features/home/presentation/pages/found_form_screen.dart`.
+    * Modifica la función de "Obtener ubicación actual". Una vez obtenidas las coordenadas, llama a la función de validación.
+    * Si el resultado es `false`, detén el flujo y muestra un `SnackBar` o diálogo de error consumiendo la clave `error_location_outside_center`.
 
-### 3. Reparar Lógica de Validación GPS en Tiempo Real
-**Objetivo:** Garantizar que la validación de ubicación actual funcione correctamente, deteniendo la publicación si el usuario está fuera de la universidad.
-* **Archivos implicados:** `lib/features/home/presentation/pages/found_form_screen.dart`, `lib/core/services/location_service.dart`.
-* **Instrucciones:**
-  1. Revisar la función vinculada al botón "Usar ubicación actual" en el formulario.
-  2. Envolver la llamada al GPS en un bloque `try-catch`. 
-  3. Calcular la distancia usando una función de Haversine local segura.
-  4. Si la distancia es mayor al radio permitido (ej. 1.5 km), lanzar una alerta visual inmediata (Diálogo o Snackbar) usando la clave de traducción existente para el error de "Ubicación fuera de rango".
-  5. Evitar que las coordenadas fuera de rango sobreescriban el estado de la ubicación seleccionada.
+### 2. Corrección del Selector de Mapa Manual
+**Objetivo:** Solucionar el error que impide abrir el mapa para la selección manual y restringir la vista al centro.
 
-### 4. Restaurar Selección Manual de Marcador en el Mapa
-**Objetivo:** Permitir que el toque del usuario en el mapa actualice el marcador visual.
-* **Archivos implicados:** `lib/shared/widgets/map_picker_page.dart`.
-* **Instrucciones:**
-  1. Verificar que el parámetro `onTap` del mapa está asignado a un método que actualice el estado.
-  2. Confirmar que dentro del `onTap(LatLng coord)`, se ejecuta `setState(() { selectedLocation = coord; })`.
-  3. Asegurarse de que la capa de marcadores (`Set<Marker>`) se esté redibujando con un marcador cuya posición sea `selectedLocation`.
+* **Paso 2.1: Depuración y Corrección de `map_picker_page.dart`:**
+    * Analiza `lib/shared/widgets/map_picker_page.dart` y los logs de error asociados al presionar el botón de selección manual.
+    * Verifica que el `GoogleMapController` se esté inicializando correctamente y que los permisos de ubicación no estén bloqueando la renderización inicial si se denegaron previamente.
+    * Asegúrate de que la API Key de Google Maps esté correctamente inyectada en los archivos de configuración nativos (`AndroidManifest.xml` y `AppDelegate.swift`).
+* **Paso 2.2: Restricción de Cámara:**
+    * En el widget de Google Maps dentro de `map_picker_page.dart`, configura la propiedad `cameraTargetBounds` utilizando el polígono/bounding box del centro actual (ej. UAB).
+    * Añade validación visual al marcador para que no pueda ser soltado fuera del polígono del centro.
+
+### 3. Sistema Integral de Caché de Imágenes
+**Objetivo:** Garantizar que todas las imágenes (posts y chats) se guarden en caché y se revaliden automáticamente si hay modificaciones.
+
+* **Paso 3.1: Configuración de `cached_network_image`:**
+    * Verifica en `pubspec.yaml` que el paquete `cached_network_image` y `flutter_cache_manager` estén instalados y actualizados.
+    * Crea una configuración personalizada en `flutter_cache_manager` (ej. `CustomCacheManager`) para manejar la expiración y revalidación basadas en las cabeceras `eTag` o `Last-Modified` proporcionadas por Firebase Storage.
+* **Paso 3.2: Refactorización de Widgets de Imagen:**
+    * Busca todas las instancias de `Image.network` a lo largo del proyecto (especialmente en `lib/features/chats/presentation/pages/chat_detail_page.dart` y `post_detail_page.dart`).
+    * Reemplázalas por `CachedNetworkImage`.
+    * Implementa los constructores `placeholder` (usando `lib/shared/widgets/skeleton_loader.dart` si es posible) y `errorWidget` para manejar estados de carga y fallo de forma limpia.
