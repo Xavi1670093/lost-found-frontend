@@ -133,18 +133,18 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       return LocationService.isPointInPolygon(LatLng(lat, lng), _centerPolygon!);
     }
 
-    // 2. Fallback: Validación por Bounding Box + Radio (1500m)
+    // 2. Fallback: Validación por Radio de 1100m desde el centroide
     if (_centerBounds == null || _centerBounds!.isEmpty) return true;
     
-    final double minLat = (_centerBounds!['minLat'] as num? ?? 41.480).toDouble();
-    final double maxLat = (_centerBounds!['maxLat'] as num? ?? 41.520).toDouble();
-    final double minLng = (_centerBounds!['minLng'] as num? ?? 2.085).toDouble();
-    final double maxLng = (_centerBounds!['maxLng'] as num? ?? 2.130).toDouble();
+    final double minLat = (_centerBounds!['minLat'] as num? ?? _centerBounds!['latMin'] as num? ?? 41.480).toDouble();
+    final double maxLat = (_centerBounds!['maxLat'] as num? ?? _centerBounds!['latMax'] as num? ?? 41.520).toDouble();
+    final double minLng = (_centerBounds!['minLng'] as num? ?? _centerBounds!['lngMin'] as num? ?? 2.085).toDouble();
+    final double maxLng = (_centerBounds!['maxLng'] as num? ?? _centerBounds!['lngMax'] as num? ?? 2.130).toDouble();
     
     final centerLat = (minLat + maxLat) / 2;
     final centerLng = (minLng + maxLng) / 2;
     
-    return LocationService.isWithinRadius(lat, lng, centerLat, centerLng, 1500);
+    return LocationService.isWithinRadius(lat, lng, centerLat, centerLng, 1100);
   }
 
   String? selectedCategoryKey;
@@ -274,8 +274,13 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final centerName = _centerBounds?['name']?.toString() ?? 'UAB Campus';
     
     // Cálculo del centroide para el fallback (evita valores fuera de rango)
-    final double defaultLat = ((_centerBounds?['minLat'] as double? ?? 41.490) + (_centerBounds?['maxLat'] as double? ?? 41.510)) / 2;
-    final double defaultLng = ((_centerBounds?['minLng'] as double? ?? 2.090) + (_centerBounds?['maxLng'] as double? ?? 2.120)) / 2;
+    final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.480).toDouble();
+    final double maxLat = (_centerBounds?['maxLat'] as num? ?? _centerBounds?['latMax'] as num? ?? 41.520).toDouble();
+    final double minLng = (_centerBounds?['minLng'] as num? ?? _centerBounds?['lngMin'] as num? ?? 2.085).toDouble();
+    final double maxLng = (_centerBounds?['maxLng'] as num? ?? _centerBounds?['lngMax'] as num? ?? 2.130).toDouble();
+
+    final double defaultLat = (minLat + maxLat) / 2;
+    final double defaultLng = (minLng + maxLng) / 2;
 
     // 2. Validación de ubicación estricta (Paso 1.3 Roadmap)
     if (_currentPosition != null) {

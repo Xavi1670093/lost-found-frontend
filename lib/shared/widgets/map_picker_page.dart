@@ -15,7 +15,7 @@ class MapPickerPage extends StatefulWidget {
     required this.initialCenter,
     this.bounds,
     this.polygon,
-    this.radius = 1500,
+    this.radius = 1100,
   });
 
   @override
@@ -62,7 +62,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
             if (widget.polygon != null && widget.polygon!.isNotEmpty) {
               isAllowed = LocationService.isPointInPolygon(point, widget.polygon!);
             } else {
-              // 2. Fallback: Validación por Radio desde el centro inicial (1500m solicitado)
+              // 2. Fallback: Validación por Radio desde el centro inicial (1100m solicitado)
               isAllowed = LocationService.isWithinRadius(
                 point.latitude, 
                 point.longitude, 
