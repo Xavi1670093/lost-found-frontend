@@ -144,8 +144,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category and Date Row
-                  Row(
+                  // Category and Date Wrap (sprints safely on narrow devices)
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       _InfoChip(
                         icon: _getCategoryIcon(post['category']?.toString()),
@@ -153,7 +155,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         color: theme.colorScheme.secondaryContainer,
                         textColor: theme.colorScheme.onSecondaryContainer,
                       ),
-                      const SizedBox(width: 12),
                       _InfoChip(
                         icon: Icons.calendar_today_rounded,
                         label: _formatDate(post['created_at']),

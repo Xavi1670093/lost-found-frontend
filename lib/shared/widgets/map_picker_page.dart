@@ -32,108 +32,141 @@ class _MapPickerPageState extends State<MapPickerPage> {
     selectedLocation = widget.initialCenter;
   }
 
+  bool get _isLocationValid {
+    if (widget.polygon != null && widget.polygon!.isNotEmpty) {
+      return LocationService.isPointInPolygon(selectedLocation, widget.polygon!);
+    }
+    return LocationService.isWithinRadius(
+      selectedLocation.latitude,
+      selectedLocation.longitude,
+      widget.initialCenter.latitude,
+      widget.initialCenter.longitude,
+      widget.radius,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
+    final isValid = _isLocationValid;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(t.mapLocation),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, selectedLocation),
-            child: Text(t.save, style: const TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: isValid ? () => Navigator.pop(context, selectedLocation) : null,
+            child: Text(
+              t.save,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isValid ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.38),
+              ),
+            ),
           ),
         ],
       ),
-      body: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          initialCenter: widget.initialCenter,
-          initialZoom: 13.5,
-          minZoom: 10,
-          maxZoom: 19,
-          onTap: (tapPosition, point) {
-            bool isAllowed = true;
-            
-            // 1. Prioridad: Validación por Polígono
-            if (widget.polygon != null && widget.polygon!.isNotEmpty) {
-              isAllowed = LocationService.isPointInPolygon(point, widget.polygon!);
-            } else {
-              // 2. Fallback: Validación por Radio desde el centro inicial (1100m solicitado)
-              isAllowed = LocationService.isWithinRadius(
-                point.latitude, 
-                point.longitude, 
-                widget.initialCenter.latitude, 
-                widget.initialCenter.longitude, 
-                widget.radius
-              );
-            }
-
-            if (!isAllowed) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(t.errorLocationOutsideRecinct),
-                  backgroundColor: theme.colorScheme.error,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-              return;
-            }
-            setState(() {
-              selectedLocation = point;
-            });
-          },
-          interactionOptions: const InteractionOptions(
-            flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-          ),
-          cameraConstraint: const CameraConstraint.unconstrained(),
-        ),
+      body: Column(
         children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.unilost.app',
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            height: isValid ? 0 : null,
+            color: theme.colorScheme.errorContainer,
+            curve: Curves.easeInOut,
+            child: isValid
+                ? const SizedBox.shrink()
+                : SafeArea(
+                    bottom: false,
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: theme.colorScheme.onErrorContainer),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                t.errorLocationOutsideRecinct,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onErrorContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
           ),
-          if (widget.polygon != null && widget.polygon!.isNotEmpty)
-            PolygonLayer(
-              polygons: [
-                Polygon(
-                  points: widget.polygon!,
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  borderColor: theme.colorScheme.primary,
-                  borderStrokeWidth: 2,
+          Expanded(
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: widget.initialCenter,
+                initialZoom: 13.5,
+                minZoom: 10,
+                maxZoom: 19,
+                onTap: (tapPosition, point) {
+                  setState(() {
+                    selectedLocation = point;
+                  });
+                },
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                 ),
-              ],
-            ),
-          if (widget.polygon == null || widget.polygon!.isEmpty)
-            CircleLayer(
-              circles: [
-                CircleMarker(
-                  point: widget.initialCenter,
-                  radius: widget.radius,
-                  useRadiusInMeter: true,
-                  color: theme.colorScheme.primary.withValues(alpha: 0.05),
-                  borderColor: theme.colorScheme.primary.withValues(alpha: 0.3),
-                  borderStrokeWidth: 2,
-                ),
-              ],
-            ),
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: selectedLocation,
-                width: 40,
-                height: 40,
-                alignment: Alignment.topCenter,
-                child: Icon(
-                  Icons.location_on_rounded,
-                  color: theme.colorScheme.primary,
-                  size: 40,
-                ),
+                cameraConstraint: const CameraConstraint.unconstrained(),
               ),
-            ],
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.unilost.app',
+                ),
+                if (widget.polygon != null && widget.polygon!.isNotEmpty)
+                  PolygonLayer(
+                    polygons: [
+                      Polygon(
+                        points: widget.polygon!,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderColor: theme.colorScheme.primary,
+                        borderStrokeWidth: 3,
+                      ),
+                    ],
+                  ),
+                if (widget.polygon == null || widget.polygon!.isEmpty)
+                  CircleLayer(
+                    circles: [
+                      CircleMarker(
+                        point: widget.initialCenter,
+                        radius: widget.radius,
+                        useRadiusInMeter: true,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                        borderColor: theme.colorScheme.primary.withValues(alpha: 0.3),
+                        borderStrokeWidth: 3,
+                      ),
+                    ],
+                  ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: selectedLocation,
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.topCenter,
+                      child: Icon(
+                        Icons.location_on_rounded,
+                        color: isValid ? theme.colorScheme.primary : theme.colorScheme.error,
+                        size: 40,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -149,3 +182,4 @@ class _MapPickerPageState extends State<MapPickerPage> {
     );
   }
 }
+

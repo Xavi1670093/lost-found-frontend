@@ -207,25 +207,40 @@ class _ProfilePageState extends State<ProfilePage> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Text(
-                            userName,
-                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                userName,
+                                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            user.email ?? "",
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                user.email ?? "",
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              "$userRole | $centerId",
-                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                "$userRole | $centerId",
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
                             ),
                           ),
                         ],
@@ -334,45 +349,78 @@ class _ProfilePageState extends State<ProfilePage> {
         builder: (dialogContext, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(t.editNameTitle),
-          content: TextField(
-            controller: controller,
-            enabled: !isSaving,
-            decoration: InputDecoration(
-              labelText: t.newNameLabel,
-              border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+          content: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: TextField(
+                controller: controller,
+                enabled: !isSaving,
+                decoration: InputDecoration(
+                  labelText: t.newNameLabel,
+                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                ),
+              ),
             ),
           ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actionsAlignment: MainAxisAlignment.center,
           actions: [
-            TextButton(
-              onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-              child: Text(t.cancel),
-            ),
-            ElevatedButton(
-              onPressed: isSaving 
-                ? null 
-                : () async {
-                    if (controller.text.trim().isNotEmpty) {
-                      setDialogState(() => isSaving = true);
-                      try {
-                        await ref.update({
-                          'name': controller.text.trim(), 
-                          'updated_at': DateTime.now().millisecondsSinceEpoch
-                        });
-                        if (dialogContext.mounted) {
-                          Navigator.pop(dialogContext);
-                          AppNotifications.showSuccess(dialogContext, t.updateSuccess);
-                        }
-                      } catch (e) {
-                        if (dialogContext.mounted) {
-                          setDialogState(() => isSaving = false);
-                          AppNotifications.showError(dialogContext, t.errorSaving);
-                        }
-                      }
-                    }
-                  },
-              child: isSaving 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(t.save),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(t.cancel),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: isSaving 
+                      ? null 
+                      : () async {
+                          if (controller.text.trim().isNotEmpty) {
+                            setDialogState(() => isSaving = true);
+                            try {
+                              await ref.update({
+                                'name': controller.text.trim(), 
+                                'updated_at': DateTime.now().millisecondsSinceEpoch
+                              });
+                              if (dialogContext.mounted) {
+                                Navigator.pop(dialogContext);
+                                AppNotifications.showSuccess(dialogContext, t.updateSuccess);
+                              }
+                            } catch (e) {
+                              if (dialogContext.mounted) {
+                                setDialogState(() => isSaving = false);
+                                AppNotifications.showError(dialogContext, t.errorSaving);
+                              }
+                            }
+                          }
+                        },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: isSaving 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(t.save),
+                        ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -403,7 +451,10 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 12),
-          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ),
         ],
       ),
     );

@@ -38,6 +38,19 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+          builder: (context, child) {
+            final mediaQueryData = MediaQuery.of(context);
+            final clampedScaler = mediaQueryData.textScaler.clamp(
+              minScaleFactor: 0.8,
+              maxScaleFactor: 1.25,
+            );
+            return MediaQuery(
+              data: mediaQueryData.copyWith(
+                textScaler: clampedScaler,
+              ),
+              child: child!,
+            );
+          },
           home: AppRoot(settingsController: settingsController),
         );
       },
