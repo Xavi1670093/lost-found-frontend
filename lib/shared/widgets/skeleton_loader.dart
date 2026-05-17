@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
+/// [SkeletonLoader] es un widget animado que simula el estado de carga
+/// (shimmer effect) de componentes textuales o bloques visuales.
+///
+/// Ofrece transiciones fluidas de gris claro a gris oscuro para adaptarse al brillo
+/// del tema activo (`light` / `dark`) de la aplicación y un constructor de grid preconfigurado
+/// para tarjetas de objetos perdidos/encontrados.
 class SkeletonLoader extends StatelessWidget {
+  /// El ancho del contenedor del shimmer.
   final double width;
+
+  /// La altura del contenedor del shimmer.
   final double height;
+
+  /// El radio de borde de las esquinas del contenedor.
   final BorderRadius? borderRadius;
 
   const SkeletonLoader({

@@ -1,8 +1,14 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+/// [LocationService] encapsula algoritmos y cálculos geométricos avanzados
+/// para la geolocalización y geovallado (geofencing) de los usuarios.
+///
+/// Implementa cálculos elipsoidales (WGS84) mediante el paquete `geolocator`
+/// y algoritmos matemáticos de determinación de pertenencia poligonal (Ray-Casting)
+/// para validar si un punto se encuentra dentro de los recintos de la UAB.
 class LocationService {
-  /// Calcula la distancia en metros entre dos puntos.
+  /// Calcula la distancia en metros entre dos coordenadas geográficas utilizando la fórmula de Vincenty / Haversine.
   static double calculateDistance(double startLat, double startLng, double endLat, double endLng) {
     return Geolocator.distanceBetween(startLat, startLng, endLat, endLng);
   }
