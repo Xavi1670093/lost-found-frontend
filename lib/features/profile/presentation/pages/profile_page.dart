@@ -352,13 +352,28 @@ class _ProfilePageState extends State<ProfilePage> {
           content: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.only(top: 8.0),
-              child: TextField(
-                controller: controller,
-                enabled: !isSaving,
-                decoration: InputDecoration(
-                  labelText: t.newNameLabel,
-                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    t.newNameLabel,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: controller,
+                    enabled: !isSaving,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -396,7 +411,13 @@ class _ProfilePageState extends State<ProfilePage> {
                               });
                               if (dialogContext.mounted) {
                                 Navigator.pop(dialogContext);
-                                AppNotifications.showSuccess(dialogContext, t.updateSuccess);
+                                AppNotifications.showSuccess(dialogContext, t.profileUpdatedSuccess);
+                              }
+                            } on FirebaseException catch (e) {
+                              if (dialogContext.mounted) {
+                                setDialogState(() => isSaving = false);
+                                debugPrint("ULF_DEBUG: FirebaseException during profile update: ${e.code} - ${e.message}");
+                                AppNotifications.showError(dialogContext, t.errorSaving);
                               }
                             } catch (e) {
                               if (dialogContext.mounted) {

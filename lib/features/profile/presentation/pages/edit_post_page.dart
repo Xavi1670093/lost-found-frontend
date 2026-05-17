@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
@@ -54,8 +55,8 @@ class _EditPostPageState extends State<EditPostPage> {
       text: widget.post['description'] ?? '',
     );
 
-    _selectedStatus = widget.post['status'] ?? 'active';
-    _selectedCategory = widget.post['category'] ?? 'others';
+    _selectedStatus = (widget.post['status']?.toString() ?? 'active').toLowerCase().trim();
+    _selectedCategory = (widget.post['category']?.toString() ?? 'others').toLowerCase().trim();
 
     if (!_statuses.contains(_selectedStatus)) {
       _selectedStatus = 'active';
@@ -78,6 +79,7 @@ class _EditPostPageState extends State<EditPostPage> {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
+        'status': _selectedStatus,
         'updated_at': ServerValue.timestamp,
       });
 
@@ -90,8 +92,13 @@ class _EditPostPageState extends State<EditPostPage> {
 
       if (!mounted) return;
 
-      AppNotifications.showSuccess(context, t.updateSuccess);
+      AppNotifications.showSuccess(context, t.postEditedSuccess);
       Navigator.pop(context);
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      debugPrint("ULF_DEBUG: FirebaseException during saveChanges: ${e.code} - ${e.message}");
+      final message = e.code == 'permission-denied' ? t.errorSaving : ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } catch (e) {
       if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
@@ -141,12 +148,15 @@ class _EditPostPageState extends State<EditPostPage> {
 
       if (!mounted) return;
 
-      if (!mounted) return;
-      AppNotifications.showSuccess(context, t.deleteSuccess);
+      AppNotifications.showSuccess(context, t.postDeletedSuccess);
       Navigator.pop(context);
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      debugPrint("ULF_DEBUG: FirebaseException during deletePost: ${e.code} - ${e.message}");
+      final message = e.code == 'permission-denied' ? t.errorDeleting : ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } catch (e) {
       if (!mounted) return;
-
       final message = ErrorHandler.getMessage(e, t);
       AppNotifications.showError(context, message);
     } finally {

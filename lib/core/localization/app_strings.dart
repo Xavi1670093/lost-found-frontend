@@ -185,6 +185,7 @@ class AppStrings {
       'deleteConfirmationTitle': 'Eliminar publicación',
       'deleteConfirmationMessage': '¿Seguro que quieres eliminar esta publicación?',
       'updateSuccess': 'Publicación actualizada correctamente.',
+      'profile_updated_success': 'Perfil actualizado correctamente.',
       'deleteSuccess': 'Publicación eliminada.',
       'errorSaving': 'Error al guardar',
       'errorDeleting': 'Error al eliminar',
@@ -375,6 +376,7 @@ class AppStrings {
       'deleteConfirmationTitle': 'Eliminar publicació',
       'deleteConfirmationMessage': 'Segur que vols eliminar aquesta publicació?',
       'updateSuccess': 'Publicació actualitzada correctament.',
+      'profile_updated_success': 'Perfil actualitzat correctament.',
       'deleteSuccess': 'Publicació eliminada.',
       'errorSaving': 'Error en desar',
       'errorDeleting': 'Error en eliminar',
@@ -565,6 +567,7 @@ class AppStrings {
       'deleteConfirmationTitle': 'Delete publication',
       'deleteConfirmationMessage': 'Are you sure you want to delete this publication?',
       'updateSuccess': 'Publication updated successfully.',
+      'profile_updated_success': 'Profile updated successfully.',
       'deleteSuccess': 'Publication deleted.',
       'errorSaving': 'Error saving',
       'errorDeleting': 'Error deleting',
@@ -756,6 +759,7 @@ class AppStrings {
   String get deleteConfirmationTitle => _text('deleteConfirmationTitle');
   String get deleteConfirmationMessage => _text('deleteConfirmationMessage');
   String get updateSuccess => _text('updateSuccess');
+  String get profileUpdatedSuccess => _text('profile_updated_success');
   String get deleteSuccess => _text('deleteSuccess');
   String get errorSaving => _text('errorSaving');
   String get errorDeleting => _text('errorDeleting');
