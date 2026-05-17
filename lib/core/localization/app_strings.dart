@@ -185,6 +185,7 @@ class AppStrings {
       'deleteConfirmationTitle': 'Eliminar publicación',
       'deleteConfirmationMessage': '¿Seguro que quieres eliminar esta publicación?',
       'updateSuccess': 'Publicación actualizada correctamente.',
+      'profile_updated_success': 'Perfil actualizado correctamente.',
       'deleteSuccess': 'Publicación eliminada.',
       'errorSaving': 'Error al guardar',
       'errorDeleting': 'Error al eliminar',
@@ -205,6 +206,9 @@ class AppStrings {
       'centerLocationError': 'No se pudo cargar la ubicación del centro',
       'error_location_outside_center': 'La ubicación debe estar dentro del recinto del centro.',
       'error_location_outside_recinct': 'La ubicación está fuera del recinto universitario permitido.',
+      'post_published_success': '¡Publicación creada con éxito!',
+      'post_edited_success': 'Publicación editada con éxito.',
+      'post_deleted_success': 'Publicación eliminada con éxito.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -372,6 +376,7 @@ class AppStrings {
       'deleteConfirmationTitle': 'Eliminar publicació',
       'deleteConfirmationMessage': 'Segur que vols eliminar aquesta publicació?',
       'updateSuccess': 'Publicació actualitzada correctament.',
+      'profile_updated_success': 'Perfil actualitzat correctament.',
       'deleteSuccess': 'Publicació eliminada.',
       'errorSaving': 'Error en desar',
       'errorDeleting': 'Error en eliminar',
@@ -392,6 +397,9 @@ class AppStrings {
       'centerLocationError': "No s'ha pogut carregar la ubicació del centre",
       'error_location_outside_center': "La ubicació ha d'estar dins del recinte del centre.",
       'error_location_outside_recinct': "La ubicació està fora del recinte universitari permès.",
+      'post_published_success': '¡Publicació creada amb èxit!',
+      'post_edited_success': 'Publicació editada amb èxit.',
+      'post_deleted_success': 'Publicació eliminada amb èxit.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -559,6 +567,7 @@ class AppStrings {
       'deleteConfirmationTitle': 'Delete publication',
       'deleteConfirmationMessage': 'Are you sure you want to delete this publication?',
       'updateSuccess': 'Publication updated successfully.',
+      'profile_updated_success': 'Profile updated successfully.',
       'deleteSuccess': 'Publication deleted.',
       'errorSaving': 'Error saving',
       'errorDeleting': 'Error deleting',
@@ -579,6 +588,9 @@ class AppStrings {
       'centerLocationError': 'Could not load center location',
       'error_location_outside_center': "Location must be within the center's premises.",
       'error_location_outside_recinct': 'The location is outside the allowed university recinct.',
+      'post_published_success': 'Post published successfully!',
+      'post_edited_success': 'Post edited successfully.',
+      'post_deleted_success': 'Post deleted successfully.',
     },
   };
 
@@ -747,6 +759,7 @@ class AppStrings {
   String get deleteConfirmationTitle => _text('deleteConfirmationTitle');
   String get deleteConfirmationMessage => _text('deleteConfirmationMessage');
   String get updateSuccess => _text('updateSuccess');
+  String get profileUpdatedSuccess => _text('profile_updated_success');
   String get deleteSuccess => _text('deleteSuccess');
   String get errorSaving => _text('errorSaving');
   String get errorDeleting => _text('errorDeleting');
@@ -769,6 +782,9 @@ class AppStrings {
   String get errorLocationOutsideCenter => _text('error_location_outside_center');
   String get errorLocationOutsideRecinct => _text('error_location_outside_recinct');
   String get emailNotVerified => _text('emailNotVerified');
+  String get postPublishedSuccess => _text('post_published_success');
+  String get postEditedSuccess => _text('post_edited_success');
+  String get postDeletedSuccess => _text('post_deleted_success');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);

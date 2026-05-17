@@ -4,6 +4,14 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 
 class ErrorHandler {
   static String getMessage(dynamic error, AppStrings t) {
+    // Interceptar de forma robusta cualquier error de límites geográficos del backend
+    final errorString = error.toString().toLowerCase();
+    if (errorString.contains('out-of-bounds-location') || 
+        errorString.contains('out-of-bounds') || 
+        (errorString.contains('outside') && errorString.contains('bounds'))) {
+      return t.errorLocationOutsideRecinct;
+    }
+
     if (error is FirebaseAuthException) {
       switch (error.code) {
         case 'user-not-found':
@@ -29,11 +37,18 @@ class ErrorHandler {
 
     if (error is FirebaseFunctionsException) {
       switch (error.code) {
+        case 'out-of-bounds-location':
+        case 'out-of-bounds':
+          return t.errorLocationOutsideRecinct;
         case 'already-exists':
           return t.errorAlreadyExists;
         case 'permission-denied':
           return t.errorDomainNotAuthorized;
         case 'invalid-argument':
+          if (error.message?.toLowerCase().contains('out-of-bounds') == true ||
+              error.details?.toString().toLowerCase().contains('out-of-bounds') == true) {
+            return t.errorLocationOutsideRecinct;
+          }
           return t.errorInvalidArgument;
         case 'unavailable':
           return t.errorUnavailable;
