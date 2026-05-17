@@ -10,6 +10,7 @@ import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'user_posts_page.dart';
 
@@ -172,10 +173,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                                   imageUrl: photoUrl.contains('?') 
                                                       ? "$photoUrl&v=$_imageVersion" 
                                                       : "$photoUrl?v=$_imageVersion",
+                                                  cacheManager: CustomCacheManager.instance,
                                                   width: 100,
                                                   height: 100,
                                                   fit: BoxFit.cover,
-                                                  placeholder: (context, url) => const CircularProgressIndicator(),
+                                                  placeholder: (context, url) => const SkeletonLoader(
+                                                    width: 100,
+                                                    height: 100,
+                                                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                                                  ),
                                                   errorWidget: (context, url, error) {
                                                      debugPrint("ULF_DEBUG: Image load error: $error");
                                                      return Icon(Icons.person_rounded, size: 50, color: theme.colorScheme.primary);
@@ -325,7 +331,7 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(t.editNameTitle),
           content: TextField(
@@ -338,7 +344,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           actions: [
             TextButton(
-              onPressed: isSaving ? null : () => Navigator.pop(context),
+              onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
               child: Text(t.cancel),
             ),
             ElevatedButton(
@@ -346,20 +352,20 @@ class _ProfilePageState extends State<ProfilePage> {
                 ? null 
                 : () async {
                     if (controller.text.trim().isNotEmpty) {
-                      setState(() => isSaving = true);
+                      setDialogState(() => isSaving = true);
                       try {
                         await ref.update({
                           'name': controller.text.trim(), 
                           'updated_at': DateTime.now().millisecondsSinceEpoch
                         });
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          AppNotifications.showSuccess(context, t.updateSuccess);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                          AppNotifications.showSuccess(dialogContext, t.updateSuccess);
                         }
                       } catch (e) {
-                        if (context.mounted) {
-                          setState(() => isSaving = false);
-                          AppNotifications.showError(context, t.errorSaving);
+                        if (dialogContext.mounted) {
+                          setDialogState(() => isSaving = false);
+                          AppNotifications.showError(dialogContext, t.errorSaving);
                         }
                       }
                     }

@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 import '../../data/models/chat_model.dart';
 import 'chat_detail_page.dart';
@@ -97,6 +98,7 @@ class ChatsPage extends StatelessWidget {
                             child: chat.postImageUrl != null && chat.postImageUrl!.isNotEmpty
                                 ? CachedNetworkImage(
                                     imageUrl: chat.postImageUrl!,
+                                    cacheManager: CustomCacheManager.instance,
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,
@@ -156,9 +158,15 @@ class ChatsPage extends StatelessWidget {
                                       child: chat.getOtherUserPhoto() != null
                                           ? CachedNetworkImage(
                                               imageUrl: chat.getOtherUserPhoto()!,
+                                              cacheManager: CustomCacheManager.instance,
                                               width: 24,
                                               height: 24,
                                               fit: BoxFit.cover,
+                                              placeholder: (context, url) => const SkeletonLoader(
+                                                width: 24,
+                                                height: 24,
+                                                borderRadius: BorderRadius.all(Radius.circular(12)),
+                                              ),
                                               errorWidget: (context, url, error) => Icon(
                                                 Icons.person,
                                                 size: 16,

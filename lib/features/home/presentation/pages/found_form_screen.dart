@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dart_geohash/dart_geohash.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -9,9 +10,14 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
+import 'package:unilost_found/shared/widgets/field_label.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
+import 'package:unilost_found/core/services/location_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/widgets/map_picker_page.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 
 class FoundFormScreen extends StatefulWidget {
   final String postType;
@@ -28,6 +34,11 @@ class FoundFormScreen extends StatefulWidget {
 class _FoundFormScreenState extends State<FoundFormScreen> {
   File? imageFile;
   Position? _currentPosition;
+  String _locationMethod = 'gps'; // 'gps' o 'map'
+  Map<String, dynamic>? _centerBounds;
+  List<LatLng>? _centerPolygon;
+  String? _centerId;
+  String? _userName;
   bool _isPublishing = false;
 
   final _formKey = GlobalKey<FormState>();
@@ -39,10 +50,105 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     super.initState();
     titleController = TextEditingController();
     descriptionController = TextEditingController();
+    _loadCenterBounds();
+  }
+
+  Future<void> _loadCenterBounds() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      
+      final userSnap = await FirebaseDatabase.instance.ref('users/${user.uid}').get();
+      if (userSnap.exists) {
+        final userData = Map<dynamic, dynamic>.from(userSnap.value as Map);
+        _centerId = userData['center_id']?.toString().toLowerCase() ?? 'uab';
+        _userName = userData['name']?.toString() ?? user.displayName;
+      } else {
+        _centerId = 'uab';
+        _userName = user.displayName;
+      }
+      
+      final fetchId = _centerId!;
+      final centerRef = FirebaseDatabase.instance.ref('centers/$fetchId');
+      final centerSnap = await centerRef.get();
+      
+      if (centerSnap.exists) {
+        final centerData = Map<dynamic, dynamic>.from(centerSnap.value as Map);
+        setState(() {
+          if (centerData['bounds'] != null) {
+            _centerBounds = Map<String, dynamic>.from(centerData['bounds'] as Map);
+          }
+          if (centerData['polygon'] != null) {
+            _centerPolygon = (centerData['polygon'] as List).map((point) {
+              final p = Map<dynamic, dynamic>.from(point as Map);
+              return LatLng(
+                (p['lat'] as num).toDouble(),
+                (p['lng'] as num).toDouble(),
+              );
+            }).toList();
+          }
+        });
+      } else {
+        // Fallback robusto para UAB si no hay conexión o no existe en la DB
+        setState(() {
+          _centerBounds = {
+            'minLat': 41.450,
+            'maxLat': 41.560,
+            'minLng': 2.040,
+            'maxLng': 2.170,
+            'name': 'UAB Campus'
+          };
+          _centerPolygon ??= [
+            const LatLng(41.507, 2.095),
+            const LatLng(41.512, 2.105),
+            const LatLng(41.505, 2.115),
+            const LatLng(41.498, 2.108),
+            const LatLng(41.496, 2.100),
+          ];
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _centerBounds = {
+          'minLat': 41.450,
+          'maxLat': 41.560,
+          'minLng': 2.040,
+          'maxLng': 2.170,
+          'name': 'UAB Campus'
+        };
+        _centerPolygon = [
+          const LatLng(41.507, 2.095),
+          const LatLng(41.512, 2.105),
+          const LatLng(41.505, 2.115),
+          const LatLng(41.498, 2.108),
+          const LatLng(41.496, 2.100),
+        ];
+      });
+    }
+  }
+
+  bool _isWithinBounds(double lat, double lng) {
+    // 1. Prioridad: Validación por Polígono (Ray-Casting)
+    if (_centerPolygon != null && _centerPolygon!.isNotEmpty) {
+      return LocationService.isPointInPolygon(LatLng(lat, lng), _centerPolygon!);
+    }
+
+    // 2. Fallback: Validación por Radio de 1100m desde el centroide
+    if (_centerBounds == null || _centerBounds!.isEmpty) return true;
+    
+    final double minLat = (_centerBounds!['minLat'] as num? ?? _centerBounds!['latMin'] as num? ?? 41.480).toDouble();
+    final double maxLat = (_centerBounds!['maxLat'] as num? ?? _centerBounds!['latMax'] as num? ?? 41.520).toDouble();
+    final double minLng = (_centerBounds!['minLng'] as num? ?? _centerBounds!['lngMin'] as num? ?? 2.085).toDouble();
+    final double maxLng = (_centerBounds!['maxLng'] as num? ?? _centerBounds!['lngMax'] as num? ?? 2.130).toDouble();
+    
+    final centerLat = (minLat + maxLat) / 2;
+    final centerLng = (minLng + maxLng) / 2;
+    
+    return LocationService.isWithinRadius(lat, lng, centerLat, centerLng, 1100);
   }
 
   String? selectedCategoryKey;
-  DateTime? selectedDate;
+  DateTime selectedDate = DateTime.now();
 
   // Las opciones de categoría se cargan dinámicamente desde AppStrings en el build
 
@@ -78,22 +184,113 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final t = AppStrings.of(context);
     final hasPermission = await PermissionService.requestLocation();
     if (!hasPermission) return;
+    
     try {
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      if (!context.mounted) return;
+      // Obtenemos la posición con un timeout de 10 segundos para no bloquear la UI indefinidamente
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+      
+      if (!mounted) return;
+
+      // Validación en tiempo real (Paso 1 del Roadmap Definitivo)
+      if (!_isWithinBounds(position.latitude, position.longitude)) {
+        _showError(t.errorLocationOutsideRecinct);
+        return;
+      }
+
       setState(() {
         _currentPosition = position;
       });
+      
+      // Feedback visual de éxito
+      if (mounted) {
+        AppNotifications.showSuccess(context, t.locationObtained);
+      }
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       _showError(t.locationError);
+    }
+  }
+
+  Future<void> _openMapPicker() async {
+    debugPrint("ULF_DEBUG: _openMapPicker triggered. _centerBounds: $_centerBounds");
+    
+    // Extracción ultra-segura de coordenadas soportando múltiples formatos de nombres (minLat vs latMin)
+    final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.430).toDouble();
+    final double maxLat = (_centerBounds?['maxLat'] as num? ?? _centerBounds?['latMax'] as num? ?? 41.580).toDouble();
+    final double minLng = (_centerBounds?['minLng'] as num? ?? _centerBounds?['lngMin'] as num? ?? 2.020).toDouble();
+    final double maxLng = (_centerBounds?['maxLng'] as num? ?? _centerBounds?['lngMax'] as num? ?? 2.190).toDouble();
+
+    final initialLat = (minLat + maxLat) / 2;
+    final initialLng = (minLng + maxLng) / 2;
+    debugPrint("ULF_DEBUG: Final Calculated initial center: $initialLat, $initialLng");
+    
+    try {
+      final LatLng? pickedPoint = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapPickerPage(
+            initialCenter: LatLng(initialLat, initialLng),
+            // Pasamos los límites para dibujar el círculo/polígono, pero el panning será libre para evitar crashes
+            bounds: LatLngBounds(
+              LatLng(minLat, minLng),
+              LatLng(maxLat, maxLng),
+            ),
+            polygon: _centerPolygon,
+          ),
+        ),
+      );
+      debugPrint("ULF_DEBUG: Navigator returned: $pickedPoint");
+      
+      if (pickedPoint != null) {
+        setState(() {
+          _currentPosition = Position(
+            latitude: pickedPoint.latitude,
+            longitude: pickedPoint.longitude,
+            timestamp: DateTime.now(),
+            accuracy: 0,
+            altitude: 0,
+            heading: 0,
+            speed: 0,
+            speedAccuracy: 0,
+            altitudeAccuracy: 0,
+            headingAccuracy: 0,
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint("ULF_DEBUG: Error opening MapPickerPage: $e");
     }
   }
 
   Future<void> _submit() async {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
-    if (selectedCategoryKey == null || selectedDate == null) {
+    
+    // 1. Obtener centro y límites para valores por defecto seguros
+    final centerId = _centerId ?? 'uab';
+    final centerName = _centerBounds?['name']?.toString() ?? 'UAB Campus';
+    
+    // Cálculo del centroide para el fallback (evita valores fuera de rango)
+    final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.480).toDouble();
+    final double maxLat = (_centerBounds?['maxLat'] as num? ?? _centerBounds?['latMax'] as num? ?? 41.520).toDouble();
+    final double minLng = (_centerBounds?['minLng'] as num? ?? _centerBounds?['lngMin'] as num? ?? 2.085).toDouble();
+    final double maxLng = (_centerBounds?['maxLng'] as num? ?? _centerBounds?['lngMax'] as num? ?? 2.130).toDouble();
+
+    final double defaultLat = (minLat + maxLat) / 2;
+    final double defaultLng = (minLng + maxLng) / 2;
+
+    // 2. Validación de ubicación estricta (Paso 1.3 Roadmap)
+    if (_currentPosition != null) {
+      if (!_isWithinBounds(_currentPosition!.latitude, _currentPosition!.longitude)) {
+        _showError(t.errorLocationOutsideRecinct);
+        return;
+      }
+    }
+
+    if (selectedCategoryKey == null) {
       _showError(t.selectCategoryAndDate);
       return;
     }
@@ -104,22 +301,18 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception(t.sessionError);
 
-      final userSnapshot = await FirebaseDatabase.instance.ref('users/${user.uid}/center_id').get();
-      final centerId = userSnapshot.value?.toString() ?? "uab";
-
       final postsRef = FirebaseDatabase.instance.ref('posts');
       final newPostRef = postsRef.push();
 
       String imageUrl = "";
       if (imageFile != null) {
         try {
-          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-          final uploadTask = storageRef.putFile(
+          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.jpg');
+          final uploadTask = await storageRef.putFile(
             imageFile!,
             SettableMetadata(contentType: 'image/jpeg'),
           );
-          final snapshotTask = await uploadTask;
-          imageUrl = await snapshotTask.ref.getDownloadURL();
+          imageUrl = await uploadTask.ref.getDownloadURL();
         } on FirebaseException catch (e) {
           if (e.code == 'permission-denied') {
              throw Exception(t.errorImageUpload);
@@ -130,20 +323,30 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         }
       }
 
+      // Cálculo del Geohash (Requerido por Security Rules)
+      final lat = _currentPosition?.latitude ?? defaultLat;
+      final lng = _currentPosition?.longitude ?? defaultLng;
+      final geohash = GeoHasher().encode(lng, lat);
+
+      // 3. Envío de datos con estructura compatible con Security Rules
       await newPostRef.set({
         'id': newPostRef.key,
         'user_id': user.uid,
-        'center_id': centerId,
+        'user_name': _userName ?? 'Estudiante', // Campo requerido para denormalización
+        'center_id': centerId.toLowerCase(),
         'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
         'category': selectedCategoryKey,
         'status': 'active',
+        'location': centerName, // CAMPO CRÍTICO: Requerido por la DB
         'coords': {
-          'lat': _currentPosition?.latitude ?? 41.502,
-          'lng': _currentPosition?.longitude ?? 2.103,
+          'lat': lat,
+          'lng': lng,
+          'geohash': geohash, // CAMPO CRÍTICO: Requerido por la DB
         },
         'imageUrl': imageUrl,
+        'date': selectedDate.millisecondsSinceEpoch,
         'created_at': ServerValue.timestamp,
         'updated_at': ServerValue.timestamp,
         'is_deleted': false,
@@ -241,11 +444,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                       label: t.objectTitleLabel,
                       hintText: t.objectTitleHint,
                       controller: titleController,
+                      isRequired: true,
                       validator: (value) => value == null || value.isEmpty ? t.fieldRequired : null,
                     ),
                     const SizedBox(height: 24),
                     
-                    Text(t.category, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    FieldLabel(label: t.category, isRequired: true),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
@@ -278,23 +482,89 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    _buildSectionTitle(t.locationAndDate, theme),
+                    _buildSectionTitle(t.locationOptional, theme),
+                    const SizedBox(height: 16),
+                    SegmentedButton<String>(
+                      segments: [
+                        ButtonSegment(
+                          value: 'gps',
+                          label: Text(t.gpsLocation),
+                          icon: const Icon(Icons.my_location_rounded, size: 18),
+                        ),
+                        ButtonSegment(
+                          value: 'map',
+                          label: Text(t.mapLocation),
+                          icon: const Icon(Icons.map_rounded, size: 18),
+                        ),
+                      ],
+                      selected: {_locationMethod},
+                      onSelectionChanged: (newSelection) {
+                        setState(() {
+                          _locationMethod = newSelection.first;
+                          _currentPosition = null;
+                        });
+                      },
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: VisualDensity.comfortable,
+                        selectedBackgroundColor: theme.colorScheme.primaryContainer,
+                        selectedForegroundColor: theme.colorScheme.primary,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _buildActionTile(
-                      Icons.location_on_rounded,
-                      _currentPosition != null ? t.locationObtained : t.getCurrentLocation,
-                      _getLocation,
+                      _locationMethod == 'gps' ? Icons.location_on_rounded : Icons.map_outlined,
+                      _currentPosition != null 
+                        ? t.locationObtained 
+                        : (_locationMethod == 'gps' ? t.getCurrentLocation : t.mapLocation),
+                      _locationMethod == 'gps' ? _getLocation : _openMapPicker,
                       _currentPosition != null,
                       theme,
                     ),
+                    
+                    // Vista previa del mapa si hay ubicación seleccionada
+                    if (_currentPosition != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        height: 240,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: FlutterMap(
+                            options: MapOptions(
+                              initialCenter: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                              initialZoom: 16,
+                              interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.unilost.app',
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                                    width: 40,
+                                    height: 40,
+                                    child: Icon(Icons.location_on_rounded, color: theme.colorScheme.primary, size: 30),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
+                    FieldLabel(label: t.dateLabel, isRequired: true),
                     _buildActionTile(
                       Icons.calendar_today_rounded,
-                      selectedDate == null 
-                        ? t.selectDate
-                        : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+                       "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
                       _pickDate,
-                      selectedDate != null,
+                      true,
                       theme,
                     ),
                     const SizedBox(height: 48),

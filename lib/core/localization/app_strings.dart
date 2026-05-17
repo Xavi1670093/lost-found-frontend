@@ -150,6 +150,7 @@ class AppStrings {
       'locationError': 'No se pudo obtener la ubicación',
       'selectDate': 'Seleccionar fecha',
       'publishButton': 'Publicar anuncio',
+      'dateLabel': 'Fecha',
       'selectCategoryAndDate': 'Selecciona categoría y fecha',
       'sessionError': 'Sesión no iniciada',
       'publishSuccessFound': '¡Objeto encontrado publicado!',
@@ -197,6 +198,13 @@ class AppStrings {
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Conversación iniciada',
       'errorImageUpload': 'Error al subir la imagen. Inténtalo de nuevo.',
+      'locationOptional': 'Ubicación (Opcional)',
+      'gpsLocation': 'GPS Actual',
+      'mapLocation': 'Seleccionar en Mapa',
+      'outsideBoundsError': 'Estás fuera del perímetro permitido para el centro {center}',
+      'centerLocationError': 'No se pudo cargar la ubicación del centro',
+      'error_location_outside_center': 'La ubicación debe estar dentro del recinto del centro.',
+      'error_location_outside_recinct': 'La ubicación está fuera del recinto universitario permitido.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -318,7 +326,7 @@ class AppStrings {
       'tapToTakePhoto': 'Toca per fer una foto',
       'basicInfo': 'Informació bàsica',
       'objectTitleLabel': 'Títol de l’objecte',
-      'objectTitleHint': 'ex: Llaver de la UAB',
+      'objectTitleHint': 'ex: Clauer de la UAB',
       'fieldRequired': 'Camp obligatori',
       'category': 'Categoria',
       'descriptionDetails': 'Descripció i detalls',
@@ -329,6 +337,7 @@ class AppStrings {
       'locationError': 'No s’ha pogut obtenir la ubicació',
       'selectDate': 'Seleccionar data',
       'publishButton': 'Publicar anunci',
+      'dateLabel': 'Data',
       'selectCategoryAndDate': 'Selecciona categoria i data',
       'sessionError': 'Sessió no iniciada',
       'publishSuccessFound': '¡Objecte trobat publicat!',
@@ -376,6 +385,13 @@ class AppStrings {
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Conversa iniciada',
       'errorImageUpload': 'Error en pujar la imatge. Torna-ho a provar.',
+      'locationOptional': 'Ubicació (Opcional)',
+      'gpsLocation': 'GPS Actual',
+      'mapLocation': 'Seleccionar en Mapa',
+      'outsideBoundsError': 'Estàs fora del perímetre permès per al centre {center}',
+      'centerLocationError': "No s'ha pogut carregar la ubicació del centre",
+      'error_location_outside_center': "La ubicació ha d'estar dins del recinte del centre.",
+      'error_location_outside_recinct': "La ubicació està fora del recinte universitari permès.",
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -508,6 +524,7 @@ class AppStrings {
       'locationError': 'Could not get location',
       'selectDate': 'Select date',
       'publishButton': 'Publish ad',
+      'dateLabel': 'Date',
       'selectCategoryAndDate': 'Select category and date',
       'sessionError': 'Session not started',
       'publishSuccessFound': '¡Found object published!',
@@ -555,6 +572,13 @@ class AppStrings {
       'lostAndFound': 'Lost & Found',
       'chatStarted': 'Chat started',
       'errorImageUpload': 'Error uploading image. Please try again.',
+      'locationOptional': 'Location (Optional)',
+      'gpsLocation': 'Current GPS',
+      'mapLocation': 'Select on Map',
+      'outsideBoundsError': 'You are outside the allowed perimeter for center {center}',
+      'centerLocationError': 'Could not load center location',
+      'error_location_outside_center': "Location must be within the center's premises.",
+      'error_location_outside_recinct': 'The location is outside the allowed university recinct.',
     },
   };
 
@@ -688,6 +712,7 @@ class AppStrings {
   String get locationError => _text('locationError');
   String get selectDate => _text('selectDate');
   String get publishButton => _text('publishButton');
+  String get dateLabel => _text('dateLabel');
   String get selectCategoryAndDate => _text('selectCategoryAndDate');
   String get sessionError => _text('sessionError');
   String get publishSuccessFound => _text('publishSuccessFound');
@@ -735,6 +760,15 @@ class AppStrings {
   String get lostAndFound => _text('lostAndFound');
   String get chatStarted => _text('chatStarted');
   String get errorImageUpload => _text('errorImageUpload');
+  String get locationOptional => _text('locationOptional');
+  String get gpsLocation => _text('gpsLocation');
+  String get mapLocation => _text('mapLocation');
+  String get outsideBoundsErrorRaw => _text('outsideBoundsError');
+  String outsideBoundsError(String center) => outsideBoundsErrorRaw.replaceAll('{center}', center);
+  String get centerLocationError => _text('centerLocationError');
+  String get errorLocationOutsideCenter => _text('error_location_outside_center');
+  String get errorLocationOutsideRecinct => _text('error_location_outside_recinct');
+  String get emailNotVerified => _text('emailNotVerified');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);

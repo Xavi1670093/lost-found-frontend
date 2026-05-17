@@ -4,11 +4,13 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import '../../../chats/data/models/chat_model.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 
 class PostDetailPage extends StatefulWidget {
   final Map<dynamic, dynamic> post;
@@ -117,16 +119,18 @@ class _PostDetailPageState extends State<PostDetailPage> {
             expandedHeight: 320,
             pinned: true,
             stretch: true,
+            leading: const BackButton(),
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'post_image_${post['id']}',
                 child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: post['imageUrl'],
+                        cacheManager: CustomCacheManager.instance,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-                          child: const Center(child: CircularProgressIndicator()),
+                        placeholder: (context, url) => const SkeletonLoader(
+                          width: double.infinity,
+                          height: 320,
                         ),
                         errorWidget: (context, url, error) => _buildImageFallback(theme, post),
                       )
