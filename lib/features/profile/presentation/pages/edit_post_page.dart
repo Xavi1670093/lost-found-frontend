@@ -112,24 +112,60 @@ class _EditPostPageState extends State<EditPostPage> {
     final t = AppStrings.of(context);
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      barrierDismissible: false,
+      builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(t.deleteConfirmationTitle),
-          content: Text(t.deleteConfirmationMessage),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(t.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(
+            children: [
+              const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  t.deleteConfirmationTitle,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
-              child: Text(t.deletePost.split(' ')[0]), // "Eliminar"
+            ],
+          ),
+          content: Text(t.deleteConfirmationMessage),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(t.cancel),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(t.deletePost.split(' ')[0]), // "Eliminar"
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         );
