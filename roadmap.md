@@ -1,21 +1,10 @@
-# Roadmap de Implementación y Corrección - Frontend (Flutter)
+# Roadmap de Corrección Definitiva - Frontend (Flutter)
 
-## 1. Ajuste del Payload de Edición de Publicaciones
-**Objetivo:** Asegurar que los datos enviados al editar coincidan perfectamente con las reglas de Firebase, complementando la corrección del backend.
-* **Archivos objetivo:** Controladores/Vistas de edición de posts (ej. `edit_post_page.dart` o repositorio correspondiente).
+## 1. Restricción Matemática en Tiempo Real (Cliente)
+**Objetivo:** Evitar que el usuario pueda siquiera enviar una coordenada que roce el límite matemático, actuando como la primera barrera defensiva.
+* **Archivos objetivo:** `lib/shared/widgets/map_picker_page.dart` (y servicios de ubicación si aplican).
 * **Tareas Atómicas:**
-    1.  **Consistencia de Datos:** Al ejecutar el método `.update()` para guardar los cambios, asegurar que el `Map` enviado contenga exactamente los campos modificados (Título, Descripción, Categoría, Estado actual).
-    2.  **Validación de Cadenas:** Garantizar que el valor enviado en la clave `status` o `category` coincida carácter por carácter con las opciones admitidas por la base de datos para evitar un rechazo silencioso en la UI.
-
-## 2. Corrección del Solapamiento en Editar Perfil (UI)
-**Objetivo:** Arreglar el error visual donde el label "Editar nom" se superpone con el texto de la caja.
-* **Archivos objetivo:** `lib/features/profile/presentation/pages/edit_profile_page.dart`.
-* **Tareas Atómicas:**
-    1.  **Refactor del Input:** Cambiar la estructura de `Stack` o decoración defectuosa a una estructura limpia: Utilizar un widget `Column` con alineación `CrossAxisAlignment.start`. Dentro, colocar un widget `Text` para la etiqueta ("Editar nom"), un separador `SizedBox(height: 8)` y finalmente el `TextFormField` sin la propiedad interna `labelText`.
-
-## 3. Asignación Correcta de Mensajes (i18n y Feedback Visual)
-**Objetivo:** Mostrar los avisos precisos para cada acción individual (evitar que muestre "Publicación actualizada" al guardar el perfil) y visibilizar errores críticos.
-* **Archivos objetivo:** Vistas de perfil, pantallas de edición de posts y manejador de errores.
-* **Tareas Atómicas:**
-    1.  **Corrección de Copy-Paste:** En las funciones `onSuccess` de la edición de perfil, cambiar la clave de traducción invocada de `post_updated_success` a la correspondiente, como `profile_updated_success`.
-    2.  **Visibilización de Errores:** Envolver los métodos de guardado/edición en un bloque `try/catch (FirebaseException e)`. En caso de fallo (como un *Permission denied* persistente), renderizar un `SnackBar` rojo consumiendo el sistema de traducciones (`AppLocalizations`) para que el usuario sea consciente del fallo, en lugar de que el error solo exista en la terminal.
+    1.  **Fórmula Haversine en Dart:** Implementar una función `calculateDistance(lat1, lon1, lat2, lon2)` en el controlador del mapa usando la fórmula de Haversine (o usar el paquete `geolocator` si ya expone `distanceBetween`).
+    2.  **Validación Reactiva:** En el evento `onCameraIdle` (cuando el usuario deja de mover el mapa) o al mover el pin, calcular la distancia exacta entre el centro del recinto y la posición actual del pin.
+    3.  **Bloqueo de UI:** Si la `distanciaCalculada` es mayor que el `radio` del centro (sin tolerancia extra aquí), el botón de "Confirmar Ubicación" debe pasar a estado `disabled` (gris). 
+    4.  **Feedback Instantáneo:** Mostrar un aviso en pantalla (texto rojo superpuesto al mapa o banner inferior) que diga explícitamente: "El pin está fuera del área permitida del centro." cuando la distancia exceda el radio.

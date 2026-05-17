@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -32,17 +33,55 @@ class _MapPickerPageState extends State<MapPickerPage> {
     selectedLocation = widget.initialCenter;
   }
 
-  bool get _isLocationValid {
-    if (widget.polygon != null && widget.polygon!.isNotEmpty) {
-      return LocationService.isPointInPolygon(selectedLocation, widget.polygon!);
-    }
-    return LocationService.isWithinRadius(
+  /// Calcula la distancia Haversine (esférica) entre dos coordenadas.
+  double _calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
+    const double r = 6371000; // Radio medio de la Tierra en metros
+    final double dLat = (lat2 - lat1) * math.pi / 180;
+    final double dLon = (lon2 - lon1) * math.pi / 180;
+    final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * math.pi / 180) *
+            math.cos(lat2 * math.pi / 180) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return r * c;
+  }
+
+  /// Obtiene la distancia actual al centro del recinto.
+  double get _currentDistance {
+    return _calculateHaversineDistance(
       selectedLocation.latitude,
       selectedLocation.longitude,
       widget.initialCenter.latitude,
       widget.initialCenter.longitude,
-      widget.radius,
     );
+  }
+
+  /// Verifica si la ubicación seleccionada es válida.
+  bool get _isLocationValid {
+    if (widget.polygon != null && widget.polygon!.isNotEmpty) {
+      return LocationService.isPointInPolygon(selectedLocation, widget.polygon!);
+    }
+
+    // Calculamos la distancia usando Haversine (esférico)
+    final haversineDist = _currentDistance;
+
+    // Calculamos la distancia usando Geolocator (elipsoidal WGS84) para mayor seguridad
+    final geolocatorDist = LocationService.calculateDistance(
+      selectedLocation.latitude,
+      selectedLocation.longitude,
+      widget.initialCenter.latitude,
+      widget.initialCenter.longitude,
+    );
+
+    // Seleccionamos el caso más restrictivo (distancia máxima) para actuar con Zero-Trust
+    final maxDist = math.max(haversineDist, geolocatorDist);
+
+    // El cliente debe ser MÁS estricto que el backend.
+    // Aplicamos una zona de seguridad estricta restando 5.0 metros del radio límite
+    final strictRadius = widget.radius - 5.0;
+
+    return maxDist <= strictRadius;
   }
 
   @override
@@ -50,6 +89,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
     final isValid = _isLocationValid;
+    final distance = _currentDistance;
 
     return Scaffold(
       appBar: AppBar(
@@ -90,7 +130,9 @@ class _MapPickerPageState extends State<MapPickerPage> {
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                t.errorLocationOutsideRecinct,
+                                widget.polygon != null && widget.polygon!.isNotEmpty
+                                    ? t.errorLocationOutsideRecinct
+                                    : "${t.errorLocationOutsideRecinct} (${distance.toStringAsFixed(0)}m / ${widget.radius.toStringAsFixed(0)}m)",
                                 style: TextStyle(
                                   color: theme.colorScheme.onErrorContainer,
                                   fontWeight: FontWeight.bold,
@@ -112,8 +154,13 @@ class _MapPickerPageState extends State<MapPickerPage> {
                 minZoom: 10,
                 maxZoom: 19,
                 onTap: (tapPosition, point) {
+                  // Centramos el mapa de forma fluida en el punto pulsado
+                  _mapController.move(point, _mapController.camera.zoom);
+                },
+                onPositionChanged: (position, hasGesture) {
+                  // Actualizamos en tiempo real la posición seleccionada según el centro del mapa
                   setState(() {
-                    selectedLocation = point;
+                    selectedLocation = position.center;
                   });
                 },
                 interactionOptions: const InteractionOptions(
