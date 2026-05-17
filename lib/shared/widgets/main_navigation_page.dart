@@ -9,8 +9,20 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:unilost_found/features/welcome/presentation/pages/welcome_page.dart';
 
+/// [MainNavigationPage] es la vista contenedor principal que gestiona
+/// la barra de navegación inferior de la aplicación móvil.
+///
+/// Permite alternar de forma fluida entre las pantallas principales de la aplicación:
+/// * [ChatsPage] (índice 0): Panel de mensajería instantánea.
+/// * [HomePage] (índice 1): Feed de objetos y previsualización de mapa.
+/// * [ProfilePage] (índice 2): Gestión de perfil de usuario y publicaciones propias.
+///
+/// Incorpora un botón flotante central (FAB) que despliega opciones rápidas
+/// para que los estudiantes reporten hallazgos o pérdidas de objetos.
 class MainNavigationPage extends StatefulWidget {
+  /// Controlador de configuración de la aplicación (idioma, modo oscuro).
   final AppSettingsController settingsController;
+
   const MainNavigationPage({super.key, required this.settingsController});
 
   @override
@@ -18,7 +30,9 @@ class MainNavigationPage extends StatefulWidget {
 }
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
-  static int _currentIndex = 1; // Default to Home, static to persist across rebuilds
+  /// Índice de la pestaña activa en la barra de navegación inferior.
+  /// Por defecto inicia en la pestaña Inicio ([HomePage]). Es estático para persistir la sección seleccionada tras reconstrucciones.
+  static int _currentIndex = 1;
 
   void _showLogoutDialog() {
     final t = AppStrings.of(context);
@@ -52,14 +66,14 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             onPressed: () async {
               Navigator.pop(dialogContext);
               
-              // 1. Sign out from Firebase (clears token on current device)
+              // 1. Cierra la sesión en Firebase (elimina el token de acceso activo en el dispositivo actual).
               await FirebaseAuth.instance.signOut();
               
-              // 2. Clear local storage associated with the session
+              // 2. Limpia los datos de almacenamiento local asociados a la sesión.
               final prefs = await SharedPreferences.getInstance();
               await prefs.remove('login_timestamp');
 
-              // 3. Force redirect to Login/Welcome page clearing navigation history
+              // 3. Redirige obligatoriamente a la página de bienvenida eliminando el historial de navegación para evitar retornos inseguros.
               if (mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -172,7 +186,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
-            // Chat Tab
+            // Pestaña de Mensajes/Chats
             Expanded(
               child: _NavigationTab(
                 icon: _currentIndex == 0 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
@@ -182,10 +196,10 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               ),
             ),
             
-            // Central Space for FAB
+            // Espacio central reservado físicamente para el botón flotante (FAB)
             const Expanded(child: SizedBox()),
             
-            // Profile Tab
+            // Pestaña del Perfil de usuario
             Expanded(
               child: _NavigationTab(
                 icon: _currentIndex == 2 ? Icons.person_rounded : Icons.person_outline_rounded,

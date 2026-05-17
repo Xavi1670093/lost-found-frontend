@@ -5,11 +5,25 @@ import 'package:latlong2/latlong.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/location_service.dart';
 
+/// [MapPickerPage] es una pantalla interactiva de selección geográfica sobre mapa.
+///
+/// Permite al usuario designar de forma visual la ubicación exacta del reporte (pérdida o hallazgo)
+/// mediante arrastre o pulsación sobre un mapa cartográfico basado en OpenStreetMap.
+/// Implementa reglas Zero-Trust para validar estrictamente que las coordenadas seleccionadas
+/// se encuentren dentro de los límites del recinto universitario autorizados (ya sea mediante
+/// límites poligonales o un radio esférico determinado).
 class MapPickerPage extends StatefulWidget {
+  /// Centro de referencia inicial desde el cual se cargará el mapa.
   final LatLng initialCenter;
+
+  /// Límites de encuadre geográfico permitidos para restringir el zoom/paneo.
   final LatLngBounds? bounds;
+
+  /// Polígono delimitador del centro educativo. Si está presente, la validación se rige por Ray-Casting.
   final List<LatLng>? polygon;
-  final double radius; // Radio en metros
+
+  /// Radio esférico de seguridad (en metros) utilizado como fallback si no se dispone de coordenadas poligonales.
+  final double radius;
 
   const MapPickerPage({
     super.key,

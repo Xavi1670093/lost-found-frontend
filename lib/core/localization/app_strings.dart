@@ -1,5 +1,48 @@
 import 'package:flutter/material.dart';
 
+/// ============================================================================
+/// 📖 GUÍA DE FLUJO DE TRABAJO PARA INTERNACIONALIZACIÓN (l10n)
+/// ============================================================================
+/// Esta aplicación utiliza un sistema de localización personalizado y estático
+/// a través de la clase [AppStrings]. Para agregar una nueva traducción de forma
+/// segura, siga estos pasos rigurosos:
+///
+/// 1. REGISTRAR CLAVE EN LOS MAPAS DE IDIOMA:
+///    Vaya al mapa estático [_localizedValues] y agregue la nueva clave en los
+///    tres idiomas soportados ('es' - Castellano, 'ca' - Catalán, 'en' - Inglés).
+///    Ejemplo:
+///    ```dart
+///    // En 'es' (Castellano):
+///    'miNuevaClave': 'Mi texto traducido',
+///    // En 'ca' (Catalán):
+///    'miNuevaClave': 'El meu text traduït',
+///    // En 'en' (Inglés):
+///    'miNuevaClave': 'My translated text',
+///    ```
+///
+/// 2. AGREGAR UN GETTER O MÉTODO PÚBLICO:
+///    En la sección intermedia de la clase [AppStrings] (donde se definen los getters),
+///    agregue un acceso público utilizando el método auxiliar [_text]:
+///    * Si el texto es plano:
+///      ```dart
+///      String get miNuevaClave => _text('miNuevaClave');
+///      ```
+///    * Si el texto requiere interpolación dinámica (ej. contiene un parámetro `{valor}`):
+///      ```dart
+///      String get miNuevaClaveRaw => _text('miNuevaClave');
+///      String miNuevaClave(String valor) => miNuevaClaveRaw.replaceAll('{valor}', valor);
+///      ```
+///
+/// 3. CONSUMIR EN LA CAPA DE PRESENTACIÓN:
+///    Importe este archivo en la vista y consuma la cadena utilizando el BuildContext:
+///    ```dart
+///    final t = AppStrings.of(context);
+///    Text(t.miNuevaClave)
+///    ```
+/// ============================================================================
+
+/// [AppStrings] centraliza y expone todos los textos e internacionalización (l10n)
+/// de la aplicación en Castellano (español), Catalán e Inglés.
 class AppStrings {
   final Locale locale;
 
