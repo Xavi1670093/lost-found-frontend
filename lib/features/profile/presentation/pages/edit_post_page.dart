@@ -127,31 +127,27 @@ class _EditPostPageState extends State<EditPostPage> {
     setState(() => _saving = true);
 
     try {
-      String imageUrl = _currentImageUrl ?? '';
-
       // Si el usuario seleccionó una nueva foto, la subimos a Firebase Storage
       if (_imageFile != null) {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           final storageRef = FirebaseStorage.instance
               .ref()
-              .child('posts/${widget.postId}/${user.uid}.webp');
+              .child('posts/${widget.postId}/post_image_${DateTime.now().millisecondsSinceEpoch}.webp');
 
-          final uploadTask = await storageRef.putFile(
+          await storageRef.putFile(
             _imageFile!,
             SettableMetadata(contentType: 'image/webp'),
           );
-          imageUrl = await uploadTask.ref.getDownloadURL();
         }
       }
 
-      // 1. Actualizamos campos directamente en RTDB
+      // 1. Actualizamos campos directamente en RTDB (solo campos de texto)
       await FirebaseDatabase.instance.ref('posts/${widget.postId}').update({
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
         'status': _selectedStatus,
-        'imageUrl': imageUrl,
         'updated_at': ServerValue.timestamp,
       });
 
