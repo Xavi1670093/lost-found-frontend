@@ -203,11 +203,7 @@ class _EditPostPageState extends State<EditPostPage> {
 
 
   String _statusLabel(String status, AppStrings t) {
-    switch (status) {
-      case 'matched': return t.statusMatched;
-      case 'returned': return t.statusReturned;
-      default: return t.statusInProcess;
-    }
+    return CategoryUtils.getStatusLabel(status, t);
   }
 
   String _categoryLabel(String category, AppStrings t) {

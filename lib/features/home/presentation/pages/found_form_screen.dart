@@ -15,6 +15,7 @@ import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/core/services/location_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'package:unilost_found/shared/widgets/map_picker_page.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -307,10 +308,15 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       String imageUrl = "";
       if (imageFile != null) {
         try {
-          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.jpg');
+          final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
+          if (processedImage == null) {
+            throw Exception(t.errorImageUpload);
+          }
+
+          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.webp');
           final uploadTask = await storageRef.putFile(
-            imageFile!,
-            SettableMetadata(contentType: 'image/jpeg'),
+            processedImage,
+            SettableMetadata(contentType: 'image/webp'),
           );
           imageUrl = await uploadTask.ref.getDownloadURL();
         } on FirebaseException catch (e) {

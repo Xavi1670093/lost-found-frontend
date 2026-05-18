@@ -180,6 +180,8 @@ class AppStrings {
       'reportLostTitle': 'Reportar pérdida',
       'objectPhoto': 'Foto del objeto',
       'tapToTakePhoto': 'Toca para tomar una foto',
+      'camera': 'Cámara',
+      'gallery': 'Galería',
       'basicInfo': 'Información básica',
       'objectTitleLabel': 'Título del objeto',
       'objectTitleHint': 'Ej: Llavero de la UAB',
@@ -212,7 +214,8 @@ class AppStrings {
       'currentStatus': 'Estado actual',
       'openingChat': 'Abriendo chat...',
       'contactOwner': 'Contactar con el dueño',
-      'statusMatched': 'Encontrado',
+      'statusSearching': 'Buscando',
+      'statusMatched': 'Posible coincidencia',
       'statusReturned': 'Devuelto',
       'statusInProcess': 'En proceso',
       'sendError': 'Error al enviar mensaje',
@@ -371,6 +374,8 @@ class AppStrings {
       'reportLostTitle': 'Reportar pèrdua',
       'objectPhoto': 'Foto de l’objecte',
       'tapToTakePhoto': 'Toca per fer una foto',
+      'camera': 'Càmera',
+      'gallery': 'Galeria',
       'basicInfo': 'Informació bàsica',
       'objectTitleLabel': 'Títol de l’objecte',
       'objectTitleHint': 'ex: Clauer de la UAB',
@@ -403,7 +408,8 @@ class AppStrings {
       'currentStatus': 'Estat actual',
       'openingChat': 'Obrint xat...',
       'contactOwner': 'Contactar amb el propietari',
-      'statusMatched': 'Trobat',
+      'statusSearching': 'Buscant',
+      'statusMatched': 'Possible coincidència',
       'statusReturned': 'Retornat',
       'statusInProcess': 'En procés',
       'sendError': 'Error en enviar el missatge',
@@ -562,6 +568,8 @@ class AppStrings {
       'reportLostTitle': 'Report loss',
       'objectPhoto': 'Object photo',
       'tapToTakePhoto': 'Tap to take a photo',
+      'camera': 'Camera',
+      'gallery': 'Gallery',
       'basicInfo': 'Basic info',
       'objectTitleLabel': 'Object title',
       'objectTitleHint': 'ex: UAB keychain',
@@ -594,7 +602,8 @@ class AppStrings {
       'currentStatus': 'Current status',
       'openingChat': 'Opening chat...',
       'contactOwner': 'Contact owner',
-      'statusMatched': 'Found',
+      'statusSearching': 'Searching',
+      'statusMatched': 'Possible match',
       'statusReturned': 'Returned',
       'statusInProcess': 'In process',
       'sendError': 'Error sending message',
@@ -754,6 +763,8 @@ class AppStrings {
   String get reportLostTitle => _text('reportLostTitle');
   String get objectPhoto => _text('objectPhoto');
   String get tapToTakePhoto => _text('tapToTakePhoto');
+  String get camera => _text('camera');
+  String get gallery => _text('gallery');
   String get basicInfo => _text('basicInfo');
   String get objectTitleLabel => _text('objectTitleLabel');
   String get objectTitleHint => _text('objectTitleHint');
@@ -786,6 +797,7 @@ class AppStrings {
   String get currentStatus => _text('currentStatus');
   String get openingChat => _text('openingChat');
   String get contactOwner => _text('contactOwner');
+  String get statusSearching => _text('statusSearching');
   String get statusMatched => _text('statusMatched');
   String get statusReturned => _text('statusReturned');
   String get statusInProcess => _text('statusInProcess');
