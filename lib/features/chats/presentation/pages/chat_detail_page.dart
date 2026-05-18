@@ -6,6 +6,7 @@ import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import '../../data/models/chat_model.dart';
 
 class ChatDetailPage extends StatefulWidget {
@@ -23,18 +24,10 @@ class ChatDetailPage extends StatefulWidget {
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
-  final TextEditingController _messageController = TextEditingController();
-  bool _sending = false;
-
-  Future<void> _sendMessage() async {
+  Future<void> _sendMessage(String text) async {
     final t = AppStrings.of(context);
-    final text = _messageController.text.trim();
-    if (text.isEmpty || _sending) return;
-
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-
-    setState(() => _sending = true);
 
     try {
       final messageRef = FirebaseDatabase.instance
@@ -47,14 +40,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         'text': text,
         'timestamp': ServerValue.timestamp,
       });
-
-      _messageController.clear();
     } catch (e) {
       if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
       AppNotifications.showError(context, message);
-    } finally {
-      if (mounted) setState(() => _sending = false);
     }
   }
 
@@ -88,6 +77,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 child: otherUserPhoto != null && otherUserPhoto.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: otherUserPhoto,
+                        cacheManager: CustomCacheManager.instance,
                         width: 40,
                         height: 40,
                         fit: BoxFit.cover,
@@ -220,55 +210,107 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             ),
           ),
 
-          Container(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom + 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
+          _ChatInput(
+            onSendMessage: _sendMessage,
+            t: t,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+}
+
+class _ChatInput extends StatefulWidget {
+  final Future<void> Function(String) onSendMessage;
+  final AppStrings t;
+
+  const _ChatInput({
+    required this.onSendMessage,
+    required this.t,
+  });
+
+  @override
+  State<_ChatInput> createState() => _ChatInputState();
+}
+
+class _ChatInputState extends State<_ChatInput> {
+  late final TextEditingController _messageController;
+  bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _messageController = TextEditingController();
+  }
+
+  Future<void> _handleSend() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty || _sending) return;
+
+    setState(() => _sending = true);
+    try {
+      await widget.onSendMessage(text);
+      _messageController.clear();
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom + 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: TextField(
+                controller: _messageController,
+                minLines: 1,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: widget.t.typeMessageHint,
+                  hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  border: InputBorder.none,
                 ),
-              ],
+              ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: TextField(
-                      controller: _messageController,
-                      minLines: 1,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        hintText: t.typeMessageHint,
-                        hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                IconButton.filled(
-                  onPressed: _sending ? null : _sendMessage,
-                  icon: _sending
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.send_rounded),
-                  style: IconButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(width: 12),
+          IconButton.filled(
+            onPressed: _sending ? null : _handleSend,
+            icon: _sending
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.send_rounded),
+            style: IconButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
             ),
           ),
         ],

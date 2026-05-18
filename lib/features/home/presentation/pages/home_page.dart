@@ -5,6 +5,7 @@ import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'post_detail_page.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as osm;
@@ -76,6 +77,13 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       if (mounted) AppNotifications.showError(context, t.locationError);
     }
+  }
+
+  void _centerOnCampus() {
+    _mapController.move(
+      const osm.LatLng(41.5000, 2.1075),
+      15.0,
+    );
   }
 
   @override
@@ -275,9 +283,18 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             FlutterMap(
                               mapController: _mapController,
-                              options: const MapOptions(
-                                initialCenter: osm.LatLng(41.5000, 2.1075),
-                                initialZoom: 14,
+                              options: MapOptions(
+                                initialCenter: const osm.LatLng(41.5000, 2.1075),
+                                initialZoom: 15,
+                                interactionOptions: const InteractionOptions(
+                                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                                ),
+                                cameraConstraint: CameraConstraint.contain(
+                                  bounds: LatLngBounds(
+                                    const osm.LatLng(41.480, 2.085),
+                                    const osm.LatLng(41.520, 2.130),
+                                  ),
+                                ),
                               ),
                               children: [
                                 TileLayer(
@@ -307,12 +324,25 @@ class _HomePageState extends State<HomePage> {
                             Positioned(
                               right: 12,
                               bottom: 12,
-                              child: FloatingActionButton.small(
-                                heroTag: 'center_map_fab',
-                                onPressed: _centerOnUserLocation,
-                                backgroundColor: theme.colorScheme.surface,
-                                foregroundColor: theme.colorScheme.primary,
-                                child: const Icon(Icons.my_location_rounded),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FloatingActionButton.small(
+                                    heroTag: 'campus_center_fab',
+                                    onPressed: _centerOnCampus,
+                                    backgroundColor: theme.colorScheme.surface,
+                                    foregroundColor: theme.colorScheme.primary,
+                                    child: const Icon(Icons.account_balance_rounded),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  FloatingActionButton.small(
+                                    heroTag: 'center_map_fab',
+                                    onPressed: _centerOnUserLocation,
+                                    backgroundColor: theme.colorScheme.surface,
+                                    foregroundColor: theme.colorScheme.primary,
+                                    child: const Icon(Icons.my_location_rounded),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -416,13 +446,13 @@ class _RealObjectCard extends StatelessWidget {
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                           child: CachedNetworkImage(
                             imageUrl: post['imageUrl'],
+                            cacheManager: CustomCacheManager.instance,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                              ),
+                            placeholder: (context, url) => const SkeletonLoader(
+                              width: double.infinity,
+                              height: double.infinity,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                             ),
                             errorWidget: (context, url, error) => _buildIconFallback(theme),
                           ),

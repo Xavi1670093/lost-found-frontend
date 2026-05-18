@@ -1,14 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import '../../../chats/data/models/chat_model.dart';
 import '../../../chats/presentation/pages/chat_detail_page.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 
 class PostDetailPage extends StatefulWidget {
   final Map<dynamic, dynamic> post;
@@ -21,6 +25,33 @@ class PostDetailPage extends StatefulWidget {
 
 class _PostDetailPageState extends State<PostDetailPage> {
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_recordPostView());
+  }
+
+  Future<void> _recordPostView() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final postId = widget.post['id']?.toString().trim();
+    final postOwnerId = widget.post['user_id']?.toString();
+
+    if (currentUser == null ||
+        !currentUser.emailVerified ||
+        postId == null ||
+        postId.isEmpty ||
+        postOwnerId == currentUser.uid) {
+      return;
+    }
+
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('recordPostView');
+      await callable.call({'postId': postId});
+    } catch (e) {
+      debugPrint('ULF_DEBUG: recordPostView failed: $e');
+    }
+  }
 
   Future<void> _contactOwner() async {
     if (!context.mounted) return;
@@ -117,16 +148,18 @@ class _PostDetailPageState extends State<PostDetailPage> {
             expandedHeight: 320,
             pinned: true,
             stretch: true,
+            leading: const BackButton(),
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'post_image_${post['id']}',
                 child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: post['imageUrl'],
+                        cacheManager: CustomCacheManager.instance,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-                          child: const Center(child: CircularProgressIndicator()),
+                        placeholder: (context, url) => const SkeletonLoader(
+                          width: double.infinity,
+                          height: 320,
                         ),
                         errorWidget: (context, url, error) => _buildImageFallback(theme, post),
                       )
@@ -140,8 +173,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category and Date Row
-                  Row(
+                  // Category and Date Wrap (sprints safely on narrow devices)
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       _InfoChip(
                         icon: _getCategoryIcon(post['category']?.toString()),
@@ -149,7 +184,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         color: theme.colorScheme.secondaryContainer,
                         textColor: theme.colorScheme.onSecondaryContainer,
                       ),
-                      const SizedBox(width: 12),
                       _InfoChip(
                         icon: Icons.calendar_today_rounded,
                         label: _formatDate(post['created_at']),
