@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -23,6 +25,33 @@ class PostDetailPage extends StatefulWidget {
 
 class _PostDetailPageState extends State<PostDetailPage> {
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_recordPostView());
+  }
+
+  Future<void> _recordPostView() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final postId = widget.post['id']?.toString().trim();
+    final postOwnerId = widget.post['user_id']?.toString();
+
+    if (currentUser == null ||
+        !currentUser.emailVerified ||
+        postId == null ||
+        postId.isEmpty ||
+        postOwnerId == currentUser.uid) {
+      return;
+    }
+
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('recordPostView');
+      await callable.call({'postId': postId});
+    } catch (e) {
+      debugPrint('ULF_DEBUG: recordPostView failed: $e');
+    }
+  }
 
   Future<void> _contactOwner() async {
     if (!context.mounted) return;
