@@ -335,6 +335,20 @@ class ChatsPage extends StatelessWidget {
       return t.chatStarted;
     }
     
+    // Si es un mensaje de tipo imagen (detectado por URL, prefijo de cámara o literales de imagen)
+    final msgLower = msg.toLowerCase().trim();
+    if (msgLower.startsWith('http') ||
+        msgLower.contains('image_message') ||
+        msgLower == 'image' ||
+        msgLower == 'imagen' ||
+        msgLower == 'imatge' ||
+        msgLower == '[imagen]' ||
+        msgLower == '[image]' ||
+        msgLower == '[imatge]' ||
+        msg.startsWith('📷')) {
+      return t.imageMessage;
+    }
+    
     return msg;
   }
 }

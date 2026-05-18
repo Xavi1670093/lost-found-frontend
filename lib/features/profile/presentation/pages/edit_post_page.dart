@@ -1,14 +1,20 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/shared/widgets/field_label.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/image_utils.dart';
 
 class EditPostPage extends StatefulWidget {
   final String postId;
@@ -34,6 +40,8 @@ class _EditPostPageState extends State<EditPostPage> {
   late String _selectedCategory;
 
   bool _saving = false;
+  File? _imageFile;
+  String? _currentImageUrl;
 
   final List<String> _statuses = [
     'active',
@@ -57,6 +65,7 @@ class _EditPostPageState extends State<EditPostPage> {
 
     _selectedStatus = (widget.post['status']?.toString() ?? 'active').toLowerCase().trim();
     _selectedCategory = (widget.post['category']?.toString() ?? 'others').toLowerCase().trim();
+    _currentImageUrl = widget.post['imageUrl']?.toString();
 
     if (!_statuses.contains(_selectedStatus)) {
       _selectedStatus = 'active';
@@ -67,6 +76,50 @@ class _EditPostPageState extends State<EditPostPage> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final t = AppStrings.of(context);
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded),
+                title: Text(t.camera),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded),
+                title: Text(t.gallery),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (source == null) return;
+
+    final File? picked = await ImageUtils.pickAndProcessImage(
+      source: source,
+      imageQuality: 80,
+    );
+
+    if (picked != null) {
+      setState(() {
+        _imageFile = picked;
+      });
+    }
+  }
+
   Future<void> _saveChanges() async {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
@@ -74,12 +127,31 @@ class _EditPostPageState extends State<EditPostPage> {
     setState(() => _saving = true);
 
     try {
-      // 1. Actualizamos campos de texto directamente en RTDB (permitido por reglas de seguridad)
+      String imageUrl = _currentImageUrl ?? '';
+
+      // Si el usuario seleccionó una nueva foto, la subimos a Firebase Storage
+      if (_imageFile != null) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final storageRef = FirebaseStorage.instance
+              .ref()
+              .child('posts/${widget.postId}/${user.uid}.webp');
+
+          final uploadTask = await storageRef.putFile(
+            _imageFile!,
+            SettableMetadata(contentType: 'image/webp'),
+          );
+          imageUrl = await uploadTask.ref.getDownloadURL();
+        }
+      }
+
+      // 1. Actualizamos campos directamente en RTDB
       await FirebaseDatabase.instance.ref('posts/${widget.postId}').update({
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
         'status': _selectedStatus,
+        'imageUrl': imageUrl,
         'updated_at': ServerValue.timestamp,
       });
 
@@ -179,7 +251,7 @@ class _EditPostPageState extends State<EditPostPage> {
     try {
       await FirebaseDatabase.instance.ref('posts/${widget.postId}').update({
         'is_deleted': true,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
+        'updated_at': ServerValue.timestamp,
       });
 
       if (!mounted) return;
@@ -232,6 +304,99 @@ class _EditPostPageState extends State<EditPostPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Cabecera de la Imagen del Objeto
+              FieldLabel(label: t.objectPhoto, isRequired: false),
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (_imageFile != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: Image.file(
+                            _imageFile!,
+                            width: double.infinity,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      else if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: CachedNetworkImage(
+                            imageUrl: _currentImageUrl!,
+                            cacheManager: CustomCacheManager.instance,
+                            width: double.infinity,
+                            height: 200,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            errorWidget: (context, url, error) => Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image_rounded, size: 48, color: theme.colorScheme.error),
+                                const SizedBox(height: 12),
+                                Text(t.errorImageUpload, style: TextStyle(color: theme.colorScheme.error)),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_a_photo_rounded, size: 48, color: theme.colorScheme.primary),
+                            const SizedBox(height: 12),
+                            Text(
+                              t.tapToTakePhoto,
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (_imageFile != null || (_currentImageUrl != null && _currentImageUrl!.isNotEmpty))
+                        Positioned(
+                          right: 12,
+                          bottom: 12,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.9),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.edit_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
               CustomTextField(
                 label: t.titleLabel,
                 controller: _titleController,

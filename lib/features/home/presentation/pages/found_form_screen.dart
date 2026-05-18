@@ -174,11 +174,11 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   }
 
   Future<void> _pickImage() async {
-    final hasPermission = await PermissionService.requestCamera();
-    if (!hasPermission) return;
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
-    if (picked != null) setState(() => imageFile = File(picked.path));
+    final picked = await ImageUtils.pickAndProcessImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+    );
+    if (picked != null) setState(() => imageFile = picked);
   }
 
   Future<void> _getLocation() async {

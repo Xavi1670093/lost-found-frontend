@@ -375,15 +375,12 @@ class _ChatInputState extends State<_ChatInput> {
 
     if (source == null) return;
 
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-    if (pickedFile == null) return;
-
     setState(() => _sending = true);
 
     try {
-      final file = File(pickedFile.path);
-      final compressedFile = await ImageUtils.compressAndGetWebp(file);
+      final compressedFile = await ImageUtils.pickAndProcessImage(
+        source: source,
+      );
       if (compressedFile == null) {
         throw Exception();
       }

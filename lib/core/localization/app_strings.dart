@@ -255,6 +255,7 @@ class AppStrings {
       'post_published_success': '¡Publicación creada con éxito!',
       'post_edited_success': 'Publicación editada con éxito.',
       'post_deleted_success': 'Publicación eliminada con éxito.',
+      'imageMessage': '📷 Imagen',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -449,6 +450,7 @@ class AppStrings {
       'post_published_success': '¡Publicació creada amb èxit!',
       'post_edited_success': 'Publicació editada amb èxit.',
       'post_deleted_success': 'Publicació eliminada amb èxit.',
+      'imageMessage': '📷 Imatge',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -643,6 +645,7 @@ class AppStrings {
       'post_published_success': 'Post published successfully!',
       'post_edited_success': 'Post edited successfully.',
       'post_deleted_success': 'Post deleted successfully.',
+      'imageMessage': '📷 Image',
     },
   };
 
@@ -840,6 +843,7 @@ class AppStrings {
   String get postPublishedSuccess => _text('post_published_success');
   String get postEditedSuccess => _text('post_edited_success');
   String get postDeletedSuccess => _text('post_deleted_success');
+  String get imageMessage => _text('imageMessage');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);
