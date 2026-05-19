@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_functions/cloud_functions.dart'; // 1. IMPORTANTE: Importar cloud_functions
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
@@ -17,6 +18,7 @@ import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'package:unilost_found/shared/widgets/map_picker_page.dart';
+import 'package:unilost_found/features/home/presentation/pages/post_detail_page.dart'; // 2. IMPORTANTE: Importar la página de detalles
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 
@@ -270,11 +272,9 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
     
-    // 1. Obtener centro y límites para valores por defecto seguros
     final centerId = _centerId ?? 'uab';
     final centerName = _centerBounds?['name']?.toString() ?? 'UAB Campus';
     
-    // Cálculo del centroide para el fallback (evita valores fuera de rango)
     final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.480).toDouble();
     final double maxLat = (_centerBounds?['maxLat'] as num? ?? _centerBounds?['latMax'] as num? ?? 41.520).toDouble();
     final double minLng = (_centerBounds?['minLng'] as num? ?? _centerBounds?['lngMin'] as num? ?? 2.085).toDouble();
@@ -283,7 +283,6 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final double defaultLat = (minLat + maxLat) / 2;
     final double defaultLng = (minLng + maxLng) / 2;
 
-    // 2. Validación de ubicación estricta (Paso 1.3 Roadmap)
     if (_currentPosition != null) {
       if (!_isWithinBounds(_currentPosition!.latitude, _currentPosition!.longitude)) {
         _showError(t.errorLocationOutsideRecinct);
@@ -302,69 +301,32 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception(t.sessionError);
 
-      final postsRef = FirebaseDatabase.instance.ref('posts');
-      final newPostRef = postsRef.push();
-
-      String imageUrl = "";
-      if (imageFile != null) {
-        try {
-          final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
-          if (processedImage == null) {
-            throw Exception(t.errorImageUpload);
-          }
-
-          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.webp');
-          final uploadTask = await storageRef.putFile(
-            processedImage,
-            SettableMetadata(contentType: 'image/webp'),
-          );
-          imageUrl = await uploadTask.ref.getDownloadURL();
-        } on FirebaseException catch (e) {
-          if (e.code == 'permission-denied') {
-             throw Exception(t.errorImageUpload);
-          }
-          rethrow;
-        } catch (e) {
-          rethrow;
-        }
-      }
-
-      // Cálculo del Geohash (Requerido por Security Rules)
-      final lat = _currentPosition?.latitude ?? defaultLat;
-      final lng = _currentPosition?.longitude ?? defaultLng;
-      final geohash = GeoHasher().encode(lng, lat);
-
-      // 3. Envío de datos con estructura compatible con Security Rules
-      await newPostRef.set({
-        'id': newPostRef.key,
-        'user_id': user.uid,
-        'user_name': _userName ?? 'Estudiante', // Campo requerido para denormalización
+      // --- NUEVA LÓGICA DE INTERCEPCIÓN (MATCHER) ---
+      final callable = FirebaseFunctions.instance.httpsCallable('checkPotentialMatches');
+      final result = await callable.call({
         'center_id': centerId.toLowerCase(),
-        'type': widget.postType,
-        'title': titleController.text.trim(),
-        'description': descriptionController.text.trim(),
         'category': selectedCategoryKey,
-        'status': 'active',
-        'location': centerName, // CAMPO CRÍTICO: Requerido por la DB
-        'coords': {
-          'lat': lat,
-          'lng': lng,
-          'geohash': geohash, // CAMPO CRÍTICO: Requerido por la DB
-        },
-        'imageUrl': imageUrl,
-        'date': selectedDate.millisecondsSinceEpoch,
-        'created_at': ServerValue.timestamp,
-        'updated_at': ServerValue.timestamp,
-        'is_deleted': false,
+        'type': widget.postType,
+        'description': descriptionController.text.trim(),
       });
 
-      if (mounted) {
-        AppNotifications.showSuccess(
-          context, 
-          widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
-        );
-        Navigator.pop(context);
+      final matches = result.data['matches'] as List<dynamic>? ?? [];
+
+      if (matches.isNotEmpty && mounted) {
+        setState(() => _isPublishing = false); // Pausamos la carga para mostrar el popup
+        
+        final shouldPublishAnyway = await _showMatchesDialog(matches);
+        
+        if (shouldPublishAnyway == true) {
+          // Si el usuario decide ignorar las sugerencias, publicamos
+          setState(() => _isPublishing = true);
+          await _finalizePublish(user, centerId, centerName, defaultLat, defaultLng);
+        }
+      } else {
+        // No hubo sugerencias del algoritmo, publicamos directamente
+        await _finalizePublish(user, centerId, centerName, defaultLat, defaultLng);
       }
+
     } catch (e) {
       if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
@@ -373,7 +335,151 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       if (mounted) setState(() => _isPublishing = false);
     }
   }
+  // MODIFICACIÓN 4: Lógica extraída de guardado final
+  Future<void> _finalizePublish(User user, String centerId, String centerName, double defaultLat, double defaultLng) async {
+    final t = AppStrings.of(context);
+    final postsRef = FirebaseDatabase.instance.ref('posts');
+    final newPostRef = postsRef.push();
 
+    String imageUrl = "";
+    if (imageFile != null) {
+      try {
+        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
+        if (processedImage == null) throw Exception(t.errorImageUpload);
+
+        final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.webp');
+        final uploadTask = await storageRef.putFile(
+          processedImage,
+          SettableMetadata(contentType: 'image/webp'),
+        );
+        imageUrl = await uploadTask.ref.getDownloadURL();
+      } on FirebaseException catch (e) {
+        if (e.code == 'permission-denied') throw Exception(t.errorImageUpload);
+        rethrow;
+      } catch (e) {
+        rethrow;
+      }
+    }
+
+    final lat = _currentPosition?.latitude ?? defaultLat;
+    final lng = _currentPosition?.longitude ?? defaultLng;
+    final geohash = GeoHasher().encode(lng, lat);
+
+    await newPostRef.set({
+      'id': newPostRef.key,
+      'user_id': user.uid,
+      'user_name': _userName ?? 'Estudiante',
+      'center_id': centerId.toLowerCase(),
+      'type': widget.postType,
+      'title': titleController.text.trim(),
+      'description': descriptionController.text.trim(),
+      'category': selectedCategoryKey,
+      'status': 'active',
+      'location': centerName,
+      'coords': {
+        'lat': lat,
+        'lng': lng,
+        'geohash': geohash,
+      },
+      'imageUrl': imageUrl,
+      'date': selectedDate.millisecondsSinceEpoch,
+      'created_at': ServerValue.timestamp,
+      'updated_at': ServerValue.timestamp,
+      'is_deleted': false,
+    });
+
+    if (mounted) {
+      AppNotifications.showSuccess(
+        context, 
+        widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
+      );
+      Navigator.pop(context);
+    }
+  }
+  // MODIFICACIÓN 5: Modal UI del Matcher
+  Future<bool?> _showMatchesDialog(List<dynamic> matches) async {
+    final theme = Theme.of(context);
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // Obliga a interactuar con los botones
+      builder: (context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              const Expanded(child: Text("¡Posibles coincidencias!")),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Hemos encontrado objetos similares en el campus. ¿Es alguno de estos?"),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: matches.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final match = matches[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: match['postImageUrl'] != null && match['postImageUrl'].toString().isNotEmpty
+                              ? Image.network(match['postImageUrl'], width: 50, height: 50, fit: BoxFit.cover)
+                              : Container(
+                                  width: 50, height: 50, color: theme.colorScheme.surfaceContainerHighest,
+                                  child: const Icon(Icons.image_not_supported),
+                                ),
+                        ),
+                        title: Text(match['title'] ?? 'Sin título', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(match['description'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+                           // Cancela la publicación y te lleva a ver el detalle del objeto sugerido
+                           final savedContext = context;
+                           Navigator.pop(savedContext, false);
+                           final postSnap = await FirebaseDatabase.instance.ref('posts/${match['id']}').get();
+                           if (!mounted) return;
+                           if (postSnap.exists) {
+                             final postData = Map<dynamic, dynamic>.from(postSnap.value as Map);
+                             await Navigator.push(
+                               // ignore: use_build_context_synchronously
+                               savedContext,
+                               MaterialPageRoute(
+                                 builder: (_) => PostDetailPage(post: postData),
+                               ),
+                             );
+                           } else {
+                             // ignore: use_build_context_synchronously
+                             AppNotifications.showError(savedContext, "No se pudo cargar el detalle del objeto.");
+                           }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false), // Solo cierra el pop-up, no publica.
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true), // Retorna 'true' para continuar publicando
+              child: const Text("Ignorar y Publicar"),
+            ),
+          ],
+        );
+      },
+    );
+  }
   void _showError(String msg) {
     AppNotifications.showError(context, msg);
   }
