@@ -190,10 +190,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     .toList();
 
                 messages.sort(
-                  (a, b) => (a['timestamp'] ?? 0).compareTo(b['timestamp'] ?? 0),
+                  (a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0),
                 );
 
                 return ListView.builder(
+                  reverse: true,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {

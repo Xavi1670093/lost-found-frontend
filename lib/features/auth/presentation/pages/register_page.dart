@@ -9,6 +9,8 @@ import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/features/auth/presentation/pages/login_page.dart';
+import 'package:unilost_found/shared/widgets/language_selector_widget.dart';
 
 class RegisterPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -60,6 +62,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'email': email,
         'password': _passwordController.text,
         'name': _nameController.text.trim(),
+        'language': widget.settingsController.locale.languageCode,
       });
 
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -228,7 +231,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       style: theme.textTheme.bodyMedium,
                     ),
                     GestureDetector(
-                      onTap: () => Navigator.pop(context),
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LoginPage(
+                              settingsController: widget.settingsController,
+                            ),
+                          ),
+                        );
+                      },
                       child: Text(
                         t.loginLink,
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -239,6 +251,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 32),
+                LanguageSelectorWidget(settingsController: widget.settingsController),
                 const SizedBox(height: 20),
               ],
             ),

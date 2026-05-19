@@ -10,6 +10,7 @@ import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/widgets/language_selector_widget.dart';
 
 class LoginPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -229,7 +230,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
                             builder: (_) => RegisterPage(
@@ -248,6 +249,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 32),
+                LanguageSelectorWidget(settingsController: widget.settingsController),
                 const SizedBox(height: 20),
               ],
             ),

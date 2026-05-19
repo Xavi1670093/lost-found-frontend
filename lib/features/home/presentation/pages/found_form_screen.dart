@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_functions/cloud_functions.dart'; // 1. IMPORTANTE: Importar cloud_functions
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
@@ -17,6 +18,7 @@ import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'package:unilost_found/shared/widgets/map_picker_page.dart';
+import 'package:unilost_found/features/home/presentation/pages/post_detail_page.dart'; // 2. IMPORTANTE: Importar la página de detalles
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 
@@ -270,11 +272,9 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
     
-    // 1. Obtener centro y límites para valores por defecto seguros
     final centerId = _centerId ?? 'uab';
     final centerName = _centerBounds?['name']?.toString() ?? 'UAB Campus';
     
-    // Cálculo del centroide para el fallback (evita valores fuera de rango)
     final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.480).toDouble();
     final double maxLat = (_centerBounds?['maxLat'] as num? ?? _centerBounds?['latMax'] as num? ?? 41.520).toDouble();
     final double minLng = (_centerBounds?['minLng'] as num? ?? _centerBounds?['lngMin'] as num? ?? 2.085).toDouble();
@@ -283,7 +283,6 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final double defaultLat = (minLat + maxLat) / 2;
     final double defaultLng = (minLng + maxLng) / 2;
 
-    // 2. Validación de ubicación estricta (Paso 1.3 Roadmap)
     if (_currentPosition != null) {
       if (!_isWithinBounds(_currentPosition!.latitude, _currentPosition!.longitude)) {
         _showError(t.errorLocationOutsideRecinct);
@@ -302,69 +301,33 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception(t.sessionError);
 
-      final postsRef = FirebaseDatabase.instance.ref('posts');
-      final newPostRef = postsRef.push();
-
-      String imageUrl = "";
-      if (imageFile != null) {
-        try {
-          final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
-          if (processedImage == null) {
-            throw Exception(t.errorImageUpload);
-          }
-
-          final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.webp');
-          final uploadTask = await storageRef.putFile(
-            processedImage,
-            SettableMetadata(contentType: 'image/webp'),
-          );
-          imageUrl = await uploadTask.ref.getDownloadURL();
-        } on FirebaseException catch (e) {
-          if (e.code == 'permission-denied') {
-             throw Exception(t.errorImageUpload);
-          }
-          rethrow;
-        } catch (e) {
-          rethrow;
-        }
-      }
-
-      // Cálculo del Geohash (Requerido por Security Rules)
-      final lat = _currentPosition?.latitude ?? defaultLat;
-      final lng = _currentPosition?.longitude ?? defaultLng;
-      final geohash = GeoHasher().encode(lng, lat);
-
-      // 3. Envío de datos con estructura compatible con Security Rules
-      await newPostRef.set({
-        'id': newPostRef.key,
-        'user_id': user.uid,
-        'user_name': _userName ?? 'Estudiante', // Campo requerido para denormalización
+      // --- NUEVA LÓGICA DE INTERCEPCIÓN (MATCHER) ---
+      final callable = FirebaseFunctions.instance.httpsCallable('checkPotentialMatches');
+      final result = await callable.call({
         'center_id': centerId.toLowerCase(),
+        'category': selectedCategoryKey,
         'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
-        'category': selectedCategoryKey,
-        'status': 'active',
-        'location': centerName, // CAMPO CRÍTICO: Requerido por la DB
-        'coords': {
-          'lat': lat,
-          'lng': lng,
-          'geohash': geohash, // CAMPO CRÍTICO: Requerido por la DB
-        },
-        'imageUrl': imageUrl,
-        'date': selectedDate.millisecondsSinceEpoch,
-        'created_at': ServerValue.timestamp,
-        'updated_at': ServerValue.timestamp,
-        'is_deleted': false,
       });
 
-      if (mounted) {
-        AppNotifications.showSuccess(
-          context, 
-          widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
-        );
-        Navigator.pop(context);
+      final matches = result.data['matches'] as List<dynamic>? ?? [];
+
+      if (matches.isNotEmpty && mounted) {
+        setState(() => _isPublishing = false); // Pausamos la carga para mostrar el popup
+        
+        final shouldPublishAnyway = await _showMatchesDialog(matches);
+        
+        if (shouldPublishAnyway == true) {
+          // Si el usuario decide ignorar las sugerencias, publicamos
+          setState(() => _isPublishing = true);
+          await _finalizePublish(user, centerId, centerName, defaultLat, defaultLng);
+        }
+      } else {
+        // No hubo sugerencias del algoritmo, publicamos directamente
+        await _finalizePublish(user, centerId, centerName, defaultLat, defaultLng);
       }
+
     } catch (e) {
       if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
@@ -373,7 +336,297 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       if (mounted) setState(() => _isPublishing = false);
     }
   }
+  // MODIFICACIÓN 4: Lógica extraída de guardado final
+  Future<void> _finalizePublish(User user, String centerId, String centerName, double defaultLat, double defaultLng) async {
+    final t = AppStrings.of(context);
+    final postsRef = FirebaseDatabase.instance.ref('posts');
+    final newPostRef = postsRef.push();
 
+    String imageUrl = "";
+    if (imageFile != null) {
+      try {
+        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
+        if (processedImage == null) throw Exception(t.errorImageUpload);
+
+        final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.webp');
+        final uploadTask = await storageRef.putFile(
+          processedImage,
+          SettableMetadata(contentType: 'image/webp'),
+        );
+        imageUrl = await uploadTask.ref.getDownloadURL();
+      } on FirebaseException catch (e) {
+        if (e.code == 'permission-denied') throw Exception(t.errorImageUpload);
+        rethrow;
+      } catch (e) {
+        rethrow;
+      }
+    }
+
+    final lat = _currentPosition?.latitude ?? defaultLat;
+    final lng = _currentPosition?.longitude ?? defaultLng;
+    final geohash = GeoHasher().encode(lng, lat);
+
+    await newPostRef.set({
+      'id': newPostRef.key,
+      'user_id': user.uid,
+      'user_name': _userName ?? 'Estudiante',
+      'center_id': centerId.toLowerCase(),
+      'type': widget.postType,
+      'title': titleController.text.trim(),
+      'description': descriptionController.text.trim(),
+      'category': selectedCategoryKey,
+      'status': 'active',
+      'location': centerName,
+      'coords': {
+        'lat': lat,
+        'lng': lng,
+        'geohash': geohash,
+      },
+      'imageUrl': imageUrl,
+      'date': selectedDate.millisecondsSinceEpoch,
+      'created_at': ServerValue.timestamp,
+      'updated_at': ServerValue.timestamp,
+      'is_deleted': false,
+    });
+
+    if (mounted) {
+      AppNotifications.showSuccess(
+        context, 
+        widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  // MODIFICACIÓN 5: Modal UI del Matcher
+  Future<bool?> _showMatchesDialog(List<dynamic> matches) async {
+    final theme = Theme.of(context);
+    final t = AppStrings.of(context);
+    int selectedIndex = 0;
+
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // Obliga a interactuar con los botones
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: theme.colorScheme.surface,
+          elevation: 6,
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.auto_awesome_rounded,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            t.matcherTitle,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      t.matcherSubtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // List of matches
+                    Flexible(
+                      child: Container(
+                        constraints: const BoxConstraints(maxHeight: 280),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: matches.length,
+                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final match = matches[index];
+                            final isSelected = selectedIndex == index;
+                            final imageUrl = (match['postImageUrl'] ?? match['imageUrl'] ?? match['photo_url'] ?? '').toString();
+                            return InkWell(
+                              onTap: () {
+                                setDialogState(() {
+                                  selectedIndex = index;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                                      : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.outlineVariant,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: imageUrl.isNotEmpty
+                                          ? Image.network(
+                                              imageUrl,
+                                              width: 56,
+                                              height: 56,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  width: 56,
+                                                  height: 56,
+                                                  color: theme.colorScheme.surfaceContainerHighest,
+                                                  child: Icon(
+                                                    Icons.image_not_supported_rounded,
+                                                    color: theme.colorScheme.onSurfaceVariant,
+                                                  ),
+                                                );
+                                              },
+                                            )
+                                          : Container(
+                                              width: 56,
+                                              height: 56,
+                                              color: theme.colorScheme.surfaceContainerHighest,
+                                              child: Icon(
+                                                Icons.image_not_supported_rounded,
+                                                color: theme.colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            match['title'] ?? 'Sin título',
+                                            style: theme.textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: theme.colorScheme.onSurface,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            match['description'] ?? '',
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      isSelected
+                                          ? Icons.radio_button_checked_rounded
+                                          : Icons.radio_button_off_rounded,
+                                      color: isSelected
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                      size: 22,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Actions
+                    ElevatedButton(
+                      onPressed: () async {
+                        final selectedMatch = matches[selectedIndex];
+                        final savedContext = context;
+                        Navigator.pop(savedContext, false);
+                        
+                        final postSnap = await FirebaseDatabase.instance.ref('posts/${selectedMatch['id']}').get();
+                        if (!mounted) return;
+                        if (postSnap.exists) {
+                          final postData = Map<dynamic, dynamic>.from(postSnap.value as Map);
+                          await Navigator.push(
+                            // ignore: use_build_context_synchronously
+                            savedContext,
+                            MaterialPageRoute(
+                              builder: (_) => PostDetailPage(post: postData),
+                            ),
+                          );
+                        } else {
+                          // ignore: use_build_context_synchronously
+                          AppNotifications.showError(savedContext, "No se pudo cargar el detalle del objeto.");
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(t.matcherViewButton),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(t.matcherIgnoreButton),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
   void _showError(String msg) {
     AppNotifications.showError(context, msg);
   }

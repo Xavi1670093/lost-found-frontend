@@ -5,6 +5,7 @@ import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/features/auth/presentation/pages/login_page.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
+import 'package:unilost_found/shared/widgets/language_selector_widget.dart';
 
 class WelcomePage extends StatelessWidget {
   final AppSettingsController settingsController;
@@ -56,6 +57,8 @@ class WelcomePage extends StatelessWidget {
                     );
                   },
                 ),
+                const SizedBox(height: 48),
+                LanguageSelectorWidget(settingsController: settingsController),
               ],
             ),
           ),
