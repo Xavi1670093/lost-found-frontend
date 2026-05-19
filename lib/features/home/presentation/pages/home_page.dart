@@ -28,13 +28,43 @@ class _HomePageState extends State<HomePage> {
   String _searchQuery = "";
   late TextEditingController _searchController;
   late MapController _mapController;
+  late final Widget _lostMarkerWidget;
+  late final Widget _foundMarkerWidget;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _mapController = MapController();
+    _lostMarkerWidget = _buildMarkerWidget(Colors.orange.shade700, Icons.search_rounded);
+    _foundMarkerWidget = _buildMarkerWidget(Colors.green.shade700, Icons.inventory_2_rounded);
     _loadUserCenter();
+  }
+
+  Widget _buildMarkerWidget(Color color, IconData icon) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 15,
+        ),
+      ),
+    );
   }
 
   @override
@@ -304,13 +334,11 @@ class _HomePageState extends State<HomePage> {
 
                                     return Marker(
                                       point: osm.LatLng(lat, lng),
-                                      width: 40,
-                                      height: 40,
-                                      child: Icon(
-                                        Icons.location_on_rounded,
-                                        color: post['type'] == 'lost' ? Colors.orange : Colors.green,
-                                        size: 30,
-                                      ),
+                                      width: 30,
+                                      height: 30,
+                                      child: post['type'] == 'lost'
+                                          ? _lostMarkerWidget
+                                          : _foundMarkerWidget,
                                     );
                                   }).toList(),
                                 ),
