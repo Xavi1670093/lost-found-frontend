@@ -189,12 +189,7 @@ class _HomePageState extends State<HomePage> {
                                   setState(() => _searchQuery = "");
                                 },
                               )
-                            : IconButton(
-                                icon: const Icon(Icons.tune_rounded),
-                                onPressed: () {
-                                  // TODO: Filtros avanzados
-                                },
-                              ),
+                            : null,
                         filled: true,
                         fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                         border: OutlineInputBorder(

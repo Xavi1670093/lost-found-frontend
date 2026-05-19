@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
@@ -11,7 +10,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
-import 'package:unilost_found/core/services/permission_service.dart';
+import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'user_posts_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -35,37 +34,25 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _pickAndUploadPhoto(DatabaseReference ref, String userId) async {
     final t = AppStrings.of(context);
     
-    // 1. Solicitar permisos y elegir imagen
-    final hasPermission = await PermissionService.requestCamera();
-    if (!hasPermission) return;
-
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
+    // 1. Elegir e imagen usando el procesador unificado
+    final processedImage = await ImageUtils.pickAndProcessImage(
       source: ImageSource.gallery,
       imageQuality: 80,
     );
 
-    if (pickedFile == null) return;
-
-    // 2. Validar formato (jpg/jpeg o png)
-    final path = pickedFile.path.toLowerCase();
-    if (!path.endsWith('.jpg') && !path.endsWith('.jpeg') && !path.endsWith('.png')) {
-      if (mounted) AppNotifications.showError(context, t.unsupportedFormat);
-      return;
-    }
+    if (processedImage == null) return;
 
     setState(() => _isUploadingPhoto = true);
 
     try {
-      // 3. Subir a Firebase Storage
-      final file = File(pickedFile.path);
+      // 2. Subir a Firebase Storage
       final storageRef = FirebaseStorage.instance.ref().child('users/$userId/profile_image');
       
       final metadata = SettableMetadata(
-        contentType: path.endsWith('.png') ? 'image/png' : 'image/jpeg',
+        contentType: 'image/webp',
       );
 
-      await storageRef.putFile(file, metadata);
+      await storageRef.putFile(processedImage, metadata);
       
       // Ya NO actualizamos el RTDB manualmente aquí. 
       // Dejamos que el backend procese la imagen a .webp y actualice el campo 'photoUrl'.
