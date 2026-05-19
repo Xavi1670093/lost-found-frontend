@@ -13,6 +13,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import '../../../notifications/presentation/pages/notifications_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -28,6 +29,18 @@ class _HomePageState extends State<HomePage> {
   String _searchQuery = "";
   late TextEditingController _searchController;
   late MapController _mapController;
+
+  Stream<DatabaseEvent> get _notificationsStream {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return const Stream<DatabaseEvent>.empty();
+    }
+    return FirebaseDatabase.instance
+        .ref('notifications/$uid')
+        .orderByChild('is_read')
+        .equalTo(false)
+        .onValue;
+  }
 
   @override
   void initState() {
@@ -48,6 +61,7 @@ class _HomePageState extends State<HomePage> {
     final snapshot = await FirebaseDatabase.instance.ref('users/${user!.uid}/center_id').get();
     if (mounted) {
       setState(() {
+        // Guardamos el ID en minúsculas para asegurar coincidencia
         centerId = snapshot.value?.toString().toLowerCase() ?? "uab";
       });
     }
@@ -55,7 +69,6 @@ class _HomePageState extends State<HomePage> {
 
   bool _matchesCategory(String backendCategory, String selectedLabel, AppStrings t) {
     if (selectedLabel.isEmpty) return true;
-    // Comparamos el label localizado de la categoría del post con el label seleccionado
     final categoryLabel = CategoryUtils.getCategoryLabel(backendCategory, t);
     return categoryLabel == selectedLabel;
   }
@@ -69,7 +82,7 @@ class _HomePageState extends State<HomePage> {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      
+
       _mapController.move(
         osm.LatLng(position.latitude, position.longitude),
         15.0,
@@ -91,6 +104,16 @@ class _HomePageState extends State<HomePage> {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
 
+    // 🚀 PORTERO DE SEGURIDAD: Si centerId aún es null (cargando desde Firebase),
+    // mostramos un indicador de carga en lugar de romper el StreamBuilder de abajo.
+    if (centerId == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       body: StreamBuilder(
         stream: FirebaseDatabase.instance
@@ -99,18 +122,21 @@ class _HomePageState extends State<HomePage> {
             .equalTo(centerId)
             .onValue,
         builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-          // Pre-procesamos los datos de los posts si están disponibles
           List<Map<dynamic, dynamic>> postsList = [];
           bool hasNoPosts = false;
-          bool isLoading = centerId == null || snapshot.connectionState == ConnectionState.waiting;
+          bool isLoading = snapshot.connectionState == ConnectionState.waiting;
 
           if (!isLoading) {
             if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
               hasNoPosts = true;
             } else {
               for (final child in snapshot.data!.snapshot.children) {
+                // Control de seguridad por si algún post de la BD viene corrupto o vacío
+                if (child.value == null || child.value is! Map) continue;
+
                 final value = Map<dynamic, dynamic>.from(child.value as Map);
                 value['id'] = child.key;
+
                 bool categoryMatch = _matchesCategory(value['category']?.toString() ?? '', _selectedCategoryLabel, t);
                 bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
                     (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
@@ -119,16 +145,13 @@ class _HomePageState extends State<HomePage> {
                   postsList.add(value);
                 }
               }
-              // Ordenar por fecha: más recientes primero
               postsList.sort((a, b) => (b['created_at'] ?? 0).compareTo(a['created_at'] ?? 0));
-              
               if (postsList.isEmpty) hasNoPosts = true;
             }
           }
 
           return CustomScrollView(
             slivers: [
-              // Header with Search
               SliverAppBar(
                 floating: true,
                 pinned: true,
@@ -162,10 +185,42 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none_rounded),
-                    onPressed: () {
-                      // TODO: Implementar notificaciones
+                  StreamBuilder<DatabaseEvent>(
+                    stream: _notificationsStream,
+                    builder: (context, notifSnapshot) {
+                      bool hasUnread = notifSnapshot.hasData &&
+                          notifSnapshot.data!.snapshot.value != null;
+
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.notifications_none_rounded),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const NotificationsPage()),
+                              );
+                            },
+                          ),
+                          if (hasUnread)
+                            Positioned(
+                              right: 12,
+                              top: 12,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 10,
+                                  minHeight: 10,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
                     },
                   ),
                   const SizedBox(width: 8),
@@ -183,18 +238,18 @@ class _HomePageState extends State<HomePage> {
                         prefixIcon: const Icon(Icons.search_rounded),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear_rounded),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchQuery = "");
-                                },
-                              )
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = "");
+                          },
+                        )
                             : IconButton(
-                                icon: const Icon(Icons.tune_rounded),
-                                onPressed: () {
-                                  // TODO: Filtros avanzados
-                                },
-                              ),
+                          icon: const Icon(Icons.tune_rounded),
+                          onPressed: () {
+                            // TODO: Filtros avanzados
+                          },
+                        ),
                         filled: true,
                         fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                         border: OutlineInputBorder(
@@ -208,12 +263,10 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // Categories and Map
               SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Banner
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Container(
@@ -251,7 +304,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
 
-                    // Categories
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -263,7 +315,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Map Preview
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(t.preview, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
@@ -279,74 +330,74 @@ class _HomePageState extends State<HomePage> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                        child: Stack(
-                          children: [
-                            FlutterMap(
-                              mapController: _mapController,
-                              options: MapOptions(
-                                initialCenter: const osm.LatLng(41.5000, 2.1075),
-                                initialZoom: 15,
-                                interactionOptions: const InteractionOptions(
-                                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                                ),
-                                cameraConstraint: CameraConstraint.contain(
-                                  bounds: LatLngBounds(
-                                    const osm.LatLng(41.480, 2.085),
-                                    const osm.LatLng(41.520, 2.130),
+                          child: Stack(
+                            children: [
+                              FlutterMap(
+                                mapController: _mapController,
+                                options: MapOptions(
+                                  initialCenter: const osm.LatLng(41.5000, 2.1075),
+                                  initialZoom: 15,
+                                  interactionOptions: const InteractionOptions(
+                                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                                  ),
+                                  cameraConstraint: CameraConstraint.contain(
+                                    bounds: LatLngBounds(
+                                      const osm.LatLng(41.480, 2.085),
+                                      const osm.LatLng(41.520, 2.130),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              children: [
-                                TileLayer(
-                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName: 'com.example.lostfound',
-                                ),
-                                MarkerLayer(
-                                  markers: postsList.map((post) {
-                                    final coords = post['coords'] as Map<dynamic, dynamic>?;
-                                    final double lat = double.tryParse(coords?['lat'].toString() ?? '0.0') ?? 0.0;
-                                    final double lng = double.tryParse(coords?['lng'].toString() ?? '0.0') ?? 0.0;
-
-                                    return Marker(
-                                      point: osm.LatLng(lat, lng),
-                                      width: 40,
-                                      height: 40,
-                                      child: Icon(
-                                        Icons.location_on_rounded,
-                                        color: post['type'] == 'lost' ? Colors.orange : Colors.green,
-                                        size: 30,
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            ),
-                            Positioned(
-                              right: 12,
-                              bottom: 12,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  FloatingActionButton.small(
-                                    heroTag: 'campus_center_fab',
-                                    onPressed: _centerOnCampus,
-                                    backgroundColor: theme.colorScheme.surface,
-                                    foregroundColor: theme.colorScheme.primary,
-                                    child: const Icon(Icons.account_balance_rounded),
+                                  TileLayer(
+                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.example.lostfound',
                                   ),
-                                  const SizedBox(height: 8),
-                                  FloatingActionButton.small(
-                                    heroTag: 'center_map_fab',
-                                    onPressed: _centerOnUserLocation,
-                                    backgroundColor: theme.colorScheme.surface,
-                                    foregroundColor: theme.colorScheme.primary,
-                                    child: const Icon(Icons.my_location_rounded),
+                                  MarkerLayer(
+                                    markers: postsList.map((post) {
+                                      final coords = post['coords'] as Map<dynamic, dynamic>?;
+                                      final double lat = double.tryParse(coords?['lat'].toString() ?? '0.0') ?? 0.0;
+                                      final double lng = double.tryParse(coords?['lng'].toString() ?? '0.0') ?? 0.0;
+
+                                      return Marker(
+                                        point: osm.LatLng(lat, lng),
+                                        width: 40,
+                                        height: 40,
+                                        child: Icon(
+                                          Icons.location_on_rounded,
+                                          color: post['type'] == 'lost' ? Colors.orange : Colors.green,
+                                          size: 30,
+                                        ),
+                                      );
+                                    }).toList(),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
+                              Positioned(
+                                right: 12,
+                                bottom: 12,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    FloatingActionButton.small(
+                                      heroTag: 'campus_center_fab',
+                                      onPressed: _centerOnCampus,
+                                      backgroundColor: theme.colorScheme.surface,
+                                      foregroundColor: theme.colorScheme.primary,
+                                      child: const Icon(Icons.account_balance_rounded),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    FloatingActionButton.small(
+                                      heroTag: 'center_map_fab',
+                                      onPressed: _centerOnUserLocation,
+                                      backgroundColor: theme.colorScheme.surface,
+                                      foregroundColor: theme.colorScheme.primary,
+                                      child: const Icon(Icons.my_location_rounded),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -360,7 +411,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // Posts Grid
               if (isLoading)
                 SkeletonLoader.postGrid()
               else if (hasNoPosts)
@@ -383,7 +433,7 @@ class _HomePageState extends State<HomePage> {
                       childAspectRatio: 0.72,
                     ),
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => _RealObjectCard(post: postsList[index]),
+                          (context, index) => _RealObjectCard(post: postsList[index]),
                       childCount: postsList.length,
                     ),
                   ),
@@ -435,7 +485,6 @@ class _RealObjectCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Area de Imagen/Icono con Badge
           Expanded(
             child: Stack(
               children: [
@@ -443,23 +492,22 @@ class _RealObjectCard extends StatelessWidget {
                   tag: 'post_image_${post['id']}',
                   child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
                       ? ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                          child: CachedNetworkImage(
-                            imageUrl: post['imageUrl'],
-                            cacheManager: CustomCacheManager.instance,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const SkeletonLoader(
-                              width: double.infinity,
-                              height: double.infinity,
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                            ),
-                            errorWidget: (context, url, error) => _buildIconFallback(theme),
-                          ),
-                        )
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    child: CachedNetworkImage(
+                      imageUrl: post['imageUrl'],
+                      cacheManager: CustomCacheManager.instance,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const SkeletonLoader(
+                        width: double.infinity,
+                        height: double.infinity,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      errorWidget: (context, url, error) => _buildIconFallback(theme),
+                    ),
+                  )
                       : _buildIconFallback(theme),
                 ),
-                // Status Badge
                 Positioned(
                   top: 12,
                   left: 12,
@@ -490,7 +538,6 @@ class _RealObjectCard extends StatelessWidget {
               ],
             ),
           ),
-          // Area de Informacion
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

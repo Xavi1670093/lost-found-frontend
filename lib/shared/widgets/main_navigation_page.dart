@@ -6,21 +6,11 @@ import 'package:unilost_found/features/home/presentation/pages/home_page.dart';
 import 'package:unilost_found/features/profile/presentation/pages/profile_page.dart';
 import 'package:unilost_found/features/home/presentation/pages/found_form_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart'; // 🚀 IMPORT AÑADIDO
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:unilost_found/features/welcome/presentation/pages/welcome_page.dart';
 
-/// [MainNavigationPage] es la vista contenedor principal que gestiona
-/// la barra de navegación inferior de la aplicación móvil.
-///
-/// Permite alternar de forma fluida entre las pantallas principales de la aplicación:
-/// * [ChatsPage] (índice 0): Panel de mensajería instantánea.
-/// * [HomePage] (índice 1): Feed de objetos y previsualización de mapa.
-/// * [ProfilePage] (índice 2): Gestión de perfil de usuario y publicaciones propias.
-///
-/// Incorpora un botón flotante central (FAB) que despliega opciones rápidas
-/// para que los estudiantes reporten hallazgos o pérdidas de objetos.
 class MainNavigationPage extends StatefulWidget {
-  /// Controlador de configuración de la aplicación (idioma, modo oscuro).
   final AppSettingsController settingsController;
 
   const MainNavigationPage({super.key, required this.settingsController});
@@ -30,14 +20,25 @@ class MainNavigationPage extends StatefulWidget {
 }
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
-  /// Índice de la pestaña activa en la barra de navegación inferior.
-  /// Por defecto inicia en la pestaña Inicio ([HomePage]). Es estático para persistir la sección seleccionada tras reconstrucciones.
   static int _currentIndex = 1;
+
+  // 🚀 CONTROL WEB BLINDADO: Impide lanzar queries vacías antes de inicializar Firebase
+  Stream<DatabaseEvent> get _notificationsStream {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return const Stream<DatabaseEvent>.empty();
+    }
+    return FirebaseDatabase.instance
+        .ref('notifications/$uid')
+        .orderByChild('is_read')
+        .equalTo(false)
+        .onValue;
+  }
 
   void _showLogoutDialog() {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -65,22 +66,18 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             ),
             onPressed: () async {
               Navigator.pop(dialogContext);
-              
-              // 1. Cierra la sesión en Firebase (elimina el token de acceso activo en el dispositivo actual).
               await FirebaseAuth.instance.signOut();
-              
-              // 2. Limpia los datos de almacenamiento local asociados a la sesión.
+
               final prefs = await SharedPreferences.getInstance();
               await prefs.remove('login_timestamp');
 
-              // 3. Redirige obligatoriamente a la página de bienvenida eliminando el historial de navegación para evitar retornos inseguros.
               if (mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
                     builder: (context) => WelcomePage(settingsController: widget.settingsController),
                   ),
-                  (route) => false,
+                      (route) => false,
                 );
               }
             },
@@ -94,7 +91,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   void _openOptions() {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -163,7 +160,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
-    
+
     final pages = [
       const ChatsPage(),
       const HomePage(),
@@ -192,20 +189,28 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                 icon: _currentIndex == 0 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
                 label: t.chats,
                 isSelected: _currentIndex == 0,
+                hasNotification: false, // Las notificaciones de chats van aparte
                 onTap: () => setState(() => _currentIndex = 0),
               ),
             ),
-            
-            // Espacio central reservado físicamente para el botón flotante (FAB)
+
             const Expanded(child: SizedBox()),
-            
-            // Pestaña del Perfil de usuario
+
+            // Pestaña del Perfil (Escuchando dinámicamente si hay matches pendientes)
             Expanded(
-              child: _NavigationTab(
-                icon: _currentIndex == 2 ? Icons.person_rounded : Icons.person_outline_rounded,
-                label: t.profile,
-                isSelected: _currentIndex == 2,
-                onTap: () => setState(() => _currentIndex = 2),
+              child: StreamBuilder<DatabaseEvent>(
+                stream: _notificationsStream,
+                builder: (context, snapshot) {
+                  final bool badgeActivo = snapshot.hasData && snapshot.data!.snapshot.value != null;
+
+                  return _NavigationTab(
+                    icon: _currentIndex == 2 ? Icons.person_rounded : Icons.person_outline_rounded,
+                    label: t.profile,
+                    isSelected: _currentIndex == 2,
+                    hasNotification: badgeActivo, // 🚀 CONECTADO AL BADGE EN TIEMPO REAL
+                    onTap: () => setState(() => _currentIndex = 2),
+                  );
+                },
               ),
             ),
           ],
@@ -259,12 +264,14 @@ class _NavigationTab extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
+  final bool hasNotification; // 🚀 VARIABLE AÑADIDA
   final VoidCallback onTap;
 
   const _NavigationTab({
     required this.icon,
     required this.label,
     required this.isSelected,
+    required this.hasNotification,
     required this.onTap,
   });
 
@@ -281,7 +288,29 @@ class _NavigationTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 26),
+            // Stack para pintar el circulito rojo de Match encima del icono de perfil
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: color, size: 26),
+                if (hasNotification)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 8,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 2),
             Text(
               label,
