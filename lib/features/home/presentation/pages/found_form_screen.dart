@@ -439,15 +439,23 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                         title: Text(match['title'] ?? 'Sin título', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(match['description'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
+                        onTap: () async {
                            // Cancela la publicación y te lleva a ver el detalle del objeto sugerido
-                           Navigator.pop(context, false); 
+                           Navigator.pop(context, false);
+                           final postSnap = await FirebaseDatabase.instance.ref('posts/${match['id']}').get();
+                           if (postSnap.exists && mounted) {
+                             final postData = Map<dynamic, dynamic>.from(postSnap.value as Map);
+                             Navigator.push(
+                               context,
                            Navigator.push(
                              context,
                              MaterialPageRoute(
-                               builder: (_) => PostDetailPage(postId: match['id']), // Ajusta según tu implementación de PostDetailPage
+                               builder: (_) => PostDetailPage(post: postData),
                              ),
-                           );
+                             );
+                            } else {
+                              AppNotifications.showError(context, "No se pudo cargar el detalle del objeto.");
+                            }
                         },
                       );
                     },
