@@ -20,17 +20,11 @@ class ChatsPage extends StatelessWidget {
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(t.messages)),
         body: Center(child: Text(t.mustLoginForChats)),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.messages, style: const TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-      ),
       body: StreamBuilder<DatabaseEvent>(
         stream: FirebaseDatabase.instance.ref('user_chats/${user.uid}').onValue,
         builder: (context, snapshot) {

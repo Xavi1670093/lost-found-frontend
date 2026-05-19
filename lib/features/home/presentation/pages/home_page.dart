@@ -12,6 +12,7 @@ import 'package:latlong2/latlong.dart' as osm;
 import 'package:geolocator/geolocator.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/widgets/notification_bell.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class HomePage extends StatefulWidget {
@@ -191,14 +192,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none_rounded),
-                    onPressed: () {
-                      // TODO: Implementar notificaciones
-                    },
-                  ),
-                  const SizedBox(width: 8),
+                actions: const [
+                  NotificationBell(),
+                  SizedBox(width: 8),
                 ],
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(80),

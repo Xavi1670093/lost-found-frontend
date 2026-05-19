@@ -31,6 +31,7 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   firebase_app_check: ^0.3.2+10
   dart_geohash: ^2.1.0
+  firebase_messaging: ^15.2.10
 
 dev_dependencies:
   flutter_test:

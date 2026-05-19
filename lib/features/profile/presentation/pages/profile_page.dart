@@ -11,6 +11,7 @@ import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'user_posts_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -294,6 +295,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                   onChanged: (v) => v != null ? widget.settingsController.setLocale(Locale(v)) : null,
                                 ),
                               ),
+                              const Divider(height: 1),
+                              PushNotificationsSwitchTile(user: user),
                             ],
                           ),
                         ),
@@ -511,5 +514,103 @@ class _ProfilePageState extends State<ProfilePage> {
       case 'en': return t.english;
       default: return t.spanish;
     }
+  }
+}
+
+class PushNotificationsSwitchTile extends StatefulWidget {
+  final User user;
+
+  const PushNotificationsSwitchTile({super.key, required this.user});
+
+  @override
+  State<PushNotificationsSwitchTile> createState() => _PushNotificationsSwitchTileState();
+}
+
+class _PushNotificationsSwitchTileState extends State<PushNotificationsSwitchTile> {
+  bool _isEnabled = true;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPushSettings();
+  }
+
+  Future<void> _loadPushSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      bool? localVal = prefs.getBool('push_notifications_enabled');
+
+      final snap = await FirebaseDatabase.instance
+          .ref('users/${widget.user.uid}/settings/pushNotificationsEnabled')
+          .get();
+
+      if (snap.exists) {
+        final bool remoteVal = snap.value == true;
+        if (localVal != remoteVal) {
+          localVal = remoteVal;
+          await prefs.setBool('push_notifications_enabled', remoteVal);
+        }
+      } else {
+        await FirebaseDatabase.instance
+            .ref('users/${widget.user.uid}/settings/pushNotificationsEnabled')
+            .set(true);
+        await prefs.setBool('push_notifications_enabled', true);
+        localVal = true;
+      }
+
+      if (mounted) {
+        setState(() {
+          _isEnabled = localVal ?? true;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _togglePush(bool val) async {
+    setState(() => _isEnabled = val);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('push_notifications_enabled', val);
+
+      await FirebaseDatabase.instance
+          .ref('users/${widget.user.uid}/settings/pushNotificationsEnabled')
+          .set(val);
+    } catch (e) {
+      debugPrint("ULF_DEBUG: Error toggling push notifications setting: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+
+    if (_isLoading) {
+      return const ListTile(
+        leading: Icon(Icons.notifications_active_outlined),
+        title: SizedBox(
+          width: 100,
+          height: 16,
+          child: LinearProgressIndicator(),
+        ),
+      );
+    }
+
+    return SwitchListTile.adaptive(
+      secondary: Icon(Icons.notifications_active_outlined, color: theme.colorScheme.primary),
+      title: Text(t.settingsPushToggle),
+      subtitle: Text(
+        t.settingsPushDesc,
+        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+      ),
+      value: _isEnabled,
+      onChanged: _togglePush,
+    );
   }
 }

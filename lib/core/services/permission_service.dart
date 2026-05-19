@@ -18,4 +18,11 @@ class PermissionService {
     final status = await Permission.location.request();
     return status.isGranted;
   }
+
+  /// Solicita permisos para recibir notificaciones push en el dispositivo.
+  /// Retorna `true` si el estudiante otorga el permiso de uso.
+  static Future<bool> requestNotification() async {
+    final status = await Permission.notification.request();
+    return status.isGranted;
+  }
 }
