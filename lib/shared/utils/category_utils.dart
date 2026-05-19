@@ -52,9 +52,32 @@ class CategoryUtils {
       case 'study':
         return t.study;
       case 'others':
-        return t.others;
       default:
         return t.others;
+    }
+  }
+
+  static String getStatusLabel(String? status, AppStrings t) {
+    switch (status?.toLowerCase().trim()) {
+      case 'matched':
+        return t.statusMatched;
+      case 'returned':
+        return t.statusReturned;
+      case 'active':
+      default:
+        return t.statusSearching;
+    }
+  }
+
+  static Color getStatusColor(String? status, ThemeData theme) {
+    switch (status?.toLowerCase().trim()) {
+      case 'matched':
+        return Colors.orange;
+      case 'returned':
+        return Colors.green;
+      case 'active':
+      default:
+        return theme.colorScheme.primary;
     }
   }
 }

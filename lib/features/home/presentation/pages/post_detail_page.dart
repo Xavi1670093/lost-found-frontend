@@ -13,6 +13,7 @@ import '../../../chats/presentation/pages/chat_detail_page.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
+import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class PostDetailPage extends StatefulWidget {
   final Map<dynamic, dynamic> post;
@@ -179,8 +180,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     runSpacing: 8,
                     children: [
                       _InfoChip(
-                        icon: _getCategoryIcon(post['category']?.toString()),
-                        label: _categoryLabel(post['category']?.toString(), t),
+                        icon: CategoryUtils.getCategoryIcon(post['category']?.toString()),
+                        label: CategoryUtils.getCategoryLabel(post['category']?.toString() ?? 'others', t),
                         color: theme.colorScheme.secondaryContainer,
                         textColor: theme.colorScheme.onSecondaryContainer,
                       ),
@@ -221,6 +222,25 @@ class _PostDetailPageState extends State<PostDetailPage> {
                           isLost ? t.lostStatus : t.foundStatus,
                           style: TextStyle(
                             color: isLost ? Colors.orange.shade800 : Colors.green.shade800,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: CategoryUtils.getStatusColor(post['status'], theme).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: CategoryUtils.getStatusColor(post['status'], theme).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          CategoryUtils.getStatusLabel(post['status'], t).toUpperCase(),
+                          style: TextStyle(
+                            color: CategoryUtils.getStatusColor(post['status'], theme),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -339,7 +359,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       ),
       child: Center(
         child: Icon(
-          _getCategoryIcon(post['category']?.toString()),
+          CategoryUtils.getCategoryIcon(post['category']?.toString()),
           size: 100,
           color: theme.colorScheme.primary.withValues(alpha: 0.8),
         ),
@@ -347,25 +367,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     );
   }
 
-  IconData _getCategoryIcon(String? category) {
-    switch (category?.toLowerCase()) {
-      case 'keys': return Icons.vpn_key_rounded;
-      case 'wallets': return Icons.account_balance_wallet_rounded;
-      case 'devices': return Icons.devices_rounded;
-      case 'clothes': return Icons.checkroom_rounded;
-      default: return Icons.inventory_2_rounded;
-    }
-  }
 
-  String _categoryLabel(String? category, AppStrings t) {
-    switch (category?.toLowerCase()) {
-      case 'keys': return t.keys;
-      case 'wallets': return t.wallets;
-      case 'devices': return t.devices;
-      case 'clothes': return t.clothes;
-      default: return t.others;
-    }
-  }
 
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return '';

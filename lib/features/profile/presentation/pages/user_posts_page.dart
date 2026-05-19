@@ -7,6 +7,7 @@ import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'edit_post_page.dart';
+import 'package:unilost_found/shared/utils/category_utils.dart';
 
 class UserPostsPage extends StatelessWidget {
   final String? type;
@@ -135,9 +136,9 @@ class UserPostsPage extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      _statusLabel(post['status'], t),
+                                      CategoryUtils.getStatusLabel(post['status'], t),
                                       style: theme.textTheme.bodySmall?.copyWith(
-                                        color: _statusColor(post['status'], theme),
+                                        color: CategoryUtils.getStatusColor(post['status'], theme),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -183,19 +184,4 @@ class UserPostsPage extends StatelessWidget {
     );
   }
 
-  String _statusLabel(dynamic status, AppStrings t) {
-    switch (status) {
-      case 'matched': return t.statusMatched;
-      case 'returned': return t.statusReturned;
-      default: return t.statusInProcess;
-    }
-  }
-
-  Color _statusColor(dynamic status, ThemeData theme) {
-    switch (status) {
-      case 'matched': return Colors.orange;
-      case 'returned': return Colors.green;
-      default: return theme.colorScheme.primary;
-    }
-  }
 }
