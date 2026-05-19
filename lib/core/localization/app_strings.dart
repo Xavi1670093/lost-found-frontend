@@ -256,6 +256,10 @@ class AppStrings {
       'post_edited_success': 'Publicación editada con éxito.',
       'post_deleted_success': 'Publicación eliminada con éxito.',
       'imageMessage': '📷 Imagen',
+      'matcherTitle': '¡Posibles coincidencias!',
+      'matcherSubtitle': 'Hemos encontrado objetos similares en el sistema. ¿Es alguno de estos?',
+      'matcherViewButton': 'Ver detalle',
+      'matcherIgnoreButton': 'Ignorar y publicar',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -451,6 +455,10 @@ class AppStrings {
       'post_edited_success': 'Publicació editada amb èxit.',
       'post_deleted_success': 'Publicació eliminada amb èxit.',
       'imageMessage': '📷 Imatge',
+      'matcherTitle': 'Possibles coincidències!',
+      'matcherSubtitle': "Hem trobat objectes similars al sistema. És algun d'aquests?",
+      'matcherViewButton': 'Veure detall',
+      'matcherIgnoreButton': 'Ignorar i publicar',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -646,6 +654,10 @@ class AppStrings {
       'post_edited_success': 'Post edited successfully.',
       'post_deleted_success': 'Post deleted successfully.',
       'imageMessage': '📷 Image',
+      'matcherTitle': 'Potential matches!',
+      'matcherSubtitle': 'We found similar items in the system. Is it one of these?',
+      'matcherViewButton': 'View detail',
+      'matcherIgnoreButton': 'Ignore and publish',
     },
   };
 
@@ -844,6 +856,10 @@ class AppStrings {
   String get postEditedSuccess => _text('post_edited_success');
   String get postDeletedSuccess => _text('post_deleted_success');
   String get imageMessage => _text('imageMessage');
+  String get matcherTitle => _text('matcherTitle');
+  String get matcherSubtitle => _text('matcherSubtitle');
+  String get matcherViewButton => _text('matcherViewButton');
+  String get matcherIgnoreButton => _text('matcherIgnoreButton');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);

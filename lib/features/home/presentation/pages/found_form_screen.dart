@@ -307,6 +307,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'center_id': centerId.toLowerCase(),
         'category': selectedCategoryKey,
         'type': widget.postType,
+        'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
       });
 
@@ -396,86 +397,232 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       Navigator.pop(context);
     }
   }
+
   // MODIFICACIÓN 5: Modal UI del Matcher
   Future<bool?> _showMatchesDialog(List<dynamic> matches) async {
     final theme = Theme.of(context);
+    final t = AppStrings.of(context);
+    int selectedIndex = 0;
+
     return showDialog<bool>(
       context: context,
       barrierDismissible: false, // Obliga a interactuar con los botones
       builder: (context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              const Expanded(child: Text("¡Posibles coincidencias!")),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("Hemos encontrado objetos similares en el campus. ¿Es alguno de estos?"),
-                const SizedBox(height: 16),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: matches.length,
-                    separatorBuilder: (context, index) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final match = matches[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: match['postImageUrl'] != null && match['postImageUrl'].toString().isNotEmpty
-                              ? Image.network(match['postImageUrl'], width: 50, height: 50, fit: BoxFit.cover)
-                              : Container(
-                                  width: 50, height: 50, color: theme.colorScheme.surfaceContainerHighest,
-                                  child: const Icon(Icons.image_not_supported),
-                                ),
+          backgroundColor: theme.colorScheme.surface,
+          elevation: 6,
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.auto_awesome_rounded,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
                         ),
-                        title: Text(match['title'] ?? 'Sin título', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(match['description'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () async {
-                           // Cancela la publicación y te lleva a ver el detalle del objeto sugerido
-                           final savedContext = context;
-                           Navigator.pop(savedContext, false);
-                           final postSnap = await FirebaseDatabase.instance.ref('posts/${match['id']}').get();
-                           if (!mounted) return;
-                           if (postSnap.exists) {
-                             final postData = Map<dynamic, dynamic>.from(postSnap.value as Map);
-                             await Navigator.push(
-                               // ignore: use_build_context_synchronously
-                               savedContext,
-                               MaterialPageRoute(
-                                 builder: (_) => PostDetailPage(post: postData),
-                               ),
-                             );
-                           } else {
-                             // ignore: use_build_context_synchronously
-                             AppNotifications.showError(savedContext, "No se pudo cargar el detalle del objeto.");
-                           }
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            t.matcherTitle,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      t.matcherSubtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // List of matches
+                    Flexible(
+                      child: Container(
+                        constraints: const BoxConstraints(maxHeight: 280),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: matches.length,
+                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final match = matches[index];
+                            final isSelected = selectedIndex == index;
+                            final imageUrl = (match['postImageUrl'] ?? match['imageUrl'] ?? match['photo_url'] ?? '').toString();
+                            return InkWell(
+                              onTap: () {
+                                setDialogState(() {
+                                  selectedIndex = index;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                                      : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.outlineVariant,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: imageUrl.isNotEmpty
+                                          ? Image.network(
+                                              imageUrl,
+                                              width: 56,
+                                              height: 56,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  width: 56,
+                                                  height: 56,
+                                                  color: theme.colorScheme.surfaceContainerHighest,
+                                                  child: Icon(
+                                                    Icons.image_not_supported_rounded,
+                                                    color: theme.colorScheme.onSurfaceVariant,
+                                                  ),
+                                                );
+                                              },
+                                            )
+                                          : Container(
+                                              width: 56,
+                                              height: 56,
+                                              color: theme.colorScheme.surfaceContainerHighest,
+                                              child: Icon(
+                                                Icons.image_not_supported_rounded,
+                                                color: theme.colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            match['title'] ?? 'Sin título',
+                                            style: theme.textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: theme.colorScheme.onSurface,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            match['description'] ?? '',
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      isSelected
+                                          ? Icons.radio_button_checked_rounded
+                                          : Icons.radio_button_off_rounded,
+                                      color: isSelected
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                      size: 22,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Actions
+                    ElevatedButton(
+                      onPressed: () async {
+                        final selectedMatch = matches[selectedIndex];
+                        final savedContext = context;
+                        Navigator.pop(savedContext, false);
+                        
+                        final postSnap = await FirebaseDatabase.instance.ref('posts/${selectedMatch['id']}').get();
+                        if (!mounted) return;
+                        if (postSnap.exists) {
+                          final postData = Map<dynamic, dynamic>.from(postSnap.value as Map);
+                          await Navigator.push(
+                            // ignore: use_build_context_synchronously
+                            savedContext,
+                            MaterialPageRoute(
+                              builder: (_) => PostDetailPage(post: postData),
+                            ),
+                          );
+                        } else {
+                          // ignore: use_build_context_synchronously
+                          AppNotifications.showError(savedContext, "No se pudo cargar el detalle del objeto.");
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(t.matcherViewButton),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(t.matcherIgnoreButton),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false), // Solo cierra el pop-up, no publica.
-              child: const Text("Cancelar"),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true), // Retorna 'true' para continuar publicando
-              child: const Text("Ignorar y Publicar"),
-            ),
-          ],
         );
       },
     );
