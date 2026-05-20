@@ -53,7 +53,9 @@ class _ProfilePageState extends State<ProfilePage> {
         contentType: 'image/webp',
       );
 
-      await storageRef.putFile(processedImage, metadata);
+      await storageRef.putFile(processedImage, metadata).timeout(
+        const Duration(seconds: 15),
+      );
       
       // Ya NO actualizamos el RTDB manualmente aquí. 
       // Dejamos que el backend procese la imagen a .webp y actualice el campo 'photoUrl'.
@@ -397,7 +399,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             try {
                               await ref.update({
                                 'name': controller.text.trim(), 
-                                'updated_at': DateTime.now().millisecondsSinceEpoch
+                                'updated_at': ServerValue.timestamp
                               });
                               if (dialogContext.mounted) {
                                 Navigator.pop(dialogContext);
