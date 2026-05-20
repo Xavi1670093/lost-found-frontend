@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/features/chats/data/models/chat_model.dart';
@@ -21,48 +20,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   void initState() {
     super.initState();
-    _markUnreadNotificationsAsRead();
-  }
-
-  Future<void> _markUnreadNotificationsAsRead() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      final snap = await FirebaseDatabase.instance
-          .ref('users/${user.uid}/notifications')
-          .orderByChild('read')
-          .equalTo(false)
-          .get();
-
-      if (!snap.exists || snap.value == null) return;
-
-      final data = snap.value;
-      final unreadIds = <String>[];
-      if (data is Map) {
-        data.forEach((key, val) {
-          unreadIds.add(key.toString());
-        });
-      }
-
-      if (unreadIds.isEmpty) return;
-
-      try {
-        final callable = FirebaseFunctions.instance.httpsCallable('markNotificationsRead');
-        await callable.call({'notificationIds': unreadIds});
-        debugPrint("ULF_DEBUG: Cloud Function markNotificationsRead completed successfully.");
-      } catch (e) {
-        debugPrint("ULF_DEBUG: Cloud Function failed, falling back to local database update: $e");
-        
-        final updates = <String, dynamic>{};
-        for (final id in unreadIds) {
-          updates['users/${user.uid}/notifications/$id/read'] = true;
-        }
-        await FirebaseDatabase.instance.ref().update(updates);
-      }
-    } catch (e) {
-      debugPrint("ULF_DEBUG: Error marking unread notifications: $e");
-    }
   }
 
   Future<void> _markAsRead(String notificationId) async {
@@ -279,12 +236,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
               }
 
               final rawData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-              final List<Map<String, dynamic>> list = rawData.entries.map((entry) {
-                return {
-                  'id': entry.key.toString(),
-                  'data': Map<dynamic, dynamic>.from(entry.value as Map),
-                };
-              }).toList();
+              final List<Map<String, dynamic>> list = rawData.entries
+                  .map((entry) {
+                    return {
+                      'id': entry.key.toString(),
+                      'data': Map<dynamic, dynamic>.from(entry.value as Map),
+                    };
+                  })
+                  .where((item) => (item['data'] as Map<dynamic, dynamic>)['read'] == false)
+                  .toList();
 
               // Sort manually in descending order (newest first)
               list.sort((a, b) {
@@ -400,6 +360,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               ),
                             ],
                           ),
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.done_rounded, color: theme.colorScheme.primary),
+                          onPressed: () => _markAsRead(id),
                         ),
                         onTap: () => _handleNotificationTap(id, data),
                       ),

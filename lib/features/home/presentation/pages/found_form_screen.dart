@@ -311,12 +311,16 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'description': descriptionController.text.trim(),
       });
 
+      if (!mounted) return;
+
       final matches = result.data['matches'] as List<dynamic>? ?? [];
 
-      if (matches.isNotEmpty && mounted) {
+      if (matches.isNotEmpty) {
         setState(() => _isPublishing = false); // Pausamos la carga para mostrar el popup
         
         final shouldPublishAnyway = await _showMatchesDialog(matches);
+        
+        if (!mounted) return;
         
         if (shouldPublishAnyway == true) {
           // Si el usuario decide ignorar las sugerencias, publicamos
@@ -352,6 +356,31 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         ? 'posts/$postId/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.webp'
         : null;
 
+    String? imageUrl;
+    if (imageFile != null && imagePath != null) {
+      try {
+        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
+        if (processedImage == null) throw Exception(t.errorImageUpload);
+
+        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
+        final uploadTask = storageRef.putFile(processedImage, SettableMetadata(contentType: 'image/webp'));
+        final snapshot = await uploadTask.whenComplete(() => null);
+        imageUrl = await snapshot.ref.getDownloadURL();
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isPublishing = false);
+        _showError(t.errorImageUpload);
+        return;
+      }
+    }
+
+    if (imageFile != null && (imageUrl == null || imageUrl.isEmpty)) {
+      if (!mounted) return;
+      setState(() => _isPublishing = false);
+      _showError(t.errorImageUpload);
+      return;
+    }
+
     await newPostRef.set({
       'id': postId,
       'user_id': user.uid,
@@ -369,41 +398,21 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'geohash': geohash,
       },
       'photo_path': imagePath ?? '',
-      'imageUrl': '',
-      'postImageUrl': '',
+      'imageUrl': imageUrl ?? '',
+      'postImageUrl': imageUrl ?? '',
       'date': selectedDate.millisecondsSinceEpoch,
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
       'is_deleted': false,
     });
 
-    if (imageFile != null && imagePath != null) {
-      try {
-        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
-        if (processedImage == null) throw Exception(t.errorImageUpload);
+    if (!mounted) return;
 
-        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-        await storageRef.putFile(
-          processedImage,
-          SettableMetadata(contentType: 'image/webp'),
-        );
-      } on FirebaseException catch (e) {
-        await newPostRef.remove();
-        if (e.code == 'permission-denied') throw Exception(t.errorImageUpload);
-        rethrow;
-      } catch (e) {
-        await newPostRef.remove();
-        rethrow;
-      }
-    }
-
-    if (mounted) {
-      AppNotifications.showSuccess(
-        context, 
-        widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
-      );
-      Navigator.pop(context);
-    }
+    AppNotifications.showSuccess(
+      context, 
+      widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
+    );
+    Navigator.pop(context);
   }
 
   // MODIFICACIÓN 5: Modal UI del Matcher
