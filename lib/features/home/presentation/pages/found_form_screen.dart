@@ -359,14 +359,18 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         if (processedImage == null) throw Exception(t.errorImageUpload);
 
         final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-        await storageRef.putFile(
-          processedImage,
-          SettableMetadata(contentType: 'image/webp'),
+        final metadata = SettableMetadata(
+          contentType: 'image/webp',
+          customMetadata: {'optimized': 'true'},
         );
-        imageUrl = await storageRef.getDownloadURL();
-      } on FirebaseException catch (e) {
-        if (e.code == 'permission-denied') throw Exception(t.errorImageUpload);
-        rethrow;
+        final snapshot = await storageRef.putFile(processedImage, metadata);
+        imageUrl = await snapshot.ref.getDownloadURL();
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isPublishing = false);
+          _showError(t.errorImageUpload);
+        }
+        return;
       }
     }
 

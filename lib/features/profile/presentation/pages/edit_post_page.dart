@@ -135,12 +135,21 @@ class _EditPostPageState extends State<EditPostPage> {
         if (user != null) {
           imagePath = 'posts/${widget.postId}/post_image_${DateTime.now().millisecondsSinceEpoch}.webp';
           final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-
-          await storageRef.putFile(
-            _imageFile!,
-            SettableMetadata(contentType: 'image/webp'),
+          final metadata = SettableMetadata(
+            contentType: 'image/webp',
+            customMetadata: {'optimized': 'true'},
           );
-          imageUrl = await storageRef.getDownloadURL();
+
+          try {
+            final snapshot = await storageRef.putFile(_imageFile!, metadata);
+            imageUrl = await snapshot.ref.getDownloadURL();
+          } catch (e) {
+            if (mounted) {
+              setState(() => _saving = false);
+              AppNotifications.showError(context, t.errorImageUpload);
+            }
+            return;
+          }
         }
       }
 

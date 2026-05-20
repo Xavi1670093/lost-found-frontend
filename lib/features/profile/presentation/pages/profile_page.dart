@@ -511,7 +511,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 4),
                 SelectableText(
-                  '+34 93 581 10 00',
+                  '+34 XXX XX XX XX',
                   style: TextStyle(
                     fontSize: 16,
                     color: theme.colorScheme.primary,
