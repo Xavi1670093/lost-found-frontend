@@ -16,7 +16,6 @@ class CustomCacheManager {
       key,
       stalePeriod: const Duration(days: 7), // Mantener las imágenes almacenadas por un período máximo de 7 días.
       maxNrOfCacheObjects: 200, // Almacenar en caché hasta un límite de 200 imágenes concurrentes.
-      repo: JsonCacheInfoRepository(databaseName: key),
       fileService: HttpFileService(),
     ),
   );
