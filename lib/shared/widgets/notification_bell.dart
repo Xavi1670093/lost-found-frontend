@@ -15,6 +15,8 @@ class NotificationBell extends StatelessWidget {
     return StreamBuilder<DatabaseEvent>(
       stream: FirebaseDatabase.instance
           .ref('users/${user.uid}/notifications')
+          .orderByChild('read')
+          .equalTo(false)
           .onValue,
       builder: (context, snapshot) {
         bool hasUnread = false;
@@ -23,12 +25,8 @@ class NotificationBell extends StatelessWidget {
         if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
           final data = snapshot.data!.snapshot.value;
           if (data is Map) {
-            data.forEach((key, val) {
-              if (val is Map && val['read'] == false) {
-                hasUnread = true;
-                unreadCount++;
-              }
-            });
+            unreadCount = data.length;
+            hasUnread = unreadCount > 0;
           }
         }
 
