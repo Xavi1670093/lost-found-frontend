@@ -5,6 +5,23 @@ import 'package:image_picker/image_picker.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 
 class ImageUtils {
+  static String? postImageUrlFrom(Map<dynamic, dynamic> post) {
+    const imageKeys = [
+      'postImageUrl',
+      'post_image_url',
+      'imageUrl',
+      'photo_url',
+      'photoUrl',
+    ];
+
+    for (final key in imageKeys) {
+      final value = post[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) return value;
+    }
+
+    return null;
+  }
+
   /// Selecciona una imagen desde la cámara o galería, verifica permisos de cámara
   /// si es necesario, y la procesa a WebP con reescalado.
   static Future<File?> pickAndProcessImage({

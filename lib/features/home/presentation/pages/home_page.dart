@@ -14,6 +14,7 @@ import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/notification_bell.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/image_utils.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -442,6 +443,7 @@ class _RealObjectCard extends StatelessWidget {
     final t = AppStrings.of(context);
     final isLost = post['type'] == 'lost';
     final theme = Theme.of(context);
+    final imageUrl = ImageUtils.postImageUrlFrom(post);
 
     return CustomCard(
       onTap: () {
@@ -460,11 +462,11 @@ class _RealObjectCard extends StatelessWidget {
               children: [
                 Hero(
                   tag: 'post_image_${post['id']}',
-                  child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
+                  child: imageUrl != null
                       ? ClipRRect(
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                           child: CachedNetworkImage(
-                            imageUrl: post['imageUrl'],
+                            imageUrl: imageUrl,
                             cacheManager: CustomCacheManager.instance,
                             width: double.infinity,
                             fit: BoxFit.cover,

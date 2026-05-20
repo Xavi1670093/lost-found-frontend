@@ -65,7 +65,7 @@ class _EditPostPageState extends State<EditPostPage> {
 
     _selectedStatus = (widget.post['status']?.toString() ?? 'active').toLowerCase().trim();
     _selectedCategory = (widget.post['category']?.toString() ?? 'others').toLowerCase().trim();
-    _currentImageUrl = widget.post['imageUrl']?.toString();
+    _currentImageUrl = ImageUtils.postImageUrlFrom(widget.post);
 
     if (!_statuses.contains(_selectedStatus)) {
       _selectedStatus = 'active';

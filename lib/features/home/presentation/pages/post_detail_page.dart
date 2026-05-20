@@ -14,6 +14,7 @@ import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/image_utils.dart';
 
 class PostDetailPage extends StatefulWidget {
   final Map<dynamic, dynamic> post;
@@ -141,6 +142,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final isLost = post['type'] == 'lost';
     final currentUser = FirebaseAuth.instance.currentUser;
     final isMyPost = currentUser?.uid == post['user_id'];
+    final imageUrl = ImageUtils.postImageUrlFrom(post);
 
     return Scaffold(
       body: CustomScrollView(
@@ -153,9 +155,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'post_image_${post['id']}',
-                child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
+                child: imageUrl != null
                     ? CachedNetworkImage(
-                        imageUrl: post['imageUrl'],
+                        imageUrl: imageUrl,
                         cacheManager: CustomCacheManager.instance,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const SkeletonLoader(

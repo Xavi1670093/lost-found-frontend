@@ -8,6 +8,7 @@ import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'edit_post_page.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/image_utils.dart';
 
 class UserPostsPage extends StatelessWidget {
   final String? type;
@@ -84,6 +85,7 @@ class UserPostsPage extends StatelessWidget {
                       (context, index) {
                         final post = postsList[index];
                         final isLost = post['type'] == 'lost';
+                        final imageUrl = ImageUtils.postImageUrlFrom(post);
 
                         return CustomCard(
                           onTap: () {
@@ -105,11 +107,11 @@ class UserPostsPage extends StatelessWidget {
                                     color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
                                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                                   ),
-                                  child: post['imageUrl'] != null && post['imageUrl'].toString().isNotEmpty
+                                  child: imageUrl != null
                                       ? ClipRRect(
                                           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                                           child: CachedNetworkImage(
-                                            imageUrl: post['imageUrl'],
+                                            imageUrl: imageUrl,
                                             cacheManager: CustomCacheManager.instance,
                                             fit: BoxFit.cover,
                                             placeholder: (context, url) => const SkeletonLoader(

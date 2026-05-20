@@ -341,33 +341,19 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final t = AppStrings.of(context);
     final postsRef = FirebaseDatabase.instance.ref('posts');
     final newPostRef = postsRef.push();
+    final postId = newPostRef.key;
 
-    String imageUrl = "";
-    if (imageFile != null) {
-      try {
-        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
-        if (processedImage == null) throw Exception(t.errorImageUpload);
-
-        final storageRef = FirebaseStorage.instance.ref().child('posts/${newPostRef.key}/${user.uid}.webp');
-        final uploadTask = await storageRef.putFile(
-          processedImage,
-          SettableMetadata(contentType: 'image/webp'),
-        );
-        imageUrl = await uploadTask.ref.getDownloadURL();
-      } on FirebaseException catch (e) {
-        if (e.code == 'permission-denied') throw Exception(t.errorImageUpload);
-        rethrow;
-      } catch (e) {
-        rethrow;
-      }
-    }
+    if (postId == null) throw Exception(t.errorSaving);
 
     final lat = _currentPosition?.latitude ?? defaultLat;
     final lng = _currentPosition?.longitude ?? defaultLng;
     final geohash = GeoHasher().encode(lng, lat);
+    final imagePath = imageFile != null
+        ? 'posts/$postId/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.webp'
+        : null;
 
     await newPostRef.set({
-      'id': newPostRef.key,
+      'id': postId,
       'user_id': user.uid,
       'user_name': _userName ?? 'Estudiante',
       'center_id': centerId.toLowerCase(),
@@ -382,12 +368,34 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'lng': lng,
         'geohash': geohash,
       },
-      'imageUrl': imageUrl,
+      'photo_path': imagePath ?? '',
+      'imageUrl': '',
+      'postImageUrl': '',
       'date': selectedDate.millisecondsSinceEpoch,
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
       'is_deleted': false,
     });
+
+    if (imageFile != null && imagePath != null) {
+      try {
+        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
+        if (processedImage == null) throw Exception(t.errorImageUpload);
+
+        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
+        await storageRef.putFile(
+          processedImage,
+          SettableMetadata(contentType: 'image/webp'),
+        );
+      } on FirebaseException catch (e) {
+        await newPostRef.remove();
+        if (e.code == 'permission-denied') throw Exception(t.errorImageUpload);
+        rethrow;
+      } catch (e) {
+        await newPostRef.remove();
+        rethrow;
+      }
+    }
 
     if (mounted) {
       AppNotifications.showSuccess(
