@@ -102,13 +102,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _handleNotificationTap(String id, Map<dynamic, dynamic> data) async {
     await _markAsRead(id);
 
-    final type = data['type']?.toString();
-    final chatId = data['chatId']?.toString() ?? data['chat_id']?.toString();
-    final matchPostId = data['matchPostId']?.toString() ?? data['match_post_id']?.toString();
+    final nestedData = data['data'] is Map ? data['data'] as Map : null;
+    final type = (data['type'] ?? nestedData?['type'])?.toString().toLowerCase();
+    
+    final chatId = (data['chatId'] ?? 
+                    data['chat_id'] ?? 
+                    nestedData?['chatId'] ?? 
+                    nestedData?['chat_id'])?.toString();
+
+    final matchPostId = (data['matchPostId'] ?? 
+                         data['match_post_id'] ?? 
+                         nestedData?['matchPostId'] ?? 
+                         nestedData?['match_post_id'])?.toString();
 
     if (!mounted) return;
 
-    if ((type == 'new_message' || type == 'chat') && chatId != null) {
+    if ((type == 'new_message' || type == 'chat' || type == 'message') && chatId != null) {
       _navigateToChat(chatId);
     } else if ((type == 'match_found' || type == 'match') && matchPostId != null) {
       _navigateToPost(matchPostId);
@@ -178,7 +187,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  String _formatTime(dynamic timestamp) {
+  String _formatTime(dynamic timestamp, String langCode) {
     if (timestamp == null) return '';
     try {
       final int ts = int.tryParse(timestamp.toString()) ?? 0;
@@ -188,9 +197,23 @@ class _NotificationsPageState extends State<NotificationsPage> {
       final diff = now.difference(date);
 
       if (diff.inMinutes < 60) {
-        return '${diff.inMinutes}m ago';
+        final minutes = diff.inMinutes;
+        if (langCode == 'es') {
+          return 'hace $minutes ${minutes == 1 ? "minuto" : "minutos"}';
+        } else if (langCode == 'ca') {
+          return 'fa $minutes ${minutes == 1 ? "minut" : "minuts"}';
+        } else {
+          return '$minutes ${minutes == 1 ? "minute" : "minutes"} ago';
+        }
       } else if (diff.inHours < 24) {
-        return '${diff.inHours}h ago';
+        final hours = diff.inHours;
+        if (langCode == 'es') {
+          return 'hace $hours ${hours == 1 ? "hora" : "horas"}';
+        } else if (langCode == 'ca') {
+          return 'fa $hours ${hours == 1 ? "hora" : "hores"}';
+        } else {
+          return '$hours ${hours == 1 ? "hour" : "hours"} ago';
+        }
       } else {
         return '${date.day}/${date.month}';
       }
@@ -380,7 +403,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                _formatTime(data['timestamp']),
+                                _formatTime(data['timestamp'], t.locale.languageCode),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),

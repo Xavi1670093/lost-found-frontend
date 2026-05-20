@@ -78,16 +78,25 @@ class AppNotifications {
 
   /// Handles user redirection based on the notification data payload
   static Future<void> handlePushNavigation(BuildContext context, Map<dynamic, dynamic> data) async {
-    final type = data['type']?.toString();
-    final chatId = data['chatId']?.toString() ?? data['chat_id']?.toString();
-    final matchPostId = data['matchPostId']?.toString() ?? data['match_post_id']?.toString();
+    final nestedData = data['data'] is Map ? data['data'] as Map : null;
+    final type = (data['type'] ?? nestedData?['type'])?.toString().toLowerCase();
+    
+    final chatId = (data['chatId'] ?? 
+                    data['chat_id'] ?? 
+                    nestedData?['chatId'] ?? 
+                    nestedData?['chat_id'])?.toString();
+
+    final matchPostId = (data['matchPostId'] ?? 
+                         data['match_post_id'] ?? 
+                         nestedData?['matchPostId'] ?? 
+                         nestedData?['match_post_id'])?.toString();
 
     debugPrint("ULF_DEBUG: Handling push navigation: type=$type, chatId=$chatId, matchPostId=$matchPostId");
 
     if (!context.mounted) return;
     final t = AppStrings.of(context);
 
-    if ((type == 'new_message' || type == 'chat') && chatId != null) {
+    if ((type == 'new_message' || type == 'chat' || type == 'message') && chatId != null) {
       try {
         final chatSnap = await FirebaseDatabase.instance.ref('chats/$chatId').get();
         if (!chatSnap.exists) {
