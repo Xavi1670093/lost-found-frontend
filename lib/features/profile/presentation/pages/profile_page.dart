@@ -11,7 +11,6 @@ import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'user_posts_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -308,7 +307,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               const Divider(height: 1),
-                              PushNotificationsSwitchTile(user: user),
+                              PushNotificationsSwitchTile(settingsController: widget.settingsController),
+                              const Divider(height: 1),
+                              ListTile(
+                                leading: Icon(Icons.support_agent_rounded, color: theme.colorScheme.primary),
+                                title: Text(t.customerSupport),
+                                trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                                onTap: _showSupportDialog,
+                              ),
                             ],
                           ),
                         ),
@@ -346,7 +352,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (context) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -451,6 +457,82 @@ class _ProfilePageState extends State<ProfilePage> {
     ).then((_) => controller.dispose());
   }
 
+  void _showSupportDialog() {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.support_agent_rounded, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  t.customerSupport,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  t.supportHelpText,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  t.email,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  'support@unilostfound.com',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  t.phone,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  '+34 93 581 10 00',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(t.close),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildSectionTitle(String title, ThemeData theme) {
     return Text(
       title.toUpperCase(),
@@ -529,110 +611,15 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-class PushNotificationsSwitchTile extends StatefulWidget {
-  final User user;
+class PushNotificationsSwitchTile extends StatelessWidget {
+  final AppSettingsController settingsController;
 
-  const PushNotificationsSwitchTile({super.key, required this.user});
-
-  @override
-  State<PushNotificationsSwitchTile> createState() => _PushNotificationsSwitchTileState();
-}
-
-class _PushNotificationsSwitchTileState extends State<PushNotificationsSwitchTile> {
-  bool _isEnabled = true;
-  bool _isLoading = true;
-  bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPushSettings();
-  }
-
-  Future<void> _loadPushSettings() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      bool? localVal = prefs.getBool('push_notifications_enabled');
-
-      final snap = await FirebaseDatabase.instance
-          .ref('users/${widget.user.uid}/settings/pushNotificationsEnabled')
-          .get();
-
-      if (snap.exists) {
-        final bool remoteVal = snap.value == true;
-        if (localVal != remoteVal) {
-          localVal = remoteVal;
-          await prefs.setBool('push_notifications_enabled', remoteVal);
-        }
-      } else {
-        await FirebaseDatabase.instance
-            .ref('users/${widget.user.uid}/settings/pushNotificationsEnabled')
-            .set(true);
-        await prefs.setBool('push_notifications_enabled', true);
-        localVal = true;
-      }
-
-      if (mounted) {
-        setState(() {
-          _isEnabled = localVal ?? true;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _togglePush(bool val) async {
-    if (_isSaving) return;
-
-    final previousValue = _isEnabled;
-    setState(() {
-      _isEnabled = val;
-      _isSaving = true;
-    });
-
-    try {
-      await FirebaseDatabase.instance
-          .ref('users/${widget.user.uid}/settings/pushNotificationsEnabled')
-          .set(val);
-
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('push_notifications_enabled', val);
-      } catch (cacheError) {
-        debugPrint("ULF_DEBUG: Error caching push notifications setting: $cacheError");
-      }
-    } catch (e) {
-      debugPrint("ULF_DEBUG: Error toggling push notifications setting: $e");
-      if (mounted) {
-        setState(() => _isEnabled = previousValue);
-        AppNotifications.showError(context, AppStrings.of(context).errorSaving);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
-    }
-  }
+  const PushNotificationsSwitchTile({super.key, required this.settingsController});
 
   @override
   Widget build(BuildContext context) {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
-
-    if (_isLoading) {
-      return const ListTile(
-        leading: Icon(Icons.notifications_active_outlined),
-        title: SizedBox(
-          width: 100,
-          height: 16,
-          child: LinearProgressIndicator(),
-        ),
-      );
-    }
 
     return SwitchListTile.adaptive(
       secondary: Icon(Icons.notifications_active_outlined, color: theme.colorScheme.primary),
@@ -641,8 +628,8 @@ class _PushNotificationsSwitchTileState extends State<PushNotificationsSwitchTil
         t.settingsPushDesc,
         style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
       ),
-      value: _isEnabled,
-      onChanged: _isSaving ? null : _togglePush,
+      value: settingsController.pushNotificationsEnabled,
+      onChanged: (v) => settingsController.setPushNotifications(v),
     );
   }
 }

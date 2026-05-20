@@ -127,29 +127,41 @@ class _EditPostPageState extends State<EditPostPage> {
     setState(() => _saving = true);
 
     try {
+      String? imageUrl;
+      String? imagePath;
       // Si el usuario seleccionó una nueva foto, la subimos a Firebase Storage
       if (_imageFile != null) {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          final storageRef = FirebaseStorage.instance
-              .ref()
-              .child('posts/${widget.postId}/post_image_${DateTime.now().millisecondsSinceEpoch}.webp');
+          imagePath = 'posts/${widget.postId}/post_image_${DateTime.now().millisecondsSinceEpoch}.webp';
+          final storageRef = FirebaseStorage.instance.ref().child(imagePath);
 
           await storageRef.putFile(
             _imageFile!,
             SettableMetadata(contentType: 'image/webp'),
           );
+          imageUrl = await storageRef.getDownloadURL();
         }
       }
 
-      // 1. Actualizamos campos directamente en RTDB (solo campos de texto)
-      await FirebaseDatabase.instance.ref('posts/${widget.postId}').update({
+      // 1. Actualizamos campos directamente en RTDB
+      final Map<String, dynamic> updates = {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
         'status': _selectedStatus,
         'updated_at': ServerValue.timestamp,
-      });
+      };
+
+      if (imageUrl != null) {
+        updates['imageUrl'] = imageUrl;
+        updates['postImageUrl'] = imageUrl;
+        if (imagePath != null) {
+          updates['photo_path'] = imagePath;
+        }
+      }
+
+      await FirebaseDatabase.instance.ref('posts/${widget.postId}').update(updates);
 
       // 2. Notificamos al backend para actualizar el estado (esto dispara triggers en el servidor)
       final callable = FirebaseFunctions.instance.httpsCallable('updatePostStatus');

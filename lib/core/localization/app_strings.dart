@@ -271,6 +271,11 @@ class AppStrings {
       'time_hours_ago_plural': 'hace {count} horas',
       'settings_push_toggle': 'Recibir notificaciones push',
       'settings_push_desc': 'Avisos de mensajes y coincidencias.',
+      'customerSupport': 'Atención al Cliente',
+      'supportHelpText': 'Si necesitas ayuda, puedes contactar con nosotros a través de los siguientes medios:',
+      'email': 'Correo Electrónico',
+      'phone': 'Teléfono',
+      'close': 'Cerrar',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -481,6 +486,11 @@ class AppStrings {
       'time_hours_ago_plural': 'fa {count} hores',
       'settings_push_toggle': 'Rebre notificacions push',
       'settings_push_desc': 'Avisos de missatges i coincidències.',
+      'customerSupport': 'Atenció al Client',
+      'supportHelpText': 'Si necessites ajuda, pots contactar amb nosaltres a través dels següents mitjans:',
+      'email': 'Correu Electrònic',
+      'phone': 'Telèfon',
+      'close': 'Tancar',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -691,6 +701,11 @@ class AppStrings {
       'time_hours_ago_plural': '{count} hours ago',
       'settings_push_toggle': 'Receive push notifications',
       'settings_push_desc': 'Message and match alerts.',
+      'customerSupport': 'Customer Support',
+      'supportHelpText': 'If you need help, you can contact us through the following channels:',
+      'email': 'Email',
+      'phone': 'Phone',
+      'close': 'Close',
     },
   };
 
@@ -904,6 +919,11 @@ class AppStrings {
   String get defaultNotificationTitle => _text('default_notification_title');
   String get settingsPushToggle => _text('settings_push_toggle');
   String get settingsPushDesc => _text('settings_push_desc');
+  String get customerSupport => _text('customerSupport');
+  String get supportHelpText => _text('supportHelpText');
+  String get email => _text('email');
+  String get phone => _text('phone');
+  String get close => _text('close');
 
   String minutesAgo(int count) {
     final key = count == 1

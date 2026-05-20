@@ -352,6 +352,24 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         ? 'posts/$postId/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.webp'
         : null;
 
+    String? imageUrl;
+    if (imageFile != null && imagePath != null) {
+      try {
+        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
+        if (processedImage == null) throw Exception(t.errorImageUpload);
+
+        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
+        await storageRef.putFile(
+          processedImage,
+          SettableMetadata(contentType: 'image/webp'),
+        );
+        imageUrl = await storageRef.getDownloadURL();
+      } on FirebaseException catch (e) {
+        if (e.code == 'permission-denied') throw Exception(t.errorImageUpload);
+        rethrow;
+      }
+    }
+
     await newPostRef.set({
       'id': postId,
       'user_id': user.uid,
@@ -369,33 +387,13 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'geohash': geohash,
       },
       'photo_path': imagePath ?? '',
-      'imageUrl': '',
-      'postImageUrl': '',
+      'imageUrl': imageUrl ?? '',
+      'postImageUrl': imageUrl ?? '',
       'date': selectedDate.millisecondsSinceEpoch,
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
       'is_deleted': false,
     });
-
-    if (imageFile != null && imagePath != null) {
-      try {
-        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
-        if (processedImage == null) throw Exception(t.errorImageUpload);
-
-        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-        await storageRef.putFile(
-          processedImage,
-          SettableMetadata(contentType: 'image/webp'),
-        );
-      } on FirebaseException catch (e) {
-        await newPostRef.remove();
-        if (e.code == 'permission-denied') throw Exception(t.errorImageUpload);
-        rethrow;
-      } catch (e) {
-        await newPostRef.remove();
-        rethrow;
-      }
-    }
 
     if (mounted) {
       AppNotifications.showSuccess(
