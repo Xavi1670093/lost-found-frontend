@@ -541,6 +541,7 @@ class PushNotificationsSwitchTile extends StatefulWidget {
 class _PushNotificationsSwitchTileState extends State<PushNotificationsSwitchTile> {
   bool _isEnabled = true;
   bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -585,16 +586,35 @@ class _PushNotificationsSwitchTileState extends State<PushNotificationsSwitchTil
   }
 
   Future<void> _togglePush(bool val) async {
-    setState(() => _isEnabled = val);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('push_notifications_enabled', val);
+    if (_isSaving) return;
 
+    final previousValue = _isEnabled;
+    setState(() {
+      _isEnabled = val;
+      _isSaving = true;
+    });
+
+    try {
       await FirebaseDatabase.instance
           .ref('users/${widget.user.uid}/settings/pushNotificationsEnabled')
           .set(val);
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('push_notifications_enabled', val);
+      } catch (cacheError) {
+        debugPrint("ULF_DEBUG: Error caching push notifications setting: $cacheError");
+      }
     } catch (e) {
       debugPrint("ULF_DEBUG: Error toggling push notifications setting: $e");
+      if (mounted) {
+        setState(() => _isEnabled = previousValue);
+        AppNotifications.showError(context, AppStrings.of(context).errorSaving);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -622,7 +642,7 @@ class _PushNotificationsSwitchTileState extends State<PushNotificationsSwitchTil
         style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
       ),
       value: _isEnabled,
-      onChanged: _togglePush,
+      onChanged: _isSaving ? null : _togglePush,
     );
   }
 }

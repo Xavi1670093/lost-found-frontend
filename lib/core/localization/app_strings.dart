@@ -262,6 +262,13 @@ class AppStrings {
       'matcherIgnoreButton': 'Ignorar y publicar',
       'notifications_title': 'Notificaciones',
       'no_notifications': 'No tienes notificaciones nuevas.',
+      'all_notifications_read': 'Todas las notificaciones marcadas como leídas.',
+      'mark_all_as_read': 'Marcar todo como leído',
+      'default_notification_title': 'Alerta ULF',
+      'time_minutes_ago_singular': 'hace {count} minuto',
+      'time_minutes_ago_plural': 'hace {count} minutos',
+      'time_hours_ago_singular': 'hace {count} hora',
+      'time_hours_ago_plural': 'hace {count} horas',
       'settings_push_toggle': 'Recibir notificaciones push',
       'settings_push_desc': 'Avisos de mensajes y coincidencias.',
     },
@@ -465,6 +472,13 @@ class AppStrings {
       'matcherIgnoreButton': 'Ignorar i publicar',
       'notifications_title': 'Notificacions',
       'no_notifications': 'No tens cap notificació nova.',
+      'all_notifications_read': 'Totes les notificacions marcades com a llegides.',
+      'mark_all_as_read': 'Marcar-ho tot com a llegit',
+      'default_notification_title': 'Alerta ULF',
+      'time_minutes_ago_singular': 'fa {count} minut',
+      'time_minutes_ago_plural': 'fa {count} minuts',
+      'time_hours_ago_singular': 'fa {count} hora',
+      'time_hours_ago_plural': 'fa {count} hores',
       'settings_push_toggle': 'Rebre notificacions push',
       'settings_push_desc': 'Avisos de missatges i coincidències.',
     },
@@ -668,6 +682,13 @@ class AppStrings {
       'matcherIgnoreButton': 'Ignore and publish',
       'notifications_title': 'Notifications',
       'no_notifications': 'No new notifications.',
+      'all_notifications_read': 'All notifications marked as read.',
+      'mark_all_as_read': 'Mark all as read',
+      'default_notification_title': 'ULF Alert',
+      'time_minutes_ago_singular': '{count} minute ago',
+      'time_minutes_ago_plural': '{count} minutes ago',
+      'time_hours_ago_singular': '{count} hour ago',
+      'time_hours_ago_plural': '{count} hours ago',
       'settings_push_toggle': 'Receive push notifications',
       'settings_push_desc': 'Message and match alerts.',
     },
@@ -878,8 +899,25 @@ class AppStrings {
 
   String get notificationsTitle => _text('notifications_title');
   String get noNotifications => _text('no_notifications');
+  String get allNotificationsRead => _text('all_notifications_read');
+  String get markAllAsRead => _text('mark_all_as_read');
+  String get defaultNotificationTitle => _text('default_notification_title');
   String get settingsPushToggle => _text('settings_push_toggle');
   String get settingsPushDesc => _text('settings_push_desc');
+
+  String minutesAgo(int count) {
+    final key = count == 1
+        ? 'time_minutes_ago_singular'
+        : 'time_minutes_ago_plural';
+    return _text(key).replaceAll('{count}', count.toString());
+  }
+
+  String hoursAgo(int count) {
+    final key = count == 1
+        ? 'time_hours_ago_singular'
+        : 'time_hours_ago_plural';
+    return _text(key).replaceAll('{count}', count.toString());
+  }
 
   String _text(String key) {
     return _localizedValues[locale.languageCode]?[key] ??

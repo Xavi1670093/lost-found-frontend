@@ -91,7 +91,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       await FirebaseDatabase.instance.ref().update(updates);
       if (!mounted) return;
       final t = AppStrings.of(context);
-      AppNotifications.showSuccess(context, t.postPublishedSuccess); // fallback success message
+      AppNotifications.showSuccess(context, t.allNotificationsRead);
     } catch (e) {
       debugPrint("ULF_DEBUG: Error marking all as read: $e");
     } finally {
@@ -187,7 +187,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  String _formatTime(dynamic timestamp, String langCode) {
+  String _formatTime(dynamic timestamp, AppStrings t) {
     if (timestamp == null) return '';
     try {
       final int ts = int.tryParse(timestamp.toString()) ?? 0;
@@ -198,22 +198,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
       if (diff.inMinutes < 60) {
         final minutes = diff.inMinutes;
-        if (langCode == 'es') {
-          return 'hace $minutes ${minutes == 1 ? "minuto" : "minutos"}';
-        } else if (langCode == 'ca') {
-          return 'fa $minutes ${minutes == 1 ? "minut" : "minuts"}';
-        } else {
-          return '$minutes ${minutes == 1 ? "minute" : "minutes"} ago';
-        }
+        return t.minutesAgo(minutes);
       } else if (diff.inHours < 24) {
         final hours = diff.inHours;
-        if (langCode == 'es') {
-          return 'hace $hours ${hours == 1 ? "hora" : "horas"}';
-        } else if (langCode == 'ca') {
-          return 'fa $hours ${hours == 1 ? "hora" : "hores"}';
-        } else {
-          return '$hours ${hours == 1 ? "hour" : "hours"} ago';
-        }
+        return t.hoursAgo(hours);
       } else {
         return '${date.day}/${date.month}';
       }
@@ -266,7 +254,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
               return IconButton(
                 icon: const Icon(Icons.done_all_rounded),
-                tooltip: 'Mark all as read',
+                tooltip: t.markAllAsRead,
                 onPressed: _isProcessing ? null : () => _markAllAsRead(unreadIds),
               );
             },
@@ -368,7 +356,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           children: [
                             Expanded(
                               child: Text(
-                                data['title']?.toString() ?? 'ULF Alerta',
+                                data['title']?.toString() ?? t.defaultNotificationTitle,
                                 style: TextStyle(
                                   fontWeight: read ? FontWeight.w600 : FontWeight.w800,
                                   fontSize: 14,
@@ -403,7 +391,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                _formatTime(data['timestamp'], t.locale.languageCode),
+                                _formatTime(data['timestamp'], t),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
