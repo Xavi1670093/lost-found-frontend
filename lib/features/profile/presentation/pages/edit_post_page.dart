@@ -135,22 +135,25 @@ class _EditPostPageState extends State<EditPostPage> {
         if (user != null) {
           imagePath = 'posts/${widget.postId}/post_image_${DateTime.now().millisecondsSinceEpoch}.webp';
           final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-          final metadata = SettableMetadata(
-            contentType: 'image/webp',
-            customMetadata: {'optimized': 'true'},
-          );
 
           try {
-            final snapshot = await storageRef.putFile(_imageFile!, metadata);
+            final uploadTask = storageRef.putFile(_imageFile!, SettableMetadata(contentType: 'image/webp'));
+            final snapshot = await uploadTask.whenComplete(() => null);
             imageUrl = await snapshot.ref.getDownloadURL();
           } catch (e) {
-            if (mounted) {
-              setState(() => _saving = false);
-              AppNotifications.showError(context, t.errorImageUpload);
-            }
+            if (!mounted) return;
+            setState(() => _saving = false);
+            AppNotifications.showError(context, t.errorImageUpload);
             return;
           }
         }
+      }
+
+      if (_imageFile != null && (imageUrl == null || imageUrl.isEmpty)) {
+        if (!mounted) return;
+        setState(() => _saving = false);
+        AppNotifications.showError(context, t.errorImageUpload);
+        return;
       }
 
       // 1. Actualizamos campos directamente en RTDB
@@ -162,7 +165,7 @@ class _EditPostPageState extends State<EditPostPage> {
         'updated_at': ServerValue.timestamp,
       };
 
-      if (imageUrl != null) {
+      if (imageUrl != null && imageUrl.isNotEmpty) {
         updates['imageUrl'] = imageUrl;
         updates['postImageUrl'] = imageUrl;
         if (imagePath != null) {
@@ -171,6 +174,8 @@ class _EditPostPageState extends State<EditPostPage> {
       }
 
       await FirebaseDatabase.instance.ref('posts/${widget.postId}').update(updates);
+
+      if (!mounted) return;
 
       // 2. Notificamos al backend para actualizar el estado (esto dispara triggers en el servidor)
       final callable = FirebaseFunctions.instance.httpsCallable('updatePostStatus');

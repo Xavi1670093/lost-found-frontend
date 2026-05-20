@@ -311,12 +311,16 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'description': descriptionController.text.trim(),
       });
 
+      if (!mounted) return;
+
       final matches = result.data['matches'] as List<dynamic>? ?? [];
 
-      if (matches.isNotEmpty && mounted) {
+      if (matches.isNotEmpty) {
         setState(() => _isPublishing = false); // Pausamos la carga para mostrar el popup
         
         final shouldPublishAnyway = await _showMatchesDialog(matches);
+        
+        if (!mounted) return;
         
         if (shouldPublishAnyway == true) {
           // Si el usuario decide ignorar las sugerencias, publicamos
@@ -359,19 +363,22 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         if (processedImage == null) throw Exception(t.errorImageUpload);
 
         final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-        final metadata = SettableMetadata(
-          contentType: 'image/webp',
-          customMetadata: {'optimized': 'true'},
-        );
-        final snapshot = await storageRef.putFile(processedImage, metadata);
+        final uploadTask = storageRef.putFile(processedImage, SettableMetadata(contentType: 'image/webp'));
+        final snapshot = await uploadTask.whenComplete(() => null);
         imageUrl = await snapshot.ref.getDownloadURL();
       } catch (e) {
-        if (mounted) {
-          setState(() => _isPublishing = false);
-          _showError(t.errorImageUpload);
-        }
+        if (!mounted) return;
+        setState(() => _isPublishing = false);
+        _showError(t.errorImageUpload);
         return;
       }
+    }
+
+    if (imageFile != null && (imageUrl == null || imageUrl.isEmpty)) {
+      if (!mounted) return;
+      setState(() => _isPublishing = false);
+      _showError(t.errorImageUpload);
+      return;
     }
 
     await newPostRef.set({
@@ -399,13 +406,13 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       'is_deleted': false,
     });
 
-    if (mounted) {
-      AppNotifications.showSuccess(
-        context, 
-        widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
-      );
-      Navigator.pop(context);
-    }
+    if (!mounted) return;
+
+    AppNotifications.showSuccess(
+      context, 
+      widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
+    );
+    Navigator.pop(context);
   }
 
   // MODIFICACIÓN 5: Modal UI del Matcher
