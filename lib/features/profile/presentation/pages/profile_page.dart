@@ -30,9 +30,10 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _isUploadingPhoto = false;
+  String? _oldPhotoUrl;
   int _imageVersion = DateTime.now().millisecondsSinceEpoch;
 
-  Future<void> _pickAndUploadPhoto(DatabaseReference ref, String userId) async {
+  Future<void> _pickAndUploadPhoto(DatabaseReference ref, String userId, String? currentPhotoUrl) async {
     final t = AppStrings.of(context);
     
     // 1. Elegir e imagen usando el procesador unificado
@@ -43,7 +44,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (processedImage == null) return;
 
-    setState(() => _isUploadingPhoto = true);
+    setState(() {
+      _oldPhotoUrl = currentPhotoUrl;
+      _isUploadingPhoto = true;
+    });
 
     try {
       // 2. Subir a Firebase Storage
@@ -64,7 +68,10 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       if (mounted) {
         AppNotifications.showError(context, t.errorSaving);
-        setState(() => _isUploadingPhoto = false);
+        setState(() {
+          _isUploadingPhoto = false;
+          _oldPhotoUrl = null;
+        });
       }
     }
   }
@@ -101,22 +108,25 @@ class _ProfilePageState extends State<ProfilePage> {
           final snakeUrl = data['photo_url']?.toString();
           final camelUrl = data['photoUrl']?.toString();
           
-          // Priorizamos la URL que contenga .webp (procesada por el backend)
-          if (camelUrl != null && camelUrl.contains('.webp')) {
+          // Priorizamos siempre la URL más actualizada (camelCase 'photoUrl') y luego el formato heredado (snake_case)
+          if (camelUrl != null && camelUrl.isNotEmpty) {
             photoUrl = camelUrl;
-          } else if (snakeUrl != null && snakeUrl.contains('.webp')) {
+          } else if (snakeUrl != null && snakeUrl.isNotEmpty) {
             photoUrl = snakeUrl;
           } else {
-            photoUrl = camelUrl ?? snakeUrl ?? data['imageUrl'];
+            final legacyImg = data['imageUrl']?.toString();
+            photoUrl = (legacyImg != null && legacyImg.isNotEmpty) ? legacyImg : null;
           }
           
           debugPrint("ULF_DEBUG: Final photoUrl: $photoUrl");
           
-          if (_isUploadingPhoto && photoUrl != null) {
+          // Solo completamos el estado de subida si el photoUrl actual es diferente del que teníamos antes de subir (para evitar trigger falso inmediato)
+          if (_isUploadingPhoto && photoUrl != null && photoUrl != _oldPhotoUrl) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 setState(() {
                   _isUploadingPhoto = false;
+                  _oldPhotoUrl = null;
                   _imageVersion = DateTime.now().millisecondsSinceEpoch;
                 });
                 AppNotifications.showSuccess(context, t.editPhotoSuccess);
@@ -148,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           Stack(
                             children: [
                               GestureDetector(
-                                onTap: () => _pickAndUploadPhoto(userRef, user.uid),
+                                onTap: () => _pickAndUploadPhoto(userRef, user.uid, photoUrl),
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
