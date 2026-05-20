@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 
 class LanguageSelectorWidget extends StatelessWidget {
@@ -28,9 +30,21 @@ class LanguageSelectorWidget extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6.0),
           child: GestureDetector(
-            onTap: () {
+            onTap: () async {
               if (!isSelected) {
-                settingsController.setLocale(Locale(lang['code']!));
+                final langCode = lang['code']!;
+                await settingsController.setLocale(Locale(langCode));
+                
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  try {
+                    await FirebaseDatabase.instance
+                        .ref('users/${user.uid}')
+                        .update({'preferredLanguage': langCode});
+                  } catch (e) {
+                    debugPrint('ULF_DEBUG: Error updating preferredLanguage: $e');
+                  }
+                }
               }
             },
             child: AnimatedContainer(
@@ -45,7 +59,7 @@ class LanguageSelectorWidget extends StatelessWidget {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: theme.colorScheme.primary.withOpacity(0.3),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         )

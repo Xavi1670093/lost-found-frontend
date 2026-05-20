@@ -260,6 +260,10 @@ class AppStrings {
       'matcherSubtitle': 'Hemos encontrado objetos similares en el sistema. ¿Es alguno de estos?',
       'matcherViewButton': 'Ver detalle',
       'matcherIgnoreButton': 'Ignorar y publicar',
+      'notifications_title': 'Notificaciones',
+      'no_notifications': 'No tienes notificaciones nuevas.',
+      'settings_push_toggle': 'Recibir notificaciones push',
+      'settings_push_desc': 'Avisos de mensajes y coincidencias.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -459,6 +463,10 @@ class AppStrings {
       'matcherSubtitle': "Hem trobat objectes similars al sistema. És algun d'aquests?",
       'matcherViewButton': 'Veure detall',
       'matcherIgnoreButton': 'Ignorar i publicar',
+      'notifications_title': 'Notificacions',
+      'no_notifications': 'No tens cap notificació nova.',
+      'settings_push_toggle': 'Rebre notificacions push',
+      'settings_push_desc': 'Avisos de missatges i coincidències.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -658,6 +666,10 @@ class AppStrings {
       'matcherSubtitle': 'We found similar items in the system. Is it one of these?',
       'matcherViewButton': 'View detail',
       'matcherIgnoreButton': 'Ignore and publish',
+      'notifications_title': 'Notifications',
+      'no_notifications': 'No new notifications.',
+      'settings_push_toggle': 'Receive push notifications',
+      'settings_push_desc': 'Message and match alerts.',
     },
   };
 
@@ -863,6 +875,11 @@ class AppStrings {
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);
+
+  String get notificationsTitle => _text('notifications_title');
+  String get noNotifications => _text('no_notifications');
+  String get settingsPushToggle => _text('settings_push_toggle');
+  String get settingsPushDesc => _text('settings_push_desc');
 
   String _text(String key) {
     return _localizedValues[locale.languageCode]?[key] ??

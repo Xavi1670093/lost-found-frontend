@@ -8,6 +8,8 @@ import 'package:unilost_found/features/home/presentation/pages/found_form_screen
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:unilost_found/features/welcome/presentation/pages/welcome_page.dart';
+import 'package:unilost_found/shared/widgets/notification_bell.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 
 /// [MainNavigationPage] es la vista contenedor principal que gestiona
 /// la barra de navegación inferior de la aplicación móvil.
@@ -33,6 +35,17 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   /// Índice de la pestaña activa en la barra de navegación inferior.
   /// Por defecto inicia en la pestaña Inicio ([HomePage]). Es estático para persistir la sección seleccionada tras reconstrucciones.
   static int _currentIndex = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicializar FCM y registrar token una vez cargada la navegación principal
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppNotifications.initFCM(context);
+      }
+    });
+  }
 
   void _showLogoutDialog() {
     final t = AppStrings.of(context);
@@ -129,8 +142,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'found'))
+                  context,
+                  MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'found'))
                 );
               },
             ),
@@ -148,8 +161,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'lost'))
+                  context,
+                  MaterialPageRoute(builder: (_) => const FoundFormScreen(postType: 'lost'))
                 );
               },
             ),
@@ -174,6 +187,20 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     ];
 
     return Scaffold(
+      appBar: _currentIndex == 1
+          ? null
+          : AppBar(
+              title: Text(
+                _currentIndex == 0 ? t.messages : t.profile,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              actions: const [
+                NotificationBell(),
+                SizedBox(width: 8),
+              ],
+            ),
       extendBody: true,
       body: pages[_currentIndex],
       bottomNavigationBar: BottomAppBar(

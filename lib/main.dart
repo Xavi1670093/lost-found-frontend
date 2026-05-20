@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:unilost_found/app.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -15,6 +17,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Registrar el background message handler de FCM
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // Inicialización de App Check para seguridad de la infraestructura
   await FirebaseAppCheck.instance.activate(
