@@ -309,6 +309,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
+        'postImageUrl': imageFile != null ? 'pending' : '',   // indica si el post tendrá imagen
+        'created_at': DateTime.now().millisecondsSinceEpoch,  // timestamp para el score de fecha
       });
 
       if (!mounted) return;
