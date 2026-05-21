@@ -8,37 +8,146 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'firebase_options.dart';
 
-void main() async {
-
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  runApp(const AppInitializer());
+}
 
- // (Sprint 5)
-  // Conecta el frontend con la infraestructura de la UAB
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
 
-  // Registrar el background message handler de FCM
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
 
-  // Inicialización de App Check para seguridad de la infraestructura
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug,
-    appleProvider: AppleProvider.debug,
-  );
+class _AppInitializerState extends State<AppInitializer> {
+  bool _initialized = false;
+  String? _error;
+  AppSettingsController? _settingsController;
 
-  // (Sprint 5) Configuración de persistencia local para asegurar que el token se mantenga
-  // y se pueda gestionar manualmente el cierre de sesión por dispositivo.
-  try {
-    await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-  } catch (e) {
-    debugPrint("Firebase Persistence Error: $e");
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
   }
 
-  final settingsController = AppSettingsController();
-  await settingsController.loadSettings();
+  Future<void> _initialize() async {
+    try {
+      // 1. Firebase initialization
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
 
-  runApp(
-    MyApp(settingsController: settingsController),
-  );
+      // 2. FCM background handler registration
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+      // 3. App Check activation
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+      );
+
+      // 4. Auth persistence
+      try {
+        await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+      } catch (e) {
+        debugPrint("Firebase Persistence Error: $e");
+      }
+
+      // 5. Settings controller creation & load settings
+      final controller = AppSettingsController();
+      await controller.loadSettings();
+
+      if (mounted) {
+        setState(() {
+          _settingsController = controller;
+          _initialized = true;
+        });
+      }
+    } catch (e, stackTrace) {
+      debugPrint("ULF_DEBUG: Initialization Error: $e\n$stackTrace");
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_initialized && _settingsController != null) {
+      return MyApp(settingsController: _settingsController!);
+    }
+
+    // Capture system brightness to style splash/loading screen dynamically
+    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final isDark = brightness == Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF020617) : const Color(0xFFF8FAFC);
+    final primaryColor = const Color(0xFF0F766E); // Deep Teal
+    final textColor = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: brightness,
+        scaffoldBackgroundColor: scaffoldBg,
+      ),
+      home: Scaffold(
+        body: Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        debugPrint("ULF_DEBUG: Error loading app icon during boot: $error");
+                        return Icon(
+                          Icons.inventory_2_outlined,
+                          size: 120,
+                          color: primaryColor,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_error != null) ...[
+                    Text(
+                      'Error de inicialización',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ] else ...[
+                    CircularProgressIndicator(
+                      color: primaryColor,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

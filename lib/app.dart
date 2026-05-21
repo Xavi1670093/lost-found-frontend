@@ -28,8 +28,7 @@ class MyApp extends StatelessWidget {
           title: 'UniLost & Found',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode:
-          settingsController.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          themeMode: settingsController.themeMode,
           locale: settingsController.locale,
           supportedLocales: AppStrings.supportedLocales,
           localizationsDelegates: const [
@@ -72,14 +71,56 @@ class AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<AppRoot> {
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(const AssetImage('assets/icon/app_icon.png'), context);
+  }
+
+  Widget _buildLoadingScreen(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ClipOval(
+                  child: Image.asset(
+                    'assets/icon/app_icon.png',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      debugPrint("ULF_DEBUG: Error loading app icon: $error");
+                      return Icon(
+                        Icons.inventory_2_outlined,
+                        size: 120,
+                        color: theme.colorScheme.primary,
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+                CircularProgressIndicator(
+                  color: theme.colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return _buildLoadingScreen(context);
         }
 
         final user = snapshot.data;
@@ -89,9 +130,7 @@ class _AppRootState extends State<AppRoot> {
             future: _checkSessionValidity(),
             builder: (context, sessionSnapshot) {
               if (sessionSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
+                return _buildLoadingScreen(context);
               }
 
               if (sessionSnapshot.data == true) {

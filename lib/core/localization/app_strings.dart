@@ -69,6 +69,10 @@ class AppStrings {
       'profile': 'Perfil',
       'settings': 'Configuración',
       'darkMode': 'Modo oscuro',
+      'appTheme': 'Tema de la aplicación',
+      'themeLight': 'Claro',
+      'themeDark': 'Oscuro',
+      'themeSystem': 'Sistema',
       'language': 'Idioma',
       'spanish': 'Español',
       'catalan': 'Catalán',
@@ -284,6 +288,10 @@ class AppStrings {
       'profile': 'Perfil',
       'settings': 'Configuració',
       'darkMode': 'Mode fosc',
+      'appTheme': 'Tema de l\'aplicació',
+      'themeLight': 'Clar',
+      'themeDark': 'Fosc',
+      'themeSystem': 'Sistema',
       'language': 'Idioma',
       'spanish': 'Espanyol',
       'catalan': 'Català',
@@ -499,6 +507,10 @@ class AppStrings {
       'profile': 'Profile',
       'settings': 'Settings',
       'darkMode': 'Dark mode',
+      'appTheme': 'Application theme',
+      'themeLight': 'Light',
+      'themeDark': 'Dark',
+      'themeSystem': 'System',
       'language': 'Language',
       'spanish': 'Spanish',
       'catalan': 'Catalan',
@@ -715,6 +727,10 @@ class AppStrings {
   String get profile => _text('profile');
   String get settings => _text('settings');
   String get darkMode => _text('darkMode');
+  String get appTheme => _text('appTheme');
+  String get themeLight => _text('themeLight');
+  String get themeDark => _text('themeDark');
+  String get themeSystem => _text('themeSystem');
   String get language => _text('language');
   String get spanish => _text('spanish');
   String get catalan => _text('catalan');
