@@ -129,194 +129,321 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
     final user = FirebaseAuth.instance.currentUser;
-    final postTitle = widget.chat.postTitle.isNotEmpty ? widget.chat.postTitle : t.defaultItemTitle;
-    final otherUserPhoto = widget.chat.getOtherUserPhoto();
-    final otherUserName = widget.chat.getOtherUserName(t.defaultUserName);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-              child: ClipOval(
-                child: otherUserPhoto != null && otherUserPhoto.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: otherUserPhoto,
-                        cacheManager: CustomCacheManager.instance,
-                        width: 40,
-                        height: 40,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const SkeletonLoader(
-                          width: 40,
-                          height: 40,
-                          borderRadius: BorderRadius.all(Radius.circular(20)),
-                        ),
-                        errorWidget: (context, url, error) => Icon(Icons.person_rounded, color: theme.colorScheme.primary, size: 24),
-                      )
-                    : Icon(Icons.person_rounded, color: theme.colorScheme.primary, size: 24),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    otherUserName,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+    return StreamBuilder<DatabaseEvent>(
+      stream: FirebaseDatabase.instance.ref('chats/${widget.chatId}').onValue,
+      builder: (context, chatSnapshot) {
+        // Fallback to widget.chat if database stream doesn't have data yet
+        ChatModel chat = widget.chat;
+        if (chatSnapshot.hasData && chatSnapshot.data!.snapshot.value != null) {
+          try {
+            chat = ChatModel.fromMap(
+              widget.chatId,
+              chatSnapshot.data!.snapshot.value as Map<dynamic, dynamic>,
+            );
+          } catch (e) {
+            debugPrint("ULF_DEBUG: Error parsing chat stream: $e");
+          }
+        }
+
+        final postTitle = chat.postTitle.isNotEmpty ? chat.postTitle : t.defaultItemTitle;
+        final otherUserPhoto = chat.getOtherUserPhoto();
+        final otherUserName = chat.getOtherUserName(t.defaultUserName);
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  child: ClipOval(
+                    child: otherUserPhoto != null && otherUserPhoto.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: otherUserPhoto,
+                            cacheManager: CustomCacheManager.instance,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const SkeletonLoader(
+                              width: 40,
+                              height: 40,
+                              borderRadius: BorderRadius.all(Radius.circular(20)),
+                            ),
+                            errorWidget: (context, url, error) => Icon(Icons.person_rounded, color: theme.colorScheme.primary, size: 24),
+                          )
+                        : Icon(Icons.person_rounded, color: theme.colorScheme.primary, size: 24),
                   ),
-                  Text(
-                    postTitle,
-                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        centerTitle: false,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<DatabaseEvent>(
-              stream: FirebaseDatabase.instance
-                  .ref('messages/${widget.chatId}')
-                  .orderByChild('timestamp')
-                  .onValue,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.chat_bubble_outline_rounded, size: 48, color: theme.colorScheme.outline),
-                        const SizedBox(height: 16),
-                        Text(t.noMessagesYetDetail, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
-                      ],
-                    ),
-                  );
-                }
-
-                final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                final messages = data.values
-                    .map((e) => Map<dynamic, dynamic>.from(e as Map))
-                    .toList();
-
-                messages.sort(
-                  (a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0),
-                );
-
-                return ListView.builder(
-                  reverse: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isMe = message['sender_id'] == user?.uid;
-                    final isImage = message['messageType'] == 'image' || (message['imageUrl'] != null && message['imageUrl'].toString().isNotEmpty);
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          padding: isImage
-                              ? const EdgeInsets.all(6)
-                              : const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.75,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isMe
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(20),
-                              topRight: const Radius.circular(20),
-                              bottomLeft: Radius.circular(isMe ? 20 : 4),
-                              bottomRight: Radius.circular(isMe ? 4 : 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              otherUserName,
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              if (isImage) ...[
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: CachedNetworkImage(
-                                    imageUrl: message['imageUrl'],
-                                    cacheManager: CustomCacheManager.instance,
-                                    width: 220,
-                                    height: 180,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => const SkeletonLoader(
-                                      width: 220,
-                                      height: 180,
-                                      borderRadius: BorderRadius.all(Radius.circular(16)),
+                          if (!chat.isActive) ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.lock_rounded,
+                              size: 14,
+                              color: theme.colorScheme.error.withValues(alpha: 0.7),
+                            ),
+                          ],
+                        ],
+                      ),
+                      Text(
+                        postTitle,
+                        style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            centerTitle: false,
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<DatabaseEvent>(
+                  stream: FirebaseDatabase.instance
+                      .ref('messages/${widget.chatId}')
+                      .orderByChild('timestamp')
+                      .onValue,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.chat_bubble_outline_rounded, size: 48, color: theme.colorScheme.outline),
+                            const SizedBox(height: 16),
+                            Text(t.noMessagesYetDetail, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                    final messages = data.values
+                        .map((e) => Map<dynamic, dynamic>.from(e as Map))
+                        .toList();
+
+                    messages.sort(
+                      (a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0),
+                    );
+
+                    return ListView.builder(
+                      reverse: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final isMe = message['sender_id'] == user?.uid;
+                        final isImage = message['messageType'] == 'image' || (message['imageUrl'] != null && message['imageUrl'].toString().isNotEmpty);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Align(
+                            alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                            child: Container(
+                              padding: isImage
+                                  ? const EdgeInsets.all(6)
+                                  : const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.75,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isMe
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(20),
+                                  topRight: const Radius.circular(20),
+                                  bottomLeft: Radius.circular(isMe ? 20 : 4),
+                                  bottomRight: Radius.circular(isMe ? 4 : 20),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  if (isImage) ...[
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: CachedNetworkImage(
+                                        imageUrl: message['imageUrl'],
+                                        cacheManager: CustomCacheManager.instance,
+                                        width: 220,
+                                        height: 180,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => const SkeletonLoader(
+                                          width: 220,
+                                          height: 180,
+                                          borderRadius: BorderRadius.all(Radius.circular(16)),
+                                        ),
+                                        errorWidget: (context, url, error) => Container(
+                                          width: 220,
+                                          height: 180,
+                                          color: theme.colorScheme.errorContainer,
+                                          child: Icon(
+                                            Icons.broken_image_rounded,
+                                            color: theme.colorScheme.error,
+                                            size: 40,
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    errorWidget: (context, url, error) => Container(
-                                      width: 220,
-                                      height: 180,
-                                      color: theme.colorScheme.errorContainer,
-                                      child: Icon(
-                                        Icons.broken_image_rounded,
-                                        color: theme.colorScheme.error,
-                                        size: 40,
+                                    const SizedBox(height: 4),
+                                  ] else ...[
+                                    Text(
+                                      message['text'] ?? '',
+                                      style: TextStyle(
+                                        color: isMe
+                                            ? theme.colorScheme.onPrimary
+                                            : theme.colorScheme.onSurface,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                  ],
+                                  Padding(
+                                    padding: isImage ? const EdgeInsets.only(right: 6, bottom: 4) : EdgeInsets.zero,
+                                    child: Text(
+                                      _formatTime(message['timestamp']),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isMe
+                                            ? theme.colorScheme.onPrimary.withValues(alpha: 0.7)
+                                            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                              ] else ...[
-                                Text(
-                                  message['text'] ?? '',
-                                  style: TextStyle(
-                                    color: isMe
-                                        ? theme.colorScheme.onPrimary
-                                        : theme.colorScheme.onSurface,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                              ],
-                              Padding(
-                                padding: isImage ? const EdgeInsets.only(right: 6, bottom: 4) : EdgeInsets.zero,
-                                child: Text(
-                                  _formatTime(message['timestamp']),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isMe
-                                        ? theme.colorScheme.onPrimary.withValues(alpha: 0.7)
-                                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                                  ),
-                                ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+              ),
+              if (chat.isActive)
+                _ChatInput(
+                  onSendMessage: _sendMessage,
+                  onSendImage: _sendImage,
+                  t: t,
+                )
+              else
+                _buildDisabledBanner(context, chat, theme, t),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDisabledBanner(
+    BuildContext context,
+    ChatModel chat,
+    ThemeData theme,
+    AppStrings t,
+  ) {
+    final isDeleted = chat.disabledReason == 'deleted';
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final Color backgroundColor;
+    final Color textColor;
+    final Color iconColor;
+    final String message;
+    final IconData icon;
+
+    if (isDeleted) {
+      message = t.chatStatusDeleted;
+      icon = Icons.delete_outline_rounded;
+      if (isDark) {
+        backgroundColor = const Color(0xFF3E1F24);
+        textColor = const Color(0xFFFFDADA);
+        iconColor = const Color(0xFFFFB4BB);
+      } else {
+        backgroundColor = const Color(0xFFFFE8E9);
+        textColor = const Color(0xFF8F0020);
+        iconColor = const Color(0xFFBA1A39);
+      }
+    } else {
+      message = t.chatStatusResolved;
+      icon = Icons.check_circle_outline_rounded;
+      if (isDark) {
+        backgroundColor = const Color(0xFF1E3525);
+        textColor = const Color(0xFFD3EED6);
+        iconColor = const Color(0xFF81D792);
+      } else {
+        backgroundColor = const Color(0xFFE8F5E9);
+        textColor = const Color(0xFF1B5E20);
+        iconColor = const Color(0xFF2E7D32);
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 24,
             ),
           ),
-
-          _ChatInput(
-            onSendMessage: _sendMessage,
-            onSendImage: _sendImage,
-            t: t,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.lock_rounded,
+            color: iconColor.withValues(alpha: 0.6),
+            size: 20,
           ),
         ],
       ),

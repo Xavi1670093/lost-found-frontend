@@ -290,6 +290,8 @@ class AppStrings {
       'acceptAndContinue': 'Aceptar y continuar',
       'termsErrorNotAccepted': 'Debes aceptar los Términos y la Política de Privacidad para continuar.',
       'legalUnavailable': 'El documento legal no se encuentra disponible en este momento.',
+      'chat_status_deleted': 'Este objeto ha sido eliminado.',
+      'chat_status_resolved': 'Este objeto ha sido devuelto.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -519,6 +521,8 @@ class AppStrings {
       'acceptAndContinue': 'Acceptar i continuar',
       'termsErrorNotAccepted': 'Has d\'acceptar els Termes i la Política de Privacitat per continuar.',
       'legalUnavailable': 'El document legal no es troba disponible en aquest moment.',
+      'chat_status_deleted': 'Aquest objecte ha estat eliminat.',
+      'chat_status_resolved': 'Aquest objecte ha estat retornat.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -748,6 +752,8 @@ class AppStrings {
       'acceptAndContinue': 'Accept and continue',
       'termsErrorNotAccepted': 'You must accept the Terms and Privacy Policy to continue.',
       'legalUnavailable': 'The legal document is not available at this moment.',
+      'chat_status_deleted': 'This item has been deleted.',
+      'chat_status_resolved': 'This item has been returned.',
     },
   };
 
@@ -980,6 +986,8 @@ class AppStrings {
   String get acceptAndContinue => _text('acceptAndContinue');
   String get termsErrorNotAccepted => _text('termsErrorNotAccepted');
   String get legalUnavailable => _text('legalUnavailable');
+  String get chatStatusDeleted => _text('chat_status_deleted');
+  String get chatStatusResolved => _text('chat_status_resolved');
 
   String minutesAgo(int count) {
     final key = count == 1

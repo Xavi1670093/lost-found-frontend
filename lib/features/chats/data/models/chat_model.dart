@@ -11,6 +11,8 @@ class ChatModel {
   final Map<String, dynamic> usersInfo;
   final List<String> participants;
   final String postOwnerId;
+  final bool isActive;
+  final String? disabledReason;
 
   ChatModel({
     required this.id,
@@ -23,6 +25,8 @@ class ChatModel {
     required this.usersInfo,
     required this.participants,
     required this.postOwnerId,
+    this.isActive = true,
+    this.disabledReason,
   });
 
   factory ChatModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -47,6 +51,8 @@ class ChatModel {
           : {},
       participants: participantsList,
       postOwnerId: map['post_owner_id']?.toString() ?? '',
+      isActive: map['isActive'] ?? map['is_active'] ?? true,
+      disabledReason: map['disabledReason'] ?? map['disabled_reason'],
     );
   }
 
