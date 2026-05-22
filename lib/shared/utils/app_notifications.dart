@@ -102,8 +102,12 @@ class AppNotifications {
                     nestedData?['chatId'] ?? 
                     nestedData?['chat_id'])?.toString();
 
-    final matchPostId = (data['matchPostId'] ?? 
+    final matchPostId = (data['postId'] ??
+                         data['post_id'] ??
+                         data['matchPostId'] ?? 
                          data['match_post_id'] ?? 
+                         nestedData?['postId'] ??
+                         nestedData?['post_id'] ??
                          nestedData?['matchPostId'] ?? 
                          nestedData?['match_post_id'])?.toString();
 
@@ -138,7 +142,7 @@ class AppNotifications {
         debugPrint("ULF_DEBUG: Error navigating to chat: $e");
         if (context.mounted) showError(context, t.cannotOpenChat);
       }
-    } else if ((type == 'match_found' || type == 'match') && matchPostId != null) {
+    } else if ((type == 'match_found' || type == 'match' || type == 'matched' || type == 'possible_match') && matchPostId != null) {
       try {
         final postSnap = await FirebaseDatabase.instance.ref('posts/$matchPostId').get();
         if (!postSnap.exists) {
