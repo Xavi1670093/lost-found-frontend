@@ -22,70 +22,74 @@ class AppSettingsController extends ChangeNotifier {
 
   AppSettingsController() {
     FirebaseAuth.instance.authStateChanges().listen((user) {
-      _settingsSubscription?.cancel();
-      if (user != null) {
-        _settingsSubscription = FirebaseDatabase.instance
-            .ref('users/${user.uid}/settings')
-            .onValue
-            .listen((event) {
-          if (event.snapshot.exists) {
-            final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
-            bool changed = false;
+      try {
+        _settingsSubscription?.cancel();
+        if (user != null) {
+          _settingsSubscription = FirebaseDatabase.instance
+              .ref('users/${user.uid}/settings')
+              .onValue
+              .listen((event) {
+            if (event.snapshot.exists) {
+              final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+              bool changed = false;
 
-            if (data['themeMode'] != null) {
-              final String dbThemeMode = data['themeMode'].toString();
-              ThemeMode? matchedMode;
-              if (dbThemeMode == 'light') matchedMode = ThemeMode.light;
-              if (dbThemeMode == 'dark') matchedMode = ThemeMode.dark;
-              if (dbThemeMode == 'system') matchedMode = ThemeMode.system;
-              if (matchedMode != null && _themeMode != matchedMode) {
-                _themeMode = matchedMode;
-                changed = true;
-                SharedPreferences.getInstance().then((prefs) {
-                  prefs.setString(_themeModeKey, dbThemeMode);
-                  prefs.setBool(_themeKey, dbThemeMode == 'dark');
-                });
+              if (data['themeMode'] != null) {
+                final String dbThemeMode = data['themeMode'].toString();
+                ThemeMode? matchedMode;
+                if (dbThemeMode == 'light') matchedMode = ThemeMode.light;
+                if (dbThemeMode == 'dark') matchedMode = ThemeMode.dark;
+                if (dbThemeMode == 'system') matchedMode = ThemeMode.system;
+                if (matchedMode != null && _themeMode != matchedMode) {
+                  _themeMode = matchedMode;
+                  changed = true;
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setString(_themeModeKey, dbThemeMode);
+                    prefs.setBool(_themeKey, dbThemeMode == 'dark');
+                  });
+                }
+              } else if (data['isDarkMode'] != null) {
+                final dbVal = data['isDarkMode'] == true;
+                final expectedMode = dbVal ? ThemeMode.dark : ThemeMode.light;
+                if (_themeMode != expectedMode) {
+                  _themeMode = expectedMode;
+                  changed = true;
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setString(_themeModeKey, expectedMode.name);
+                    prefs.setBool(_themeKey, dbVal);
+                  });
+                }
               }
-            } else if (data['isDarkMode'] != null) {
-              final dbVal = data['isDarkMode'] == true;
-              final expectedMode = dbVal ? ThemeMode.dark : ThemeMode.light;
-              if (_themeMode != expectedMode) {
-                _themeMode = expectedMode;
-                changed = true;
-                SharedPreferences.getInstance().then((prefs) {
-                  prefs.setString(_themeModeKey, expectedMode.name);
-                  prefs.setBool(_themeKey, dbVal);
-                });
-              }
-            }
 
-            if (data['language'] != null) {
-              final dbLang = data['language'].toString();
-              if (_locale.languageCode != dbLang) {
-                _locale = Locale(dbLang);
-                changed = true;
-                SharedPreferences.getInstance().then((prefs) => prefs.setString(_localeKey, dbLang));
+              if (data['language'] != null) {
+                final dbLang = data['language'].toString();
+                if (_locale.languageCode != dbLang) {
+                  _locale = Locale(dbLang);
+                  changed = true;
+                  SharedPreferences.getInstance().then((prefs) => prefs.setString(_localeKey, dbLang));
+                }
               }
-            }
 
-            if (data['pushNotificationsEnabled'] != null) {
-              final dbPush = data['pushNotificationsEnabled'] == true;
-              if (_pushNotificationsEnabled != dbPush) {
-                _pushNotificationsEnabled = dbPush;
-                changed = true;
-                SharedPreferences.getInstance().then((prefs) => prefs.setBool(_pushKey, dbPush));
+              if (data['pushNotificationsEnabled'] != null) {
+                final dbPush = data['pushNotificationsEnabled'] == true;
+                if (_pushNotificationsEnabled != dbPush) {
+                  _pushNotificationsEnabled = dbPush;
+                  changed = true;
+                  SharedPreferences.getInstance().then((prefs) => prefs.setBool(_pushKey, dbPush));
+                }
               }
-            }
 
-            if (changed) {
-              notifyListeners();
+              if (changed) {
+                notifyListeners();
+              }
+            } else {
+              _uploadSettingsToFirebase(user.uid);
             }
-          } else {
-            _uploadSettingsToFirebase(user.uid);
-          }
-        }, onError: (e) {
-          debugPrint('ULF_DEBUG: Error listening to settings changes: $e');
-        });
+          }, onError: (e) {
+            debugPrint('ULF_DEBUG: Error listening to settings changes: $e');
+          });
+        }
+      } catch (e) {
+        debugPrint('ULF_DEBUG: Error in authStateChanges listener: $e');
       }
     });
   }

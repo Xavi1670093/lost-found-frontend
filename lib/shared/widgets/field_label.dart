@@ -24,8 +24,8 @@ class FieldLabel extends StatelessWidget {
     
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
             labelText,

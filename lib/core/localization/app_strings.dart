@@ -280,6 +280,15 @@ class AppStrings {
       'email': 'Correo Electrónico',
       'phone': 'Teléfono',
       'close': 'Cerrar',
+      'termsAndConditions': 'Términos y Condiciones',
+      'privacyPolicy': 'Política de Privacidad',
+      'acceptTermsPrefix': 'Acepto los ',
+      'acceptPrivacyPrefix': 'Acepto la ',
+      'legalLoadError': 'No se pudo cargar el documento legal. Por favor, inténtelo de nuevo más tarde.',
+      'legalUpdateRequiredTitle': 'Actualización de Políticas',
+      'legalUpdateRequiredDesc': 'Para continuar usando UniLost & Found, por favor lee y acepta nuestros nuevos Términos y Condiciones y la Política de Privacidad.',
+      'acceptAndContinue': 'Aceptar y continuar',
+      'termsErrorNotAccepted': 'Debes aceptar los Términos y la Política de Privacidad para continuar.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -499,6 +508,15 @@ class AppStrings {
       'email': 'Correu Electrònic',
       'phone': 'Telèfon',
       'close': 'Tancar',
+      'termsAndConditions': 'Termes i Condicions',
+      'privacyPolicy': 'Política de Privacitat',
+      'acceptTermsPrefix': 'Accepto els ',
+      'acceptPrivacyPrefix': 'Accepto la ',
+      'legalLoadError': 'No s\'ha pogut carregar el document legal. Si us puau, torneu-ho a provar més tard.',
+      'legalUpdateRequiredTitle': 'Actualització de Polítiques',
+      'legalUpdateRequiredDesc': 'Per continuar utilitzant UniLost & Found, si us plau llegeix i accepta els nostres nous Termes i Condicions i la Política de Privacitat.',
+      'acceptAndContinue': 'Acceptar i continuar',
+      'termsErrorNotAccepted': 'Has d\'acceptar els Termes i la Política de Privacitat per continuar.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -718,6 +736,15 @@ class AppStrings {
       'email': 'Email',
       'phone': 'Phone',
       'close': 'Close',
+      'termsAndConditions': 'Terms and Conditions',
+      'privacyPolicy': 'Privacy Policy',
+      'acceptTermsPrefix': 'I accept the ',
+      'acceptPrivacyPrefix': 'I accept the ',
+      'legalLoadError': 'Could not load the legal document. Please try again later.',
+      'legalUpdateRequiredTitle': 'Policy Update',
+      'legalUpdateRequiredDesc': 'To continue using UniLost & Found, please read and accept our new Terms and Conditions and Privacy Policy.',
+      'acceptAndContinue': 'Accept and continue',
+      'termsErrorNotAccepted': 'You must accept the Terms and Privacy Policy to continue.',
     },
   };
 
@@ -940,6 +967,15 @@ class AppStrings {
   String get email => _text('email');
   String get phone => _text('phone');
   String get close => _text('close');
+  String get termsAndConditions => _text('termsAndConditions');
+  String get privacyPolicy => _text('privacyPolicy');
+  String get acceptTermsPrefix => _text('acceptTermsPrefix');
+  String get acceptPrivacyPrefix => _text('acceptPrivacyPrefix');
+  String get legalLoadError => _text('legalLoadError');
+  String get legalUpdateRequiredTitle => _text('legalUpdateRequiredTitle');
+  String get legalUpdateRequiredDesc => _text('legalUpdateRequiredDesc');
+  String get acceptAndContinue => _text('acceptAndContinue');
+  String get termsErrorNotAccepted => _text('termsErrorNotAccepted');
 
   String minutesAgo(int count) {
     final key = count == 1

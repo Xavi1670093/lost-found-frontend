@@ -12,7 +12,7 @@ class CustomButton extends StatelessWidget {
 
   /// Callback que se ejecuta cuando el usuario presiona el botón.
   /// Si [isLoading] es verdadero, esta acción se deshabilita automáticamente.
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   /// Define el estilo visual predominante del botón.
   /// Si es `true`, renderiza un botón primario (Elevated).
@@ -41,7 +41,7 @@ class CustomButton extends StatelessWidget {
     
     if (isPrimary) {
       return ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: (isLoading || onPressed == null) ? null : onPressed,
         child: isLoading
             ? const SizedBox(
                 height: 24,
@@ -61,8 +61,8 @@ class CustomButton extends StatelessWidget {
                   Flexible(
                     child: Text(
                       text,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                      softWrap: true,
                     ),
                   ),
                 ],
@@ -90,8 +90,8 @@ class CustomButton extends StatelessWidget {
                   Flexible(
                     child: Text(
                       text,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                      softWrap: true,
                     ),
                   ),
                 ],

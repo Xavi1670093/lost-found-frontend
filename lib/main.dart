@@ -76,12 +76,20 @@ class _AppInitializerState extends State<AppInitializer> {
 
   @override
   Widget build(BuildContext context) {
+    if (!mounted) {
+      return const SizedBox.shrink();
+    }
     if (_initialized && _settingsController != null) {
       return MyApp(settingsController: _settingsController!);
     }
 
     // Capture system brightness to style splash/loading screen dynamically
-    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    Brightness brightness = Brightness.light;
+    try {
+      brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    } catch (e) {
+      debugPrint("ULF_DEBUG: Error reading platform brightness: $e");
+    }
     final isDark = brightness == Brightness.dark;
     final scaffoldBg = isDark ? const Color(0xFF020617) : const Color(0xFFF8FAFC);
     final primaryColor = const Color(0xFF0F766E); // Deep Teal

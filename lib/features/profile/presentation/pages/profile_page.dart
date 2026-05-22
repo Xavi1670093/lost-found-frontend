@@ -12,6 +12,7 @@ import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'user_posts_page.dart';
+import 'package:unilost_found/shared/widgets/legal_markdown_dialog.dart';
 
 class ProfilePage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -360,6 +361,52 @@ class _ProfilePageState extends State<ProfilePage> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => const LegalMarkdownDialog(documentName: 'terms'),
+                                );
+                              },
+                              child: Text(
+                                t.termsAndConditions,
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "•",
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => const LegalMarkdownDialog(documentName: 'privacy'),
+                                );
+                              },
+                              child: Text(
+                                t.privacyPolicy,
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 120),
                       ]),

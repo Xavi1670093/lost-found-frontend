@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/gestures.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/core/theme/app_theme.dart';
@@ -9,6 +11,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
+import 'package:unilost_found/shared/widgets/custom_button.dart';
+import 'package:unilost_found/shared/widgets/legal_markdown_dialog.dart';
 
 class MyApp extends StatelessWidget {
   final AppSettingsController settingsController;
@@ -134,7 +138,10 @@ class _AppRootState extends State<AppRoot> {
               }
 
               if (sessionSnapshot.data == true) {
-                return MainNavigationPage(settingsController: widget.settingsController);
+                return LegalBlockWrapper(
+                  settingsController: widget.settingsController,
+                  child: MainNavigationPage(settingsController: widget.settingsController),
+                );
               } else {
                 return WelcomePage(settingsController: widget.settingsController);
               }
@@ -175,5 +182,260 @@ class _AppRootState extends State<AppRoot> {
     }
 
     return true;
+  }
+}
+
+class LegalBlockWrapper extends StatefulWidget {
+  final AppSettingsController settingsController;
+  final Widget child;
+
+  const LegalBlockWrapper({
+    super.key,
+    required this.settingsController,
+    required this.child,
+  });
+
+  @override
+  State<LegalBlockWrapper> createState() => _LegalBlockWrapperState();
+}
+
+class _LegalBlockWrapperState extends State<LegalBlockWrapper> {
+  bool _termsAccepted = false;
+  bool _privacyAccepted = false;
+  bool _isSaving = false;
+
+  late TapGestureRecognizer _termsRecognizer;
+  late TapGestureRecognizer _privacyRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()..onTap = _showTerms;
+    _privacyRecognizer = TapGestureRecognizer()..onTap = _showPrivacy;
+  }
+
+  @override
+  void dispose() {
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
+    super.dispose();
+  }
+
+  void _showTerms() {
+    showDialog(
+      context: context,
+      builder: (context) => const LegalMarkdownDialog(documentName: 'terms'),
+    );
+  }
+
+  void _showPrivacy() {
+    showDialog(
+      context: context,
+      builder: (context) => const LegalMarkdownDialog(documentName: 'privacy'),
+    );
+  }
+
+  Future<void> _acceptPolicies() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await FirebaseDatabase.instance.ref('users/${user.uid}/legal').update({
+        'termsAccepted': true,
+        'privacyAccepted': true,
+        'legalAccepted': true,
+        'legalAcceptedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint("ULF_DEBUG: Error saving legal acceptance: $e");
+      if (mounted) {
+        final t = AppStrings.of(context);
+        AppNotifications.showError(context, t.errorConnection);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return widget.child;
+
+    return StreamBuilder<DatabaseEvent>(
+      stream: FirebaseDatabase.instance.ref('users/${user.uid}/legal').onValue,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        final data = snapshot.data?.snapshot.value;
+        bool accepted = false;
+        if (data is Map) {
+          accepted = (data['termsAccepted'] == true) && (data['privacyAccepted'] == true);
+        }
+
+        if (accepted) {
+          return widget.child;
+        }
+
+        final t = AppStrings.of(context);
+        final theme = Theme.of(context);
+
+        return Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 450),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Icon(
+                        Icons.gavel_rounded,
+                        size: 80,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        t.legalUpdateRequiredTitle,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        t.legalUpdateRequiredDesc,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      // Checkbox Terms
+                      Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Checkbox(
+                              value: _termsAccepted,
+                              onChanged: (val) {
+                                  setState(() {
+                                    _termsAccepted = val ?? false;
+                                  });
+                              },
+                              activeColor: theme.colorScheme.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: theme.textTheme.bodyMedium,
+                                  children: [
+                                    TextSpan(text: t.acceptTermsPrefix),
+                                    TextSpan(
+                                      text: t.termsAndConditions,
+                                      style: TextStyle(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                      recognizer: _termsRecognizer,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Checkbox Privacy
+                      Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Checkbox(
+                              value: _privacyAccepted,
+                              onChanged: (val) {
+                                setState(() {
+                                  _privacyAccepted = val ?? false;
+                                });
+                              },
+                              activeColor: theme.colorScheme.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: theme.textTheme.bodyMedium,
+                                  children: [
+                                    TextSpan(text: t.acceptPrivacyPrefix),
+                                    TextSpan(
+                                      text: t.privacyPolicy,
+                                      style: TextStyle(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                      recognizer: _privacyRecognizer,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      
+                      CustomButton(
+                        text: t.acceptAndContinue,
+                        isLoading: _isSaving,
+                        onPressed: (_termsAccepted && _privacyAccepted) ? _acceptPolicies : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
