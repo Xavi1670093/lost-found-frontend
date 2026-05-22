@@ -16,6 +16,7 @@ import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/core/services/location_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/center_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'package:unilost_found/shared/widgets/map_picker_page.dart';
 import 'package:unilost_found/features/home/presentation/pages/post_detail_page.dart'; // 2. IMPORTANTE: Importar la página de detalles
@@ -25,10 +26,7 @@ import 'package:flutter_map/flutter_map.dart';
 class FoundFormScreen extends StatefulWidget {
   final String postType;
 
-  const FoundFormScreen({
-    super.key,
-    this.postType = 'found',
-  });
+  const FoundFormScreen({super.key, this.postType = 'found'});
 
   @override
   State<FoundFormScreen> createState() => _FoundFormScreenState();
@@ -60,26 +58,30 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
-      
-      final userSnap = await FirebaseDatabase.instance.ref('users/${user.uid}').get();
+
+      final userSnap = await FirebaseDatabase.instance
+          .ref('users/${user.uid}')
+          .get();
       if (userSnap.exists) {
         final userData = Map<dynamic, dynamic>.from(userSnap.value as Map);
-        _centerId = userData['center_id']?.toString().toLowerCase() ?? 'uab';
+        _centerId = CenterUtils.normalizeCenterId(userData['center_id']);
         _userName = userData['name']?.toString() ?? user.displayName;
       } else {
-        _centerId = 'uab';
+        _centerId = CenterUtils.defaultCenterId;
         _userName = user.displayName;
       }
-      
-      final fetchId = _centerId!;
+
+      final fetchId = CenterUtils.normalizeCenterId(_centerId);
       final centerRef = FirebaseDatabase.instance.ref('centers/$fetchId');
       final centerSnap = await centerRef.get();
-      
+
       if (centerSnap.exists) {
         final centerData = Map<dynamic, dynamic>.from(centerSnap.value as Map);
         setState(() {
           if (centerData['bounds'] != null) {
-            _centerBounds = Map<String, dynamic>.from(centerData['bounds'] as Map);
+            _centerBounds = Map<String, dynamic>.from(
+              centerData['bounds'] as Map,
+            );
           }
           if (centerData['polygon'] != null) {
             _centerPolygon = (centerData['polygon'] as List).map((point) {
@@ -99,7 +101,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
             'maxLat': 41.560,
             'minLng': 2.040,
             'maxLng': 2.170,
-            'name': 'UAB Campus'
+            'name': 'UAB Campus',
           };
           _centerPolygon ??= [
             const LatLng(41.507, 2.095),
@@ -117,7 +119,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
           'maxLat': 41.560,
           'minLng': 2.040,
           'maxLng': 2.170,
-          'name': 'UAB Campus'
+          'name': 'UAB Campus',
         };
         _centerPolygon = [
           const LatLng(41.507, 2.095),
@@ -133,20 +135,39 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   bool _isWithinBounds(double lat, double lng) {
     // 1. Prioridad: Validación por Polígono (Ray-Casting)
     if (_centerPolygon != null && _centerPolygon!.isNotEmpty) {
-      return LocationService.isPointInPolygon(LatLng(lat, lng), _centerPolygon!);
+      return LocationService.isPointInPolygon(
+        LatLng(lat, lng),
+        _centerPolygon!,
+      );
     }
 
     // 2. Fallback: Validación por Radio de 1100m desde el centroide
     if (_centerBounds == null || _centerBounds!.isEmpty) return true;
-    
-    final double minLat = (_centerBounds!['minLat'] as num? ?? _centerBounds!['latMin'] as num? ?? 41.480).toDouble();
-    final double maxLat = (_centerBounds!['maxLat'] as num? ?? _centerBounds!['latMax'] as num? ?? 41.520).toDouble();
-    final double minLng = (_centerBounds!['minLng'] as num? ?? _centerBounds!['lngMin'] as num? ?? 2.085).toDouble();
-    final double maxLng = (_centerBounds!['maxLng'] as num? ?? _centerBounds!['lngMax'] as num? ?? 2.130).toDouble();
-    
+
+    final double minLat =
+        (_centerBounds!['minLat'] as num? ??
+                _centerBounds!['latMin'] as num? ??
+                41.480)
+            .toDouble();
+    final double maxLat =
+        (_centerBounds!['maxLat'] as num? ??
+                _centerBounds!['latMax'] as num? ??
+                41.520)
+            .toDouble();
+    final double minLng =
+        (_centerBounds!['minLng'] as num? ??
+                _centerBounds!['lngMin'] as num? ??
+                2.085)
+            .toDouble();
+    final double maxLng =
+        (_centerBounds!['maxLng'] as num? ??
+                _centerBounds!['lngMax'] as num? ??
+                2.130)
+            .toDouble();
+
     final centerLat = (minLat + maxLat) / 2;
     final centerLng = (minLng + maxLng) / 2;
-    
+
     return LocationService.isWithinRadius(lat, lng, centerLat, centerLng, 1100);
   }
 
@@ -187,14 +208,14 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final t = AppStrings.of(context);
     final hasPermission = await PermissionService.requestLocation();
     if (!hasPermission) return;
-    
+
     try {
       // Obtenemos la posición con un timeout de 10 segundos para no bloquear la UI indefinidamente
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
       );
-      
+
       if (!mounted) return;
 
       // Validación en tiempo real (Paso 1 del Roadmap Definitivo)
@@ -206,7 +227,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       setState(() {
         _currentPosition = position;
       });
-      
+
       // Feedback visual de éxito
       if (mounted) {
         AppNotifications.showSuccess(context, t.locationObtained);
@@ -218,18 +239,38 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   }
 
   Future<void> _openMapPicker() async {
-    debugPrint("ULF_DEBUG: _openMapPicker triggered. _centerBounds: $_centerBounds");
-    
+    debugPrint(
+      "ULF_DEBUG: _openMapPicker triggered. _centerBounds: $_centerBounds",
+    );
+
     // Extracción ultra-segura de coordenadas soportando múltiples formatos de nombres (minLat vs latMin)
-    final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.430).toDouble();
-    final double maxLat = (_centerBounds?['maxLat'] as num? ?? _centerBounds?['latMax'] as num? ?? 41.580).toDouble();
-    final double minLng = (_centerBounds?['minLng'] as num? ?? _centerBounds?['lngMin'] as num? ?? 2.020).toDouble();
-    final double maxLng = (_centerBounds?['maxLng'] as num? ?? _centerBounds?['lngMax'] as num? ?? 2.190).toDouble();
+    final double minLat =
+        (_centerBounds?['minLat'] as num? ??
+                _centerBounds?['latMin'] as num? ??
+                41.430)
+            .toDouble();
+    final double maxLat =
+        (_centerBounds?['maxLat'] as num? ??
+                _centerBounds?['latMax'] as num? ??
+                41.580)
+            .toDouble();
+    final double minLng =
+        (_centerBounds?['minLng'] as num? ??
+                _centerBounds?['lngMin'] as num? ??
+                2.020)
+            .toDouble();
+    final double maxLng =
+        (_centerBounds?['maxLng'] as num? ??
+                _centerBounds?['lngMax'] as num? ??
+                2.190)
+            .toDouble();
 
     final initialLat = (minLat + maxLat) / 2;
     final initialLng = (minLng + maxLng) / 2;
-    debugPrint("ULF_DEBUG: Final Calculated initial center: $initialLat, $initialLng");
-    
+    debugPrint(
+      "ULF_DEBUG: Final Calculated initial center: $initialLat, $initialLng",
+    );
+
     try {
       final LatLng? pickedPoint = await Navigator.push(
         context,
@@ -246,7 +287,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         ),
       );
       debugPrint("ULF_DEBUG: Navigator returned: $pickedPoint");
-      
+
       if (pickedPoint != null) {
         setState(() {
           _currentPosition = Position(
@@ -271,20 +312,39 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Future<void> _submit() async {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
-    
-    final centerId = _centerId ?? 'uab';
+
+    final centerId = CenterUtils.normalizeCenterId(_centerId);
     final centerName = _centerBounds?['name']?.toString() ?? 'UAB Campus';
-    
-    final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.480).toDouble();
-    final double maxLat = (_centerBounds?['maxLat'] as num? ?? _centerBounds?['latMax'] as num? ?? 41.520).toDouble();
-    final double minLng = (_centerBounds?['minLng'] as num? ?? _centerBounds?['lngMin'] as num? ?? 2.085).toDouble();
-    final double maxLng = (_centerBounds?['maxLng'] as num? ?? _centerBounds?['lngMax'] as num? ?? 2.130).toDouble();
+
+    final double minLat =
+        (_centerBounds?['minLat'] as num? ??
+                _centerBounds?['latMin'] as num? ??
+                41.480)
+            .toDouble();
+    final double maxLat =
+        (_centerBounds?['maxLat'] as num? ??
+                _centerBounds?['latMax'] as num? ??
+                41.520)
+            .toDouble();
+    final double minLng =
+        (_centerBounds?['minLng'] as num? ??
+                _centerBounds?['lngMin'] as num? ??
+                2.085)
+            .toDouble();
+    final double maxLng =
+        (_centerBounds?['maxLng'] as num? ??
+                _centerBounds?['lngMax'] as num? ??
+                2.130)
+            .toDouble();
 
     final double defaultLat = (minLat + maxLat) / 2;
     final double defaultLng = (minLng + maxLng) / 2;
 
     if (_currentPosition != null) {
-      if (!_isWithinBounds(_currentPosition!.latitude, _currentPosition!.longitude)) {
+      if (!_isWithinBounds(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+      )) {
         _showError(t.errorLocationOutsideRecinct);
         return;
       }
@@ -302,15 +362,20 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       if (user == null) throw Exception(t.sessionError);
 
       // --- NUEVA LÓGICA DE INTERCEPCIÓN (MATCHER) ---
-      final callable = FirebaseFunctions.instance.httpsCallable('checkPotentialMatches');
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'checkPotentialMatches',
+      );
       final result = await callable.call({
         'center_id': centerId.toLowerCase(),
         'category': selectedCategoryKey,
         'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
-        'postImageUrl': imageFile != null ? 'pending' : '',   // indica si el post tendrá imagen
-        'created_at': DateTime.now().millisecondsSinceEpoch,  // timestamp para el score de fecha
+        'postImageUrl': imageFile != null
+            ? 'pending'
+            : '', // indica si el post tendrá imagen
+        'created_at': DateTime.now()
+            .millisecondsSinceEpoch, // timestamp para el score de fecha
       });
 
       if (!mounted) return;
@@ -318,22 +383,35 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final matches = result.data['matches'] as List<dynamic>? ?? [];
 
       if (matches.isNotEmpty) {
-        setState(() => _isPublishing = false); // Pausamos la carga para mostrar el popup
-        
+        setState(
+          () => _isPublishing = false,
+        ); // Pausamos la carga para mostrar el popup
+
         final shouldPublishAnyway = await _showMatchesDialog(matches);
-        
+
         if (!mounted) return;
-        
+
         if (shouldPublishAnyway == true) {
           // Si el usuario decide ignorar las sugerencias, publicamos
           setState(() => _isPublishing = true);
-          await _finalizePublish(user, centerId, centerName, defaultLat, defaultLng);
+          await _finalizePublish(
+            user,
+            centerId,
+            centerName,
+            defaultLat,
+            defaultLng,
+          );
         }
       } else {
         // No hubo sugerencias del algoritmo, publicamos directamente
-        await _finalizePublish(user, centerId, centerName, defaultLat, defaultLng);
+        await _finalizePublish(
+          user,
+          centerId,
+          centerName,
+          defaultLat,
+          defaultLng,
+        );
       }
-
     } catch (e) {
       if (!mounted) return;
       final message = ErrorHandler.getMessage(e, t);
@@ -342,8 +420,15 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       if (mounted) setState(() => _isPublishing = false);
     }
   }
+
   // MODIFICACIÓN 4: Lógica extraída de guardado final
-  Future<void> _finalizePublish(User user, String centerId, String centerName, double defaultLat, double defaultLng) async {
+  Future<void> _finalizePublish(
+    User user,
+    String centerId,
+    String centerName,
+    double defaultLat,
+    double defaultLng,
+  ) async {
     final t = AppStrings.of(context);
     final postsRef = FirebaseDatabase.instance.ref('posts');
     final newPostRef = postsRef.push();
@@ -365,7 +450,10 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         if (processedImage == null) throw Exception(t.errorImageUpload);
 
         final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-        final uploadTask = storageRef.putFile(processedImage, SettableMetadata(contentType: 'image/webp'));
+        final uploadTask = storageRef.putFile(
+          processedImage,
+          SettableMetadata(contentType: 'image/webp'),
+        );
         final snapshot = await uploadTask.whenComplete(() => null);
         imageUrl = await snapshot.ref.getDownloadURL();
       } catch (e) {
@@ -394,11 +482,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       'category': selectedCategoryKey,
       'status': 'active',
       'location': centerName,
-      'coords': {
-        'lat': lat,
-        'lng': lng,
-        'geohash': geohash,
-      },
+      'coords': {'lat': lat, 'lng': lng, 'geohash': geohash},
       'photo_path': imagePath ?? '',
       'imageUrl': imageUrl ?? '',
       'postImageUrl': imageUrl ?? '',
@@ -411,8 +495,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     if (!mounted) return;
 
     AppNotifications.showSuccess(
-      context, 
-      widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
+      context,
+      widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost,
     );
     Navigator.pop(context);
   }
@@ -421,6 +505,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
   Future<bool?> _showMatchesDialog(List<dynamic> matches) async {
     final theme = Theme.of(context);
     final t = AppStrings.of(context);
+    final pageContext = context;
     int selectedIndex = 0;
 
     return showDialog<bool>(
@@ -486,11 +571,17 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                         child: ListView.separated(
                           shrinkWrap: true,
                           itemCount: matches.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final match = matches[index];
                             final isSelected = selectedIndex == index;
-                            final imageUrl = (match['postImageUrl'] ?? match['imageUrl'] ?? match['photo_url'] ?? '').toString();
+                            final imageUrl =
+                                (match['postImageUrl'] ??
+                                        match['imageUrl'] ??
+                                        match['photo_url'] ??
+                                        '')
+                                    .toString();
                             return InkWell(
                               onTap: () {
                                 setDialogState(() {
@@ -503,8 +594,13 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? theme.colorScheme.primary.withValues(alpha: 0.08)
-                                      : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                                      ? theme.colorScheme.primary.withValues(
+                                          alpha: 0.08,
+                                        )
+                                      : theme
+                                            .colorScheme
+                                            .surfaceContainerHighest
+                                            .withValues(alpha: 0.4),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isSelected
@@ -523,49 +619,67 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                                               width: 56,
                                               height: 56,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Container(
-                                                  width: 56,
-                                                  height: 56,
-                                                  color: theme.colorScheme.surfaceContainerHighest,
-                                                  child: Icon(
-                                                    Icons.image_not_supported_rounded,
-                                                    color: theme.colorScheme.onSurfaceVariant,
-                                                  ),
-                                                );
-                                              },
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                    return Container(
+                                                      width: 56,
+                                                      height: 56,
+                                                      color: theme
+                                                          .colorScheme
+                                                          .surfaceContainerHighest,
+                                                      child: Icon(
+                                                        Icons
+                                                            .image_not_supported_rounded,
+                                                        color: theme
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                    );
+                                                  },
                                             )
                                           : Container(
                                               width: 56,
                                               height: 56,
-                                              color: theme.colorScheme.surfaceContainerHighest,
+                                              color: theme
+                                                  .colorScheme
+                                                  .surfaceContainerHighest,
                                               child: Icon(
-                                                Icons.image_not_supported_rounded,
-                                                color: theme.colorScheme.onSurfaceVariant,
+                                                Icons
+                                                    .image_not_supported_rounded,
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
                                               ),
                                             ),
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
                                             match['title'] ?? 'Sin título',
-                                            style: theme.textTheme.titleMedium?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: theme.colorScheme.onSurface,
-                                            ),
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onSurface,
+                                                ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
                                             match['description'] ?? '',
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              color: theme.colorScheme.onSurfaceVariant,
-                                            ),
+                                            style: theme.textTheme.bodyMedium
+                                                ?.copyWith(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -596,23 +710,27 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     ElevatedButton(
                       onPressed: () async {
                         final selectedMatch = matches[selectedIndex];
-                        final savedContext = context;
-                        Navigator.pop(savedContext, false);
-                        
-                        final postSnap = await FirebaseDatabase.instance.ref('posts/${selectedMatch['id']}').get();
-                        if (!mounted) return;
+                        Navigator.pop(context, false);
+
+                        final postSnap = await FirebaseDatabase.instance
+                            .ref('posts/${selectedMatch['id']}')
+                            .get();
+                        if (!mounted || !pageContext.mounted) return;
                         if (postSnap.exists) {
-                          final postData = Map<dynamic, dynamic>.from(postSnap.value as Map);
+                          final postData = Map<dynamic, dynamic>.from(
+                            postSnap.value as Map,
+                          );
                           await Navigator.push(
-                            // ignore: use_build_context_synchronously
-                            savedContext,
+                            pageContext,
                             MaterialPageRoute(
                               builder: (_) => PostDetailPage(post: postData),
                             ),
                           );
                         } else {
-                          // ignore: use_build_context_synchronously
-                          AppNotifications.showError(savedContext, "No se pudo cargar el detalle del objeto.");
+                          AppNotifications.showError(
+                            pageContext,
+                            "No se pudo cargar el detalle del objeto.",
+                          );
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -629,7 +747,10 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     OutlinedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                        side: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 1.5,
+                        ),
                         minimumSize: const Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -646,6 +767,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       },
     );
   }
+
   void _showError(String msg) {
     AppNotifications.showError(context, msg);
   }
@@ -657,7 +779,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final isFound = widget.postType == 'found';
 
     final Map<String, String> categories = {
-      for (var cat in CategoryUtils.categories) cat: CategoryUtils.getCategoryLabel(cat, t),
+      for (var cat in CategoryUtils.categories)
+        cat: CategoryUtils.getCategoryLabel(cat, t),
     };
 
     return Scaffold(
@@ -666,7 +789,11 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         backgroundColor: Colors.transparent,
       ),
       body: _isPublishing
-          ? Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))
+          ? Center(
+              child: CircularProgressIndicator(
+                color: theme.colorScheme.primary,
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Form(
@@ -694,22 +821,39 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                       child: Container(
                         height: 200,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant,
+                            width: 1.5,
+                          ),
                         ),
                         child: imageFile == null
                             ? Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_a_photo_rounded, size: 48, color: theme.colorScheme.primary),
+                                  Icon(
+                                    Icons.add_a_photo_rounded,
+                                    size: 48,
+                                    color: theme.colorScheme.primary,
+                                  ),
                                   const SizedBox(height: 12),
-                                  Text(t.tapToTakePhoto, style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    t.tapToTakePhoto,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ],
                               )
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(22),
-                                child: Image.file(imageFile!, fit: BoxFit.cover),
+                                child: Image.file(
+                                  imageFile!,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                       ),
                     ),
@@ -723,10 +867,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                       hintText: t.objectTitleHint,
                       controller: titleController,
                       isRequired: true,
-                      validator: (value) => value == null || value.isEmpty ? t.fieldRequired : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? t.fieldRequired
+                          : null,
                     ),
                     const SizedBox(height: 24),
-                    
+
                     FieldLabel(label: t.category, isRequired: true),
                     const SizedBox(height: 12),
                     Wrap(
@@ -737,14 +883,21 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                         return ChoiceChip(
                           label: Text(entry.value),
                           selected: isSelected,
-                          onSelected: (_) => setState(() => selectedCategoryKey = entry.key),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          onSelected: (_) =>
+                              setState(() => selectedCategoryKey = entry.key),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                           showCheckmark: false,
                           backgroundColor: theme.colorScheme.surface,
                           selectedColor: theme.colorScheme.primary,
                           labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected
+                                ? Colors.white
+                                : theme.colorScheme.onSurface,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         );
                       }).toList(),
@@ -784,21 +937,26 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                       },
                       style: SegmentedButton.styleFrom(
                         visualDensity: VisualDensity.comfortable,
-                        selectedBackgroundColor: theme.colorScheme.primaryContainer,
+                        selectedBackgroundColor:
+                            theme.colorScheme.primaryContainer,
                         selectedForegroundColor: theme.colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 16),
                     _buildActionTile(
-                      _locationMethod == 'gps' ? Icons.location_on_rounded : Icons.map_outlined,
-                      _currentPosition != null 
-                        ? t.locationObtained 
-                        : (_locationMethod == 'gps' ? t.getCurrentLocation : t.mapLocation),
+                      _locationMethod == 'gps'
+                          ? Icons.location_on_rounded
+                          : Icons.map_outlined,
+                      _currentPosition != null
+                          ? t.locationObtained
+                          : (_locationMethod == 'gps'
+                                ? t.getCurrentLocation
+                                : t.mapLocation),
                       _locationMethod == 'gps' ? _getLocation : _openMapPicker,
                       _currentPosition != null,
                       theme,
                     ),
-                    
+
                     // Vista previa del mapa si hay ubicación seleccionada
                     if (_currentPosition != null) ...[
                       const SizedBox(height: 16),
@@ -806,28 +964,45 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                         height: 240,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
                           child: FlutterMap(
                             options: MapOptions(
-                              initialCenter: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                              initialCenter: LatLng(
+                                _currentPosition!.latitude,
+                                _currentPosition!.longitude,
+                              ),
                               initialZoom: 16,
-                              interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                              interactionOptions: const InteractionOptions(
+                                flags: InteractiveFlag.none,
+                              ),
                             ),
                             children: [
                               TileLayer(
-                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                 userAgentPackageName: 'com.unilost.app',
                               ),
                               MarkerLayer(
                                 markers: [
                                   Marker(
-                                    point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                                    point: LatLng(
+                                      _currentPosition!.latitude,
+                                      _currentPosition!.longitude,
+                                    ),
                                     width: 40,
                                     height: 40,
-                                    child: Icon(Icons.location_on_rounded, color: theme.colorScheme.primary, size: 30),
+                                    child: Icon(
+                                      Icons.location_on_rounded,
+                                      color: theme.colorScheme.primary,
+                                      size: 30,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -840,17 +1015,14 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     FieldLabel(label: t.dateLabel, isRequired: true),
                     _buildActionTile(
                       Icons.calendar_today_rounded,
-                       "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+                      "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
                       _pickDate,
                       true,
                       theme,
                     ),
                     const SizedBox(height: 48),
 
-                    CustomButton(
-                      text: t.publishButton,
-                      onPressed: _submit,
-                    ),
+                    CustomButton(text: t.publishButton, onPressed: _submit),
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -870,7 +1042,13 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     );
   }
 
-  Widget _buildActionTile(IconData icon, String text, VoidCallback onTap, bool isCompleted, ThemeData theme) {
+  Widget _buildActionTile(
+    IconData icon,
+    String text,
+    VoidCallback onTap,
+    bool isCompleted,
+    ThemeData theme,
+  ) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -881,37 +1059,53 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+            color: isCompleted
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outlineVariant,
             width: isCompleted ? 2 : 1,
           ),
-          boxShadow: isCompleted ? [
-            BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ] : null,
+          boxShadow: isCompleted
+              ? [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
-            Icon(icon, color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
+            Icon(
+              icon,
+              color: isCompleted
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 text,
                 style: TextStyle(
                   fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
-                  color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                  color: isCompleted
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface,
                 ),
               ),
             ),
             if (isCompleted)
-              Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 22),
+              Icon(
+                Icons.check_circle_rounded,
+                color: theme.colorScheme.primary,
+                size: 22,
+              ),
           ],
         ),
       ),
     );
   }
+
   @override
   void dispose() {
     titleController.dispose();
