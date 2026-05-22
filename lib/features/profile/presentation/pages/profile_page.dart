@@ -10,6 +10,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
+import 'package:unilost_found/shared/utils/center_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'user_posts_page.dart';
 import 'package:unilost_found/shared/widgets/legal_markdown_dialog.dart';
@@ -33,9 +34,13 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _oldPhotoUrl;
   int _imageVersion = DateTime.now().millisecondsSinceEpoch;
 
-  Future<void> _pickAndUploadPhoto(DatabaseReference ref, String userId, String? currentPhotoUrl) async {
+  Future<void> _pickAndUploadPhoto(
+    DatabaseReference ref,
+    String userId,
+    String? currentPhotoUrl,
+  ) async {
     final t = AppStrings.of(context);
-    
+
     // 1. Elegir e imagen usando el procesador unificado
     final processedImage = await ImageUtils.pickAndProcessImage(
       source: ImageSource.gallery,
@@ -51,20 +56,21 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       // 2. Subir a Firebase Storage
-      final storageRef = FirebaseStorage.instance.ref().child('users/$userId/profile_image');
-      
-      final metadata = SettableMetadata(
-        contentType: 'image/webp',
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'users/$userId/profile_image',
       );
 
-      await storageRef.putFile(processedImage, metadata).timeout(
-        const Duration(seconds: 15),
-      );
-      
-      // Ya NO actualizamos el RTDB manualmente aquí. 
+      final metadata = SettableMetadata(contentType: 'image/webp');
+
+      await storageRef
+          .putFile(processedImage, metadata)
+          .timeout(const Duration(seconds: 15));
+
+      // Ya NO actualizamos el RTDB manualmente aquí.
       // Dejamos que el backend procese la imagen a .webp y actualice el campo 'photoUrl'.
-      debugPrint("ULF_DEBUG: Upload finished, waiting for backend processing...");
-      
+      debugPrint(
+        "ULF_DEBUG: Upload finished, waiting for backend processing...",
+      );
     } catch (e) {
       if (mounted) {
         AppNotifications.showError(context, t.errorSaving);
@@ -83,10 +89,14 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return Center(child: CircularProgressIndicator(color: theme.colorScheme.primary));
+      return Center(
+        child: CircularProgressIndicator(color: theme.colorScheme.primary),
+      );
     }
 
-    final DatabaseReference userRef = FirebaseDatabase.instance.ref('users/${user.uid}');
+    final DatabaseReference userRef = FirebaseDatabase.instance.ref(
+      'users/${user.uid}',
+    );
 
     return StreamBuilder<DatabaseEvent>(
       stream: userRef.onValue,
@@ -101,13 +111,17 @@ class _ProfilePageState extends State<ProfilePage> {
         String? photoUrl;
 
         if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-          final data = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
+          final data = Map<dynamic, dynamic>.from(
+            snapshot.data!.snapshot.value as Map,
+          );
           userName = data['name'] ?? t.defaultUserName;
           userRole = data['role'] == 'admin' ? t.adminRole : t.studentRole;
-          centerId = (data['center_id'] ?? t.uabAcronym).toString().toUpperCase();
+          centerId = CenterUtils.normalizeCenterId(
+            data['center_id'],
+          ).toUpperCase();
           final snakeUrl = data['photo_url']?.toString();
           final camelUrl = data['photoUrl']?.toString();
-          
+
           // Priorizamos siempre la URL más actualizada (camelCase 'photoUrl') y luego el formato heredado (snake_case)
           if (camelUrl != null && camelUrl.isNotEmpty) {
             photoUrl = camelUrl;
@@ -115,13 +129,17 @@ class _ProfilePageState extends State<ProfilePage> {
             photoUrl = snakeUrl;
           } else {
             final legacyImg = data['imageUrl']?.toString();
-            photoUrl = (legacyImg != null && legacyImg.isNotEmpty) ? legacyImg : null;
+            photoUrl = (legacyImg != null && legacyImg.isNotEmpty)
+                ? legacyImg
+                : null;
           }
-          
+
           debugPrint("ULF_DEBUG: Final photoUrl: $photoUrl");
-          
+
           // Solo completamos el estado de subida si el photoUrl actual es diferente del que teníamos antes de subir (para evitar trigger falso inmediato)
-          if (_isUploadingPhoto && photoUrl != null && photoUrl != _oldPhotoUrl) {
+          if (_isUploadingPhoto &&
+              photoUrl != null &&
+              photoUrl != _oldPhotoUrl) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 setState(() {
@@ -147,48 +165,79 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
+                          colors: [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.primary.withValues(alpha: 0.8),
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(32),
+                        ),
                       ),
                       child: Column(
                         children: [
                           Stack(
                             children: [
                               GestureDetector(
-                                onTap: () => _pickAndUploadPhoto(userRef, user.uid, photoUrl),
+                                onTap: () => _pickAndUploadPhoto(
+                                  userRef,
+                                  user.uid,
+                                  photoUrl,
+                                ),
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
                                   child: CircleAvatar(
                                     radius: 50,
-                                    backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                    backgroundColor: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.3),
                                     child: _isUploadingPhoto
                                         ? const CircularProgressIndicator()
                                         : photoUrl != null
-                                            ? ClipOval(
-                                                child: CachedNetworkImage(
-                                                  imageUrl: photoUrl.contains('?') 
-                                                      ? "$photoUrl&v=$_imageVersion" 
-                                                      : "$photoUrl?v=$_imageVersion",
-                                                  cacheManager: CustomCacheManager.instance,
-                                                  width: 100,
-                                                  height: 100,
-                                                  fit: BoxFit.cover,
-                                                  placeholder: (context, url) => const SkeletonLoader(
+                                        ? ClipOval(
+                                            child: CachedNetworkImage(
+                                              imageUrl: photoUrl.contains('?')
+                                                  ? "$photoUrl&v=$_imageVersion"
+                                                  : "$photoUrl?v=$_imageVersion",
+                                              cacheManager:
+                                                  CustomCacheManager.instance,
+                                              width: 100,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) =>
+                                                  const SkeletonLoader(
                                                     width: 100,
                                                     height: 100,
-                                                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                          Radius.circular(50),
+                                                        ),
                                                   ),
-                                                  errorWidget: (context, url, error) {
-                                                     debugPrint("ULF_DEBUG: Image load error: $error");
-                                                     return Icon(Icons.person_rounded, size: 50, color: theme.colorScheme.primary);
-                                                   },
-                                                ),
-                                              )
-                                            : Icon(Icons.person_rounded, size: 50, color: theme.colorScheme.primary),
+                                              errorWidget: (context, url, error) {
+                                                debugPrint(
+                                                  "ULF_DEBUG: Image load error: $error",
+                                                );
+                                                return Icon(
+                                                  Icons.person_rounded,
+                                                  size: 50,
+                                                  color:
+                                                      theme.colorScheme.primary,
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.person_rounded,
+                                            size: 50,
+                                            color: theme.colorScheme.primary,
+                                          ),
                                   ),
                                 ),
                               ),
@@ -196,11 +245,19 @@ class _ProfilePageState extends State<ProfilePage> {
                                 bottom: 0,
                                 right: 0,
                                 child: GestureDetector(
-                                  onTap: () => _showEditNameDialog(userName, userRef),
+                                  onTap: () =>
+                                      _showEditNameDialog(userName, userRef),
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(color: theme.colorScheme.secondary, shape: BoxShape.circle),
-                                    child: const Icon(Icons.edit_rounded, size: 16, color: Colors.white),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.secondary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -211,7 +268,10 @@ class _ProfilePageState extends State<ProfilePage> {
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               userName,
-                              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -223,7 +283,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               user.email ?? "",
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
                               textAlign: TextAlign.center,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -232,14 +294,21 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           const SizedBox(height: 12),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               "$userRole | $centerId",
-                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                               textAlign: TextAlign.center,
                               softWrap: true,
                             ),
@@ -263,7 +332,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                 Icons.inventory_2_outlined,
                                 t.myFindings,
                                 theme.colorScheme.primary,
-                                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPostsPage(type: 'found'))),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const UserPostsPage(type: 'found'),
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -272,7 +347,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                 Icons.search_rounded,
                                 t.myLosses,
                                 theme.colorScheme.secondary,
-                                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPostsPage(type: 'lost'))),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const UserPostsPage(type: 'lost'),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -281,23 +362,30 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 32),
                         _buildSectionTitle(t.settingsTitle, theme),
                         const SizedBox(height: 12),
-                        
+
                         CustomCard(
                           padding: EdgeInsets.zero,
                           child: Column(
                             children: [
                               ListTile(
-                                leading: Icon(Icons.dark_mode_outlined, color: theme.colorScheme.primary),
+                                leading: Icon(
+                                  Icons.dark_mode_outlined,
+                                  color: theme.colorScheme.primary,
+                                ),
                                 title: Text(t.appTheme),
                                 subtitle: Text(
-                                  widget.settingsController.themeMode == ThemeMode.system
+                                  widget.settingsController.themeMode ==
+                                          ThemeMode.system
                                       ? t.themeSystem
-                                      : widget.settingsController.themeMode == ThemeMode.dark
-                                          ? t.themeDark
-                                          : t.themeLight,
+                                      : widget.settingsController.themeMode ==
+                                            ThemeMode.dark
+                                      ? t.themeDark
+                                      : t.themeLight,
                                 ),
                                 trailing: DropdownButton<ThemeMode>(
-                                  key: ValueKey(widget.settingsController.themeMode),
+                                  key: ValueKey(
+                                    widget.settingsController.themeMode,
+                                  ),
                                   value: widget.settingsController.themeMode,
                                   underline: const SizedBox(),
                                   items: [
@@ -316,35 +404,75 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ],
                                   onChanged: (ThemeMode? value) {
                                     if (value != null) {
-                                      widget.settingsController.setThemeMode(value);
+                                      widget.settingsController.setThemeMode(
+                                        value,
+                                      );
                                     }
                                   },
                                 ),
                               ),
                               const Divider(height: 1),
                               ListTile(
-                                leading: Icon(Icons.language_outlined, color: theme.colorScheme.primary),
+                                leading: Icon(
+                                  Icons.language_outlined,
+                                  color: theme.colorScheme.primary,
+                                ),
                                 title: Text(t.language),
-                                subtitle: Text(_languageLabel(context, widget.settingsController.locale.languageCode)),
+                                subtitle: Text(
+                                  _languageLabel(
+                                    context,
+                                    widget
+                                        .settingsController
+                                        .locale
+                                        .languageCode,
+                                  ),
+                                ),
                                 trailing: DropdownButton<String>(
-                                  key: ValueKey(widget.settingsController.themeMode),
-                                  value: widget.settingsController.locale.languageCode,
+                                  key: ValueKey(
+                                    widget.settingsController.themeMode,
+                                  ),
+                                  value: widget
+                                      .settingsController
+                                      .locale
+                                      .languageCode,
                                   underline: const SizedBox(),
                                   items: [
-                                    DropdownMenuItem(value: 'es', child: Text(t.spanish)),
-                                    DropdownMenuItem(value: 'ca', child: Text(t.catalan)),
-                                    DropdownMenuItem(value: 'en', child: Text(t.english)),
+                                    DropdownMenuItem(
+                                      value: 'es',
+                                      child: Text(t.spanish),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'ca',
+                                      child: Text(t.catalan),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'en',
+                                      child: Text(t.english),
+                                    ),
                                   ],
-                                  onChanged: (v) => v != null ? widget.settingsController.setLocale(Locale(v)) : null,
+                                  onChanged: (v) => v != null
+                                      ? widget.settingsController.setLocale(
+                                          Locale(v),
+                                        )
+                                      : null,
                                 ),
                               ),
                               const Divider(height: 1),
-                              PushNotificationsSwitchTile(settingsController: widget.settingsController),
+                              PushNotificationsSwitchTile(
+                                settingsController: widget.settingsController,
+                              ),
                               const Divider(height: 1),
                               ListTile(
-                                leading: Icon(Icons.support_agent_rounded, color: theme.colorScheme.primary),
+                                leading: Icon(
+                                  Icons.support_agent_rounded,
+                                  color: theme.colorScheme.primary,
+                                ),
                                 title: Text(t.customerSupport),
-                                trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                                 onTap: _showSupportDialog,
                               ),
                             ],
@@ -355,12 +483,28 @@ class _ProfilePageState extends State<ProfilePage> {
                         Center(
                           child: TextButton.icon(
                             onPressed: widget.onLogout,
-                            icon: const Icon(Icons.logout_rounded, color: Colors.red),
-                            label: Text(t.logout, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                            icon: const Icon(
+                              Icons.logout_rounded,
+                              color: Colors.red,
+                            ),
+                            label: Text(
+                              t.logout,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              backgroundColor: Colors.red.withValues(alpha: 0.05),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              backgroundColor: Colors.red.withValues(
+                                alpha: 0.05,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),
@@ -372,7 +516,10 @@ class _ProfilePageState extends State<ProfilePage> {
                               onPressed: () {
                                 showDialog(
                                   context: context,
-                                  builder: (context) => const LegalMarkdownDialog(documentName: 'terms'),
+                                  builder: (context) =>
+                                      const LegalMarkdownDialog(
+                                        documentName: 'terms',
+                                      ),
                                 );
                               },
                               child: Text(
@@ -388,7 +535,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             Text(
                               "•",
                               style: TextStyle(
-                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -396,7 +544,10 @@ class _ProfilePageState extends State<ProfilePage> {
                               onPressed: () {
                                 showDialog(
                                   context: context,
-                                  builder: (context) => const LegalMarkdownDialog(documentName: 'privacy'),
+                                  builder: (context) =>
+                                      const LegalMarkdownDialog(
+                                        documentName: 'privacy',
+                                      ),
                                 );
                               },
                               child: Text(
@@ -427,10 +578,8 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => _EditNameDialogContent(
-        currentName: currentName,
-        userRef: ref,
-      ),
+      builder: (context) =>
+          _EditNameDialogContent(currentName: currentName, userRef: ref),
     );
   }
 
@@ -443,10 +592,15 @@ class _ProfilePageState extends State<ProfilePage> {
       barrierDismissible: true,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
-              Icon(Icons.support_agent_rounded, color: theme.colorScheme.primary),
+              Icon(
+                Icons.support_agent_rounded,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -470,7 +624,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 20),
                 Text(
                   t.email,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 SelectableText(
@@ -484,7 +641,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 16),
                 Text(
                   t.phone,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 SelectableText(
@@ -498,7 +658,10 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
           ),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actionsPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -521,7 +684,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildActionCard(IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(
+    IconData icon,
+    String title,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return CustomCard(
       onTap: onTap,
       padding: const EdgeInsets.all(16),
@@ -529,7 +697,10 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 12),
@@ -564,15 +735,28 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
+                      Expanded(
+                        child: SkeletonLoader(
+                          height: 100,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
                       const SizedBox(width: 16),
-                      Expanded(child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16))),
+                      Expanded(
+                        child: SkeletonLoader(
+                          height: 100,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 32),
                   const SkeletonLoader(width: 150, height: 20),
                   const SizedBox(height: 16),
-                  SkeletonLoader(height: 120, borderRadius: BorderRadius.circular(16)),
+                  SkeletonLoader(
+                    height: 120,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ],
               ),
             ),
@@ -581,13 +765,16 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-  
+
   String _languageLabel(BuildContext context, String code) {
     final t = AppStrings.of(context);
     switch (code) {
-      case 'ca': return t.catalan;
-      case 'en': return t.english;
-      default: return t.spanish;
+      case 'ca':
+        return t.catalan;
+      case 'en':
+        return t.english;
+      default:
+        return t.spanish;
     }
   }
 }
@@ -684,8 +871,8 @@ class _EditNameDialogContentState extends State<_EditNameDialogContent> {
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: _isSaving 
-                    ? null 
+                onPressed: _isSaving
+                    ? null
                     : () {
                         _focusNode.unfocus();
                         _formKey.currentState?.reset();
@@ -695,7 +882,9 @@ class _EditNameDialogContentState extends State<_EditNameDialogContent> {
                       },
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: Text(t.cancel),
               ),
@@ -710,36 +899,56 @@ class _EditNameDialogContentState extends State<_EditNameDialogContent> {
                           setState(() => _isSaving = true);
                           try {
                             await widget.userRef.update({
-                              'name': _controller.text.trim(), 
-                              'updated_at': ServerValue.timestamp
+                              'name': _controller.text.trim(),
+                              'updated_at': ServerValue.timestamp,
                             });
                             if (context.mounted) {
                               Navigator.pop(context);
-                              AppNotifications.showSuccess(context, t.profileUpdatedSuccess);
+                              AppNotifications.showSuccess(
+                                context,
+                                t.profileUpdatedSuccess,
+                              );
                             }
                           } on FirebaseException catch (e) {
                             if (context.mounted) {
                               setState(() => _isSaving = false);
-                              debugPrint("ULF_DEBUG: FirebaseException during profile update: ${e.code} - ${e.message}");
-                              AppNotifications.showError(context, t.errorSaving);
+                              debugPrint(
+                                "ULF_DEBUG: FirebaseException during profile update: ${e.code} - ${e.message}",
+                              );
+                              AppNotifications.showError(
+                                context,
+                                t.errorSaving,
+                              );
                             }
                           } catch (e) {
                             if (context.mounted) {
                               setState(() => _isSaving = false);
-                              AppNotifications.showError(context, t.errorSaving);
+                              AppNotifications.showError(
+                                context,
+                                t.errorSaving,
+                              );
                             }
                           }
                         }
                       },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: Colors.white,
                 ),
-                child: _isSaving 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Text(t.save),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(t.save),
               ),
             ),
           ],
@@ -752,7 +961,10 @@ class _EditNameDialogContentState extends State<_EditNameDialogContent> {
 class PushNotificationsSwitchTile extends StatelessWidget {
   final AppSettingsController settingsController;
 
-  const PushNotificationsSwitchTile({super.key, required this.settingsController});
+  const PushNotificationsSwitchTile({
+    super.key,
+    required this.settingsController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -761,11 +973,17 @@ class PushNotificationsSwitchTile extends StatelessWidget {
 
     return SwitchListTile.adaptive(
       key: ValueKey(settingsController.themeMode),
-      secondary: Icon(Icons.notifications_active_outlined, color: theme.colorScheme.primary),
+      secondary: Icon(
+        Icons.notifications_active_outlined,
+        color: theme.colorScheme.primary,
+      ),
       title: Text(t.settingsPushToggle),
       subtitle: Text(
         t.settingsPushDesc,
-        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+        style: TextStyle(
+          fontSize: 12,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
       value: settingsController.pushNotificationsEnabled,
       onChanged: (v) => settingsController.setPushNotifications(v),

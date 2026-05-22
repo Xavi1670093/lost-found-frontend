@@ -14,6 +14,7 @@ import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/notification_bell.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/center_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 
 class HomePage extends StatefulWidget {
@@ -38,8 +39,14 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _searchController = TextEditingController();
     _mapController = MapController();
-    _lostMarkerWidget = _buildMarkerWidget(Colors.orange.shade700, Icons.search_rounded);
-    _foundMarkerWidget = _buildMarkerWidget(Colors.green.shade700, Icons.inventory_2_rounded);
+    _lostMarkerWidget = _buildMarkerWidget(
+      Colors.orange.shade700,
+      Icons.search_rounded,
+    );
+    _foundMarkerWidget = _buildMarkerWidget(
+      Colors.green.shade700,
+      Icons.inventory_2_rounded,
+    );
     _loadUserCenter();
   }
 
@@ -59,13 +66,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      child: Center(
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 15,
-        ),
-      ),
+      child: Center(child: Icon(icon, color: Colors.white, size: 15)),
     );
   }
 
@@ -77,15 +78,21 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadUserCenter() async {
     if (user == null) return;
-    final snapshot = await FirebaseDatabase.instance.ref('users/${user!.uid}/center_id').get();
+    final snapshot = await FirebaseDatabase.instance
+        .ref('users/${user!.uid}/center_id')
+        .get();
     if (mounted) {
       setState(() {
-        centerId = snapshot.value?.toString().toLowerCase() ?? "uab";
+        centerId = CenterUtils.normalizeCenterId(snapshot.value);
       });
     }
   }
 
-  bool _matchesCategory(String backendCategory, String selectedLabel, AppStrings t) {
+  bool _matchesCategory(
+    String backendCategory,
+    String selectedLabel,
+    AppStrings t,
+  ) {
     if (selectedLabel.isEmpty) return true;
     // Comparamos el label localizado de la categoría del post con el label seleccionado
     final categoryLabel = CategoryUtils.getCategoryLabel(backendCategory, t);
@@ -101,7 +108,7 @@ class _HomePageState extends State<HomePage> {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      
+
       _mapController.move(
         osm.LatLng(position.latitude, position.longitude),
         15.0,
@@ -112,10 +119,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _centerOnCampus() {
-    _mapController.move(
-      const osm.LatLng(41.5000, 2.1075),
-      15.0,
-    );
+    _mapController.move(const osm.LatLng(41.5000, 2.1075), 15.0);
   }
 
   @override
@@ -134,7 +138,9 @@ class _HomePageState extends State<HomePage> {
           // Pre-procesamos los datos de los posts si están disponibles
           List<Map<dynamic, dynamic>> postsList = [];
           bool hasNoPosts = false;
-          bool isLoading = centerId == null || snapshot.connectionState == ConnectionState.waiting;
+          bool isLoading =
+              centerId == null ||
+              snapshot.connectionState == ConnectionState.waiting;
 
           if (!isLoading) {
             if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
@@ -143,17 +149,33 @@ class _HomePageState extends State<HomePage> {
               for (final child in snapshot.data!.snapshot.children) {
                 final value = Map<dynamic, dynamic>.from(child.value as Map);
                 value['id'] = child.key;
-                bool categoryMatch = _matchesCategory(value['category']?.toString() ?? '', _selectedCategoryLabel, t);
-                bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                    (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+                bool categoryMatch = _matchesCategory(
+                  value['category']?.toString() ?? '',
+                  _selectedCategoryLabel,
+                  t,
+                );
+                bool searchMatch =
+                    (value['title'] ?? '').toString().toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ) ||
+                    (value['description'] ?? '')
+                        .toString()
+                        .toLowerCase()
+                        .contains(_searchQuery.toLowerCase());
 
-                if (value['is_deleted'] == false && value['status'] == 'active' && categoryMatch && searchMatch) {
+                if (value['is_deleted'] == false &&
+                    value['status'] == 'active' &&
+                    categoryMatch &&
+                    searchMatch) {
                   postsList.add(value);
                 }
               }
               // Ordenar por fecha: más recientes primero
-              postsList.sort((a, b) => (b['created_at'] ?? 0).compareTo(a['created_at'] ?? 0));
-              
+              postsList.sort(
+                (a, b) =>
+                    (b['created_at'] ?? 0).compareTo(a['created_at'] ?? 0),
+              );
+
               if (postsList.isEmpty) hasNoPosts = true;
             }
           }
@@ -184,7 +206,9 @@ class _HomePageState extends State<HomePage> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+                          theme.colorScheme.primaryContainer.withValues(
+                            alpha: 0.2,
+                          ),
                           theme.colorScheme.surface,
                         ],
                         begin: Alignment.topCenter,
@@ -193,10 +217,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                actions: const [
-                  NotificationBell(),
-                  SizedBox(width: 8),
-                ],
+                actions: const [NotificationBell(), SizedBox(width: 8)],
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(80),
                   child: Container(
@@ -218,12 +239,16 @@ class _HomePageState extends State<HomePage> {
                               )
                             : null,
                         filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        fillColor: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 15,
+                        ),
                       ),
                     ),
                   ),
@@ -243,14 +268,19 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)],
+                            colors: [
+                              theme.colorScheme.primary,
+                              theme.colorScheme.primary.withValues(alpha: 0.8),
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.2,
+                              ),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -261,12 +291,18 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             Text(
                               t.welcome,
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               t.welcomeDescription,
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
                             ),
                           ],
                         ),
@@ -279,7 +315,9 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: CategoryUtils.categories.map((cat) {
-                          return _buildCategoryChip(CategoryUtils.getCategoryLabel(cat, t));
+                          return _buildCategoryChip(
+                            CategoryUtils.getCategoryLabel(cat, t),
+                          );
                         }).toList(),
                       ),
                     ),
@@ -288,7 +326,12 @@ class _HomePageState extends State<HomePage> {
                     // Map Preview
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(t.preview, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        t.preview,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Padding(
@@ -297,83 +340,115 @@ class _HomePageState extends State<HomePage> {
                         height: 240,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: theme.colorScheme.outlineVariant),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant,
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                        child: Stack(
-                          children: [
-                            FlutterMap(
-                              mapController: _mapController,
-                              options: MapOptions(
-                                initialCenter: const osm.LatLng(41.5000, 2.1075),
-                                initialZoom: 15,
-                                interactionOptions: const InteractionOptions(
-                                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                                ),
-                                cameraConstraint: CameraConstraint.contain(
-                                  bounds: LatLngBounds(
-                                    const osm.LatLng(41.480, 2.085),
-                                    const osm.LatLng(41.520, 2.130),
+                          child: Stack(
+                            children: [
+                              FlutterMap(
+                                mapController: _mapController,
+                                options: MapOptions(
+                                  initialCenter: const osm.LatLng(
+                                    41.5000,
+                                    2.1075,
+                                  ),
+                                  initialZoom: 15,
+                                  interactionOptions: const InteractionOptions(
+                                    flags:
+                                        InteractiveFlag.all &
+                                        ~InteractiveFlag.rotate,
+                                  ),
+                                  cameraConstraint: CameraConstraint.contain(
+                                    bounds: LatLngBounds(
+                                      const osm.LatLng(41.480, 2.085),
+                                      const osm.LatLng(41.520, 2.130),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              children: [
-                                TileLayer(
-                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName: 'com.example.lostfound',
-                                ),
-                                MarkerLayer(
-                                  markers: postsList.map((post) {
-                                    final coords = post['coords'] as Map<dynamic, dynamic>?;
-                                    final double lat = double.tryParse(coords?['lat'].toString() ?? '0.0') ?? 0.0;
-                                    final double lng = double.tryParse(coords?['lng'].toString() ?? '0.0') ?? 0.0;
-
-                                    return Marker(
-                                      point: osm.LatLng(lat, lng),
-                                      width: 30,
-                                      height: 30,
-                                      child: post['type'] == 'lost'
-                                          ? _lostMarkerWidget
-                                          : _foundMarkerWidget,
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            ),
-                            Positioned(
-                              right: 12,
-                              bottom: 12,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  FloatingActionButton.small(
-                                    heroTag: 'campus_center_fab',
-                                    onPressed: _centerOnCampus,
-                                    backgroundColor: theme.colorScheme.surface,
-                                    foregroundColor: theme.colorScheme.primary,
-                                    child: const Icon(Icons.account_balance_rounded),
+                                  TileLayer(
+                                    urlTemplate:
+                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName:
+                                        'com.example.lostfound',
                                   ),
-                                  const SizedBox(height: 8),
-                                  FloatingActionButton.small(
-                                    heroTag: 'center_map_fab',
-                                    onPressed: _centerOnUserLocation,
-                                    backgroundColor: theme.colorScheme.surface,
-                                    foregroundColor: theme.colorScheme.primary,
-                                    child: const Icon(Icons.my_location_rounded),
+                                  MarkerLayer(
+                                    markers: postsList.map((post) {
+                                      final coords =
+                                          post['coords']
+                                              as Map<dynamic, dynamic>?;
+                                      final double lat =
+                                          double.tryParse(
+                                            coords?['lat'].toString() ?? '0.0',
+                                          ) ??
+                                          0.0;
+                                      final double lng =
+                                          double.tryParse(
+                                            coords?['lng'].toString() ?? '0.0',
+                                          ) ??
+                                          0.0;
+
+                                      return Marker(
+                                        point: osm.LatLng(lat, lng),
+                                        width: 30,
+                                        height: 30,
+                                        child: post['type'] == 'lost'
+                                            ? _lostMarkerWidget
+                                            : _foundMarkerWidget,
+                                      );
+                                    }).toList(),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
+                              Positioned(
+                                right: 12,
+                                bottom: 12,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    FloatingActionButton.small(
+                                      heroTag: 'campus_center_fab',
+                                      onPressed: _centerOnCampus,
+                                      backgroundColor:
+                                          theme.colorScheme.surface,
+                                      foregroundColor:
+                                          theme.colorScheme.primary,
+                                      child: const Icon(
+                                        Icons.account_balance_rounded,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    FloatingActionButton.small(
+                                      heroTag: 'center_map_fab',
+                                      onPressed: _centerOnUserLocation,
+                                      backgroundColor:
+                                          theme.colorScheme.surface,
+                                      foregroundColor:
+                                          theme.colorScheme.primary,
+                                      child: const Icon(
+                                        Icons.my_location_rounded,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 24),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(t.recentObjects, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        t.recentObjects,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -388,7 +463,13 @@ class _HomePageState extends State<HomePage> {
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(40),
-                      child: Text(postsList.isEmpty && _searchQuery.isNotEmpty ? t.noObjectsFound : t.noObjectsIn(centerId?.toUpperCase() ?? t.uabAcronym)),
+                      child: Text(
+                        postsList.isEmpty && _searchQuery.isNotEmpty
+                            ? t.noObjectsFound
+                            : t.noObjectsIn(
+                                centerId?.toUpperCase() ?? t.uabAcronym,
+                              ),
+                      ),
                     ),
                   ),
                 )
@@ -396,14 +477,16 @@ class _HomePageState extends State<HomePage> {
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 20,
-                      crossAxisSpacing: 20,
-                      childAspectRatio: 0.72,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 20,
+                          crossAxisSpacing: 20,
+                          childAspectRatio: 0.72,
+                        ),
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => _RealObjectCard(post: postsList[index]),
+                      (context, index) =>
+                          _RealObjectCard(post: postsList[index]),
                       childCount: postsList.length,
                     ),
                   ),
@@ -464,7 +547,9 @@ class _RealObjectCard extends StatelessWidget {
                   tag: 'post_image_${post['id']}',
                   child: imageUrl != null
                       ? ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(24),
+                          ),
                           child: CachedNetworkImage(
                             imageUrl: imageUrl,
                             cacheManager: CustomCacheManager.instance,
@@ -473,9 +558,12 @@ class _RealObjectCard extends StatelessWidget {
                             placeholder: (context, url) => const SkeletonLoader(
                               width: double.infinity,
                               height: double.infinity,
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(24),
+                              ),
                             ),
-                            errorWidget: (context, url, error) => _buildIconFallback(theme),
+                            errorWidget: (context, url, error) =>
+                                _buildIconFallback(theme),
                           ),
                         )
                       : _buildIconFallback(theme),
@@ -485,9 +573,14 @@ class _RealObjectCard extends StatelessWidget {
                   top: 12,
                   left: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: isLost ? Colors.orange.shade800 : Colors.green.shade800,
+                      color: isLost
+                          ? Colors.orange.shade800
+                          : Colors.green.shade800,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
@@ -529,8 +622,11 @@ class _RealObjectCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.location_on_rounded,
-                        size: 14, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 14,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
