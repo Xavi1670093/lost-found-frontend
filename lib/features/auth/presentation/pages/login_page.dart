@@ -6,11 +6,11 @@ import 'package:unilost_found/core/theme/app_theme.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
 import 'package:unilost_found/shared/widgets/custom_text_field.dart';
 import 'package:unilost_found/features/auth/presentation/pages/register_page.dart';
-import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/language_selector_widget.dart';
+import 'package:unilost_found/app.dart';
 
 class LoginPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -100,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => MainNavigationPage(
+          builder: (_) => AppRoot(
             settingsController: widget.settingsController,
           ),
         ),
