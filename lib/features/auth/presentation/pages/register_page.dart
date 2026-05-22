@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/gestures.dart';
@@ -93,7 +94,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'termsAccepted': true,
         'privacyAccepted': true,
         'legalAccepted': true,
-        'legalAcceptedAt': DateTime.now().toIso8601String(),
+        'legalAcceptedAt': ServerValue.timestamp,
       });
 
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(

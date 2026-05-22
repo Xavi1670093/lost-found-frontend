@@ -289,6 +289,7 @@ class AppStrings {
       'legalUpdateRequiredDesc': 'Para continuar usando UniLost & Found, por favor lee y acepta nuestros nuevos Términos y Condiciones y la Política de Privacidad.',
       'acceptAndContinue': 'Aceptar y continuar',
       'termsErrorNotAccepted': 'Debes aceptar los Términos y la Política de Privacidad para continuar.',
+      'legalUnavailable': 'El documento legal no se encuentra disponible en este momento.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -517,6 +518,7 @@ class AppStrings {
       'legalUpdateRequiredDesc': 'Per continuar utilitzant UniLost & Found, si us plau llegeix i accepta els nostres nous Termes i Condicions i la Política de Privacitat.',
       'acceptAndContinue': 'Acceptar i continuar',
       'termsErrorNotAccepted': 'Has d\'acceptar els Termes i la Política de Privacitat per continuar.',
+      'legalUnavailable': 'El document legal no es troba disponible en aquest moment.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -745,6 +747,7 @@ class AppStrings {
       'legalUpdateRequiredDesc': 'To continue using UniLost & Found, please read and accept our new Terms and Conditions and Privacy Policy.',
       'acceptAndContinue': 'Accept and continue',
       'termsErrorNotAccepted': 'You must accept the Terms and Privacy Policy to continue.',
+      'legalUnavailable': 'The legal document is not available at this moment.',
     },
   };
 
@@ -976,6 +979,7 @@ class AppStrings {
   String get legalUpdateRequiredDesc => _text('legalUpdateRequiredDesc');
   String get acceptAndContinue => _text('acceptAndContinue');
   String get termsErrorNotAccepted => _text('termsErrorNotAccepted');
+  String get legalUnavailable => _text('legalUnavailable');
 
   String minutesAgo(int count) {
     final key = count == 1

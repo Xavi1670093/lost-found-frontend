@@ -241,11 +241,11 @@ class _LegalBlockWrapperState extends State<LegalBlockWrapper> {
 
     setState(() => _isSaving = true);
     try {
-      await FirebaseDatabase.instance.ref('users/${user.uid}/legal').update({
-        'termsAccepted': true,
-        'privacyAccepted': true,
-        'legalAccepted': true,
-        'legalAcceptedAt': DateTime.now().toIso8601String(),
+      await FirebaseDatabase.instance.ref('users/${user.uid}').update({
+        'legal/termsAccepted': true,
+        'legal/privacyAccepted': true,
+        'legal/acceptedAt': ServerValue.timestamp,
+        'updated_at': ServerValue.timestamp,
       });
     } catch (e) {
       debugPrint("ULF_DEBUG: Error saving legal acceptance: $e");
