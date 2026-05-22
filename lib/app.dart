@@ -198,19 +198,21 @@ class LegalGuardGate extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: SafeArea(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SkeletonLoader(height: 40, width: 200),
-                    SizedBox(height: 24),
-                    SkeletonLoader(height: 150),
-                    SizedBox(height: 24),
-                    SkeletonLoader(height: 150),
-                    SizedBox(height: 40),
-                    SkeletonLoader(height: 50),
-                  ],
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonLoader(height: 40, width: 200),
+                      SizedBox(height: 24),
+                      SkeletonLoader(height: 150),
+                      SizedBox(height: 24),
+                      SkeletonLoader(height: 150),
+                      SizedBox(height: 40),
+                      SkeletonLoader(height: 50),
+                    ],
+                  ),
                 ),
               ),
             ),
