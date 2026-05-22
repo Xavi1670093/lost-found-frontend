@@ -297,7 +297,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           : t.themeLight,
                                 ),
                                 trailing: DropdownButton<ThemeMode>(
-                                  key: ValueKey(widget.settingsController.themeMode),
+                                  key: const ValueKey('profile_theme_dropdown'),
                                   value: widget.settingsController.themeMode,
                                   underline: const SizedBox(),
                                   items: [
@@ -327,7 +327,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 title: Text(t.language),
                                 subtitle: Text(_languageLabel(context, widget.settingsController.locale.languageCode)),
                                 trailing: DropdownButton<String>(
-                                  key: ValueKey(widget.settingsController.themeMode),
+                                  key: const ValueKey('profile_language_dropdown'),
                                   value: widget.settingsController.locale.languageCode,
                                   underline: const SizedBox(),
                                   items: [
@@ -760,7 +760,7 @@ class PushNotificationsSwitchTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SwitchListTile.adaptive(
-      key: ValueKey(settingsController.themeMode),
+      key: const ValueKey('push_notifications_switch'),
       secondary: Icon(Icons.notifications_active_outlined, color: theme.colorScheme.primary),
       title: Text(t.settingsPushToggle),
       subtitle: Text(

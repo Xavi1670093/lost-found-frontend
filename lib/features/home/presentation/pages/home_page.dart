@@ -136,6 +136,28 @@ class _HomePageState extends State<HomePage> {
           bool hasNoPosts = false;
           bool isLoading = centerId == null || snapshot.connectionState == ConnectionState.waiting;
 
+          if (snapshot.hasError) {
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Text(
+                        '${t.errorUnexpected}: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: theme.colorScheme.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
           if (!isLoading) {
             if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
               hasNoPosts = true;
