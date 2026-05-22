@@ -19,6 +19,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class AppNotifications {
+  /// Tracks the currently active chat ID on screen to prevent showing foreground notifications for it.
+  static String? activeChatId;
+
   /// Initializes FCM listeners, requests permissions, gets token, and registers on the backend.
   static Future<void> initFCM(BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -45,6 +48,19 @@ class AppNotifications {
     // 4. Foreground listener
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint("ULF_DEBUG: Foreground message received: ${message.notification?.title}");
+      
+      final data = message.data;
+      final nestedData = data['data'] is Map ? data['data'] as Map : null;
+      final chatId = (data['chatId'] ?? 
+                      data['chat_id'] ?? 
+                      nestedData?['chatId'] ?? 
+                      nestedData?['chat_id'])?.toString();
+
+      if (chatId != null && activeChatId == chatId) {
+        debugPrint("ULF_DEBUG: Suppressing notification for active chat: $chatId");
+        return;
+      }
+
       final notification = message.notification;
       if (notification != null && context.mounted) {
         showForegroundNotification(
@@ -181,6 +197,8 @@ class AppNotifications {
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -189,6 +207,8 @@ class AppNotifications {
                       color: Colors.white70,
                       fontSize: 12,
                     ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

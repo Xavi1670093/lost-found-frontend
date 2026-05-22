@@ -69,6 +69,10 @@ class AppStrings {
       'profile': 'Perfil',
       'settings': 'Configuración',
       'darkMode': 'Modo oscuro',
+      'appTheme': 'Tema de la aplicación',
+      'themeLight': 'Claro',
+      'themeDark': 'Oscuro',
+      'themeSystem': 'Sistema',
       'language': 'Idioma',
       'spanish': 'Español',
       'catalan': 'Catalán',
@@ -270,12 +274,22 @@ class AppStrings {
       'time_hours_ago_singular': 'hace {count} hora',
       'time_hours_ago_plural': 'hace {count} horas',
       'settings_push_toggle': 'Recibir notificaciones push',
-      'settings_push_desc': 'Avisos de mensajes y coincidencias.',
+      'settings_push_desc': 'Avisos de mensajes.',
       'customerSupport': 'Atención al Cliente',
       'supportHelpText': 'Si necesitas ayuda, puedes contactar con nosotros a través de los siguientes medios:',
       'email': 'Correo Electrónico',
       'phone': 'Teléfono',
       'close': 'Cerrar',
+      'termsAndConditions': 'Términos y Condiciones',
+      'privacyPolicy': 'Política de Privacidad',
+      'acceptTermsPrefix': 'Acepto los ',
+      'acceptPrivacyPrefix': 'Acepto la ',
+      'legalLoadError': 'No se pudo cargar el documento legal. Por favor, inténtelo de nuevo más tarde.',
+      'legalUpdateRequiredTitle': 'Actualización de Políticas',
+      'legalUpdateRequiredDesc': 'Para continuar usando UniLost & Found, por favor lee y acepta nuestros nuevos Términos y Condiciones y la Política de Privacidad.',
+      'acceptAndContinue': 'Aceptar y continuar',
+      'termsErrorNotAccepted': 'Debes aceptar los Términos y la Política de Privacidad para continuar.',
+      'legalUnavailable': 'El documento legal no se encuentra disponible en este momento.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -284,6 +298,10 @@ class AppStrings {
       'profile': 'Perfil',
       'settings': 'Configuració',
       'darkMode': 'Mode fosc',
+      'appTheme': 'Tema de l\'aplicació',
+      'themeLight': 'Clar',
+      'themeDark': 'Fosc',
+      'themeSystem': 'Sistema',
       'language': 'Idioma',
       'spanish': 'Espanyol',
       'catalan': 'Català',
@@ -485,12 +503,22 @@ class AppStrings {
       'time_hours_ago_singular': 'fa {count} hora',
       'time_hours_ago_plural': 'fa {count} hores',
       'settings_push_toggle': 'Rebre notificacions push',
-      'settings_push_desc': 'Avisos de missatges i coincidències.',
+      'settings_push_desc': 'Avisos de missatges.',
       'customerSupport': 'Atenció al Client',
       'supportHelpText': 'Si necessites ajuda, pots contactar amb nosaltres a través dels següents mitjans:',
       'email': 'Correu Electrònic',
       'phone': 'Telèfon',
       'close': 'Tancar',
+      'termsAndConditions': 'Termes i Condicions',
+      'privacyPolicy': 'Política de Privacitat',
+      'acceptTermsPrefix': 'Accepto els ',
+      'acceptPrivacyPrefix': 'Accepto la ',
+      'legalLoadError': 'No s\'ha pogut carregar el document legal. Si us puau, torneu-ho a provar més tard.',
+      'legalUpdateRequiredTitle': 'Actualització de Polítiques',
+      'legalUpdateRequiredDesc': 'Per continuar utilitzant UniLost & Found, si us plau llegeix i accepta els nostres nous Termes i Condicions i la Política de Privacitat.',
+      'acceptAndContinue': 'Acceptar i continuar',
+      'termsErrorNotAccepted': 'Has d\'acceptar els Termes i la Política de Privacitat per continuar.',
+      'legalUnavailable': 'El document legal no es troba disponible en aquest moment.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -499,6 +527,10 @@ class AppStrings {
       'profile': 'Profile',
       'settings': 'Settings',
       'darkMode': 'Dark mode',
+      'appTheme': 'Application theme',
+      'themeLight': 'Light',
+      'themeDark': 'Dark',
+      'themeSystem': 'System',
       'language': 'Language',
       'spanish': 'Spanish',
       'catalan': 'Catalan',
@@ -700,12 +732,22 @@ class AppStrings {
       'time_hours_ago_singular': '{count} hour ago',
       'time_hours_ago_plural': '{count} hours ago',
       'settings_push_toggle': 'Receive push notifications',
-      'settings_push_desc': 'Message and match alerts.',
+      'settings_push_desc': 'Messages.',
       'customerSupport': 'Customer Support',
       'supportHelpText': 'If you need help, you can contact us through the following channels:',
       'email': 'Email',
       'phone': 'Phone',
       'close': 'Close',
+      'termsAndConditions': 'Terms and Conditions',
+      'privacyPolicy': 'Privacy Policy',
+      'acceptTermsPrefix': 'I accept the ',
+      'acceptPrivacyPrefix': 'I accept the ',
+      'legalLoadError': 'Could not load the legal document. Please try again later.',
+      'legalUpdateRequiredTitle': 'Policy Update',
+      'legalUpdateRequiredDesc': 'To continue using UniLost & Found, please read and accept our new Terms and Conditions and Privacy Policy.',
+      'acceptAndContinue': 'Accept and continue',
+      'termsErrorNotAccepted': 'You must accept the Terms and Privacy Policy to continue.',
+      'legalUnavailable': 'The legal document is not available at this moment.',
     },
   };
 
@@ -715,6 +757,10 @@ class AppStrings {
   String get profile => _text('profile');
   String get settings => _text('settings');
   String get darkMode => _text('darkMode');
+  String get appTheme => _text('appTheme');
+  String get themeLight => _text('themeLight');
+  String get themeDark => _text('themeDark');
+  String get themeSystem => _text('themeSystem');
   String get language => _text('language');
   String get spanish => _text('spanish');
   String get catalan => _text('catalan');
@@ -924,6 +970,16 @@ class AppStrings {
   String get email => _text('email');
   String get phone => _text('phone');
   String get close => _text('close');
+  String get termsAndConditions => _text('termsAndConditions');
+  String get privacyPolicy => _text('privacyPolicy');
+  String get acceptTermsPrefix => _text('acceptTermsPrefix');
+  String get acceptPrivacyPrefix => _text('acceptPrivacyPrefix');
+  String get legalLoadError => _text('legalLoadError');
+  String get legalUpdateRequiredTitle => _text('legalUpdateRequiredTitle');
+  String get legalUpdateRequiredDesc => _text('legalUpdateRequiredDesc');
+  String get acceptAndContinue => _text('acceptAndContinue');
+  String get termsErrorNotAccepted => _text('termsErrorNotAccepted');
+  String get legalUnavailable => _text('legalUnavailable');
 
   String minutesAgo(int count) {
     final key = count == 1

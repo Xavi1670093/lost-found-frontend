@@ -264,6 +264,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           highlightElevation: 0,
           shape: const CircleBorder(),
           child: AnimatedSwitcher(
+            key: ValueKey(widget.settingsController.themeMode),
             duration: const Duration(milliseconds: 300),
             transitionBuilder: (child, anim) => RotationTransition(
               turns: anim,

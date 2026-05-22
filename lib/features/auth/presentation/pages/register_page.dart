@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/gestures.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:unilost_found/core/theme/app_theme.dart';
@@ -11,6 +13,7 @@ import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/features/auth/presentation/pages/login_page.dart';
 import 'package:unilost_found/shared/widgets/language_selector_widget.dart';
+import 'package:unilost_found/shared/widgets/legal_markdown_dialog.dart';
 
 class RegisterPage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -32,6 +35,15 @@ class _RegisterPageState extends State<RegisterPage> {
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
 
+  bool _loading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _termsAccepted = false;
+  bool _privacyAccepted = false;
+
+  late TapGestureRecognizer _termsRecognizer;
+  late TapGestureRecognizer _privacyRecognizer;
+
   @override
   void initState() {
     super.initState();
@@ -39,15 +51,31 @@ class _RegisterPageState extends State<RegisterPage> {
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
+    _termsRecognizer = TapGestureRecognizer()..onTap = _showTerms;
+    _privacyRecognizer = TapGestureRecognizer()..onTap = _showPrivacy;
   }
 
-  bool _loading = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+  void _showTerms() {
+    showDialog(
+      context: context,
+      builder: (context) => const LegalMarkdownDialog(documentName: 'terms'),
+    );
+  }
+
+  void _showPrivacy() {
+    showDialog(
+      context: context,
+      builder: (context) => const LegalMarkdownDialog(documentName: 'privacy'),
+    );
+  }
 
   Future<void> _register() async {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    if (!_termsAccepted || !_privacyAccepted) {
+      AppNotifications.showError(context, t.termsErrorNotAccepted);
       return;
     }
 
@@ -63,6 +91,10 @@ class _RegisterPageState extends State<RegisterPage> {
         'password': _passwordController.text,
         'name': _nameController.text.trim(),
         'language': widget.settingsController.locale.languageCode,
+        'termsAccepted': true,
+        'privacyAccepted': true,
+        'legalAccepted': true,
+        'legalAcceptedAt': ServerValue.timestamp,
       });
 
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -124,6 +156,8 @@ class _RegisterPageState extends State<RegisterPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     super.dispose();
   }
 
@@ -214,12 +248,93 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   validator: (value) => (value != _passwordController.text) ? t.passwordsDoNotMatch : null,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 24),
+
+                // Premium Styled Checkboxes
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Checkbox(
+                          value: _termsAccepted,
+                          onChanged: (val) {
+                            setState(() {
+                              _termsAccepted = val ?? false;
+                            });
+                          },
+                          activeColor: theme.colorScheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: theme.textTheme.bodyMedium,
+                              children: [
+                                TextSpan(text: t.acceptTermsPrefix),
+                                TextSpan(
+                                  text: t.termsAndConditions,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  recognizer: _termsRecognizer,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Checkbox(
+                          value: _privacyAccepted,
+                          onChanged: (val) {
+                            setState(() {
+                              _privacyAccepted = val ?? false;
+                            });
+                          },
+                          activeColor: theme.colorScheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: theme.textTheme.bodyMedium,
+                              children: [
+                                TextSpan(text: t.acceptPrivacyPrefix),
+                                TextSpan(
+                                  text: t.privacyPolicy,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  recognizer: _privacyRecognizer,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
 
                 CustomButton(
                   text: t.registerButton,
                   isLoading: _loading,
-                  onPressed: _register,
+                  onPressed: (_termsAccepted && _privacyAccepted) ? _register : null,
                 ),
                 const SizedBox(height: 24),
 

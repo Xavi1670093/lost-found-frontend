@@ -28,6 +28,30 @@ class ChatDetailPage extends StatefulWidget {
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    AppNotifications.activeChatId = widget.chatId;
+    _updatePresence(widget.chatId);
+  }
+
+  Future<void> _updatePresence(String? chatId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final ref = FirebaseDatabase.instance.ref('users/$uid/status/currentChat');
+      if (chatId != null) {
+        await ref.set(chatId);
+        await ref.onDisconnect().set(null);
+      } else {
+        await ref.onDisconnect().cancel();
+        await ref.set(null);
+      }
+    } catch (e) {
+      debugPrint("ULF_DEBUG: Error updating presence: $e");
+    }
+  }
+
   Future<void> _sendMessage(String text) async {
     final t = AppStrings.of(context);
     final user = FirebaseAuth.instance.currentUser;
@@ -301,6 +325,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   @override
   void dispose() {
+    if (AppNotifications.activeChatId == widget.chatId) {
+      AppNotifications.activeChatId = null;
+    }
+    _updatePresence(null);
     super.dispose();
   }
 }

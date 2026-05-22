@@ -12,6 +12,7 @@ import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'user_posts_page.dart';
+import 'package:unilost_found/shared/widgets/legal_markdown_dialog.dart';
 
 class ProfilePage extends StatefulWidget {
   final AppSettingsController settingsController;
@@ -208,38 +209,39 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 16),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                userName,
-                                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
+                            child: Text(
+                              userName,
+                              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                user.email ?? "",
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
-                              ),
+                            child: Text(
+                              user.email ?? "",
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                "$userRole | $centerId",
-                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                              ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              "$userRole | $centerId",
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
+                              softWrap: true,
                             ),
                           ),
                         ],
@@ -284,11 +286,40 @@ class _ProfilePageState extends State<ProfilePage> {
                           padding: EdgeInsets.zero,
                           child: Column(
                             children: [
-                              SwitchListTile(
-                                secondary: Icon(Icons.dark_mode_outlined, color: theme.colorScheme.primary),
-                                title: Text(t.darkMode),
-                                value: widget.settingsController.isDarkMode,
-                                onChanged: (v) => widget.settingsController.setDarkMode(v),
+                              ListTile(
+                                leading: Icon(Icons.dark_mode_outlined, color: theme.colorScheme.primary),
+                                title: Text(t.appTheme),
+                                subtitle: Text(
+                                  widget.settingsController.themeMode == ThemeMode.system
+                                      ? t.themeSystem
+                                      : widget.settingsController.themeMode == ThemeMode.dark
+                                          ? t.themeDark
+                                          : t.themeLight,
+                                ),
+                                trailing: DropdownButton<ThemeMode>(
+                                  key: ValueKey(widget.settingsController.themeMode),
+                                  value: widget.settingsController.themeMode,
+                                  underline: const SizedBox(),
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: ThemeMode.light,
+                                      child: Text(t.themeLight),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: ThemeMode.dark,
+                                      child: Text(t.themeDark),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: ThemeMode.system,
+                                      child: Text(t.themeSystem),
+                                    ),
+                                  ],
+                                  onChanged: (ThemeMode? value) {
+                                    if (value != null) {
+                                      widget.settingsController.setThemeMode(value);
+                                    }
+                                  },
+                                ),
                               ),
                               const Divider(height: 1),
                               ListTile(
@@ -296,6 +327,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 title: Text(t.language),
                                 subtitle: Text(_languageLabel(context, widget.settingsController.locale.languageCode)),
                                 trailing: DropdownButton<String>(
+                                  key: ValueKey(widget.settingsController.themeMode),
                                   value: widget.settingsController.locale.languageCode,
                                   underline: const SizedBox(),
                                   items: [
@@ -332,6 +364,52 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => const LegalMarkdownDialog(documentName: 'terms'),
+                                );
+                              },
+                              child: Text(
+                                t.termsAndConditions,
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "•",
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => const LegalMarkdownDialog(documentName: 'privacy'),
+                                );
+                              },
+                              child: Text(
+                                t.privacyPolicy,
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 120),
                       ]),
                     ),
@@ -346,115 +424,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showEditNameDialog(String currentName, DatabaseReference ref) {
-    final t = AppStrings.of(context);
-    final controller = TextEditingController(text: currentName);
-    bool isSaving = false;
-
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(t.editNameTitle),
-          content: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    t.newNameLabel,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: controller,
-                    enabled: !isSaving,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(t.cancel),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: isSaving 
-                      ? null 
-                      : () async {
-                          if (controller.text.trim().isNotEmpty) {
-                            setDialogState(() => isSaving = true);
-                            try {
-                              await ref.update({
-                                'name': controller.text.trim(), 
-                                'updated_at': ServerValue.timestamp
-                              });
-                              if (dialogContext.mounted) {
-                                Navigator.pop(dialogContext);
-                                AppNotifications.showSuccess(dialogContext, t.profileUpdatedSuccess);
-                              }
-                            } on FirebaseException catch (e) {
-                              if (dialogContext.mounted) {
-                                setDialogState(() => isSaving = false);
-                                debugPrint("ULF_DEBUG: FirebaseException during profile update: ${e.code} - ${e.message}");
-                                AppNotifications.showError(dialogContext, t.errorSaving);
-                              }
-                            } catch (e) {
-                              if (dialogContext.mounted) {
-                                setDialogState(() => isSaving = false);
-                                AppNotifications.showError(dialogContext, t.errorSaving);
-                              }
-                            }
-                          }
-                        },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: isSaving 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(t.save),
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      builder: (context) => _EditNameDialogContent(
+        currentName: currentName,
+        userRef: ref,
       ),
-    ).then((_) => controller.dispose());
+    );
   }
 
   void _showSupportDialog() {
@@ -556,9 +533,13 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            softWrap: true,
           ),
         ],
       ),
@@ -611,6 +592,163 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
+class _EditNameDialogContent extends StatefulWidget {
+  final String currentName;
+  final DatabaseReference userRef;
+
+  const _EditNameDialogContent({
+    required this.currentName,
+    required this.userRef,
+  });
+
+  @override
+  State<_EditNameDialogContent> createState() => _EditNameDialogContentState();
+}
+
+class _EditNameDialogContentState extends State<_EditNameDialogContent> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  final _formKey = GlobalKey<FormState>();
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentName);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final bool isFormValid = _controller.text.trim().isNotEmpty;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(t.editNameTitle),
+      content: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  t.newNameLabel,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  enabled: !_isSaving,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return t.fieldRequired;
+                    }
+                    return null;
+                  },
+                  onChanged: (_) {
+                    setState(() {});
+                  },
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _isSaving 
+                    ? null 
+                    : () {
+                        _focusNode.unfocus();
+                        _formKey.currentState?.reset();
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(t.cancel),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: (_isSaving || !isFormValid)
+                    ? null
+                    : () async {
+                        if (_formKey.currentState?.validate() ?? false) {
+                          setState(() => _isSaving = true);
+                          try {
+                            await widget.userRef.update({
+                              'name': _controller.text.trim(), 
+                              'updated_at': ServerValue.timestamp
+                            });
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              AppNotifications.showSuccess(context, t.profileUpdatedSuccess);
+                            }
+                          } on FirebaseException catch (e) {
+                            if (context.mounted) {
+                              setState(() => _isSaving = false);
+                              debugPrint("ULF_DEBUG: FirebaseException during profile update: ${e.code} - ${e.message}");
+                              AppNotifications.showError(context, t.errorSaving);
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              setState(() => _isSaving = false);
+                              AppNotifications.showError(context, t.errorSaving);
+                            }
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: _isSaving 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(t.save),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class PushNotificationsSwitchTile extends StatelessWidget {
   final AppSettingsController settingsController;
 
@@ -622,6 +760,7 @@ class PushNotificationsSwitchTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SwitchListTile.adaptive(
+      key: ValueKey(settingsController.themeMode),
       secondary: Icon(Icons.notifications_active_outlined, color: theme.colorScheme.primary),
       title: Text(t.settingsPushToggle),
       subtitle: Text(
