@@ -1,109 +1,141 @@
-# 🏗️ Arquitectura del Proyecto - UniLost & Found Frontend
+# Arquitectura del frontend
 
-Este documento proporciona una especificación técnica rigurosa de la arquitectura de software, gestión de estados, inyección de dependencias e integraciones con la infraestructura de Firebase del frontend de la aplicación móvil **UniLost & Found (ULF)**.
+Este documento describe la arquitectura real del cliente Flutter de UniLost & Found a fecha 22 de mayo de 2026.
 
----
-
-## 📂 Arquitectura Limpia y Estructura de Directorios
-
-La aplicación está diseñada bajo principios de **Clean Architecture** (Arquitectura Limpia) adaptados a Flutter, organizando el código en torno a módulos o funcionalidades (**features**), lo que garantiza la cohesión y reduce el acoplamiento técnico.
+## Estructura
 
 ```text
 lib/
-├── core/             # Capa Core: Lógica transversal y configuraciones globales
-│   ├── localization/ # Gestión de internacionalización (i18n) manual y guiada
-│   ├── services/     # Servicios del sistema (Permisos, Geolocalización, Caché, Errores)
-│   ├── settings/     # Controladores de estado transversal (Tema, Idioma)
-│   └── theme/        # Definición del sistema de diseño visual Material 3
-├── features/         # Capa de Funcionalidades (Features): Módulos de negocio independientes
-│   ├── auth/         # Autenticación, registro restrictivo a dominios @uab.cat e inicio de sesión
-│   ├── chats/        # Mensajería instantánea bidireccional en tiempo real
-│   ├── home/         # Feed cronológico de objetos, búsquedas y geovallado en mapas
-│   ├── profile/      # Perfil de usuario, actividad propia y configuración local
-│   └── welcome/      # Vista de aterrizaje y punto de entrada para usuarios no autenticados
-├── shared/           # Capa Compartida (Shared): Utilidades y UI Kit global
-│   ├── utils/        # Utilidades estáticas de formateo y validación
-│   └── widgets/      # Catálogo de componentes visuales (UI Kit reutilizable)
-├── app.dart          # Widget raíz de la aplicación (MyApp y AppRoot)
-└── main.dart         # Punto de entrada nativo y arranque del framework
+├── main.dart                         # Bootstrap de Flutter y Firebase
+├── app.dart                          # MaterialApp, auth gate, legal gate y sesion local
+├── firebase_options.dart             # Opciones generadas por FlutterFire
+├── core/
+│   ├── localization/app_strings.dart  # i18n estatica es/ca/en
+│   ├── services/                      # permisos, ubicacion, cache y errores
+│   ├── settings/                      # AppSettingsController
+│   └── theme/app_theme.dart           # Material 3 y paleta de marca
+├── features/
+│   ├── auth/                          # login, registro y aceptacion legal
+│   ├── chats/                         # listado y detalle de chats
+│   ├── home/                          # feed, formulario, detalle y mapa
+│   ├── notifications/                 # bandeja de notificaciones in-app
+│   ├── profile/                       # perfil, ajustes y posts propios
+│   └── welcome/                       # entrada para usuarios anonimos
+└── shared/
+    ├── utils/                         # categorias, imagenes y notificaciones
+    └── widgets/                       # componentes reutilizables
 ```
 
----
+La separacion es por funcionalidades. En la practica, la capa de presentacion usa SDKs de Firebase y servicios compartidos directamente cuando el flujo es pequeno; las operaciones sensibles se delegan a Cloud Functions.
 
-## 🎨 Patrón de Capas en Funcionalidades
+## Arranque de la aplicacion
 
-Cada módulo bajo `lib/features/` se divide conceptualmente en capas bien delimitadas:
+`main.dart` monta `AppInitializer`, que ejecuta este orden:
 
-1. **Capa de Presentación (Presentation / UI)**:
-   * Compuesta por pantallas (`Pages`, `Screens`) y widgets especializados de vista.
-   * Consume estados locales y globales e intercepta eventos del usuario para delegar la lógica.
-   * Diseñada con total adaptabilidad responsiva bajo las directrices estéticas de **Material 3**.
+1. `Firebase.initializeApp` con `DefaultFirebaseOptions.currentPlatform`.
+2. Registro del handler FCM de background con `FirebaseMessaging.onBackgroundMessage`.
+3. Activacion de Firebase App Check con proveedores `debug` para Android e iOS.
+4. Persistencia local de Firebase Auth con `Persistence.LOCAL`.
+5. Creacion y carga de `AppSettingsController`.
 
-2. **Capa de Lógica de Negocio (Business Logic / Controllers)**:
-   * Administrada mediante controladores reactivos y de cambio como `ChangeNotifier` o flujos en tiempo real mediante `Streams`.
-   * Procesa la lógica operativa (ej: comprobar si las coordenadas de un objeto están dentro del recinto universitario mediante Ray-Casting en `LocationService`).
+Cuando termina la inicializacion, `MyApp` configura tema, locale, delegados de localizacion y limita el escalado de texto entre `0.8` y `1.25`.
 
-3. **Capa de Datos (Data / Services)**:
-   * Establece conexiones directas con los SDKs de Firebase (Realtime Database, Cloud Functions, Storage, Auth).
-   * Mapea respuestas crudas del servidor a modelos estructurados locales (ej: `ChatModel.fromMap`).
+## Gates de acceso
 
----
+`AppRoot` observa `FirebaseAuth.instance.authStateChanges()`:
 
-## 🧠 Gestión de Estado del Frontend
+- Sin usuario, o con email no verificado, muestra `WelcomePage`.
+- Con usuario verificado, comprueba una marca local `login_timestamp`.
+- Si han pasado mas de 14 dias desde esa marca, cierra sesion y elimina el timestamp.
+- Si la sesion es valida, entra en `LegalGuardGate`.
 
-La aplicación utiliza un enfoque híbrido optimizado para la gestión del estado, evitando dependencias externas complejas y garantizando la máxima velocidad y simplicidad:
+`LegalGuardGate` escucha `/users/{uid}` en RTDB y compara `acceptedTermsVersion` con `requiredLegalVersion` (`1.0.0`). Si la version aceptada no es suficiente, muestra `TermsAcceptanceScreen`.
 
-### 1. Estado Transversal Persistente (`ChangeNotifier`)
-El tema visual (claro/oscuro) y la internacionalización (idioma) son controlados centralizadamente por el [AppSettingsController](file:///home/carlesp/Documentos/UAB/Github/lost-found-frontend/lib/core/settings/app_settings_controller.dart). 
-* Hereda de `ChangeNotifier`, permitiendo notificar cambios a los widgets suscritos (`ListenableBuilder`).
-* Guarda las preferencias de los usuarios localmente en el dispositivo utilizando el paquete `shared_preferences` para asegurar persistencia entre sesiones.
+## Estado y preferencias
 
-### 2. Flujo en Tiempo Real de Autenticación (`StreamBuilder`)
-El ciclo de vida del inicio de sesión se monitoriza en tiempo real en [app.dart](file:///home/carlesp/Documentos/UAB/Github/lost-found-frontend/lib/app.dart) a través del canal `authStateChanges()` de Firebase Auth.
-* Un `StreamBuilder` reacciona de manera instantánea ante cambios en el token del dispositivo (conexión inicial, revocación, cierre de sesión).
-* Realiza un control defensivo de sesión local: si la sesión supera los **14 días**, fuerza una expiración y redirige a la pantalla de Login por motivos de seguridad.
+`AppSettingsController` extiende `ChangeNotifier` y combina cache local con sincronizacion remota:
 
-### 3. Sincronización Reactiva de Mensajes y Feeds (`Stream`)
-Las pantallas de chats ([ChatsPage](file:///home/carlesp/Documentos/UAB/Github/lost-found-frontend/lib/features/chats/presentation/pages/chats_page.dart)) y del feed de objetos ([HomePage](file:///home/carlesp/Documentos/UAB/Github/lost-found-frontend/lib/features/home/presentation/pages/home_page.dart)) consumen flujos reactivos directos de Firebase Realtime Database. Esto asegura que cualquier reporte de objeto nuevo, cambio de estado (Devuelto, En Proceso) o mensaje enviado se refleje instantáneamente en el dispositivo de todos los usuarios sin llamadas HTTP manuales.
+- `SharedPreferences`: `theme_mode`, `is_dark_mode`, `selected_locale`, `push_notifications_enabled`.
+- RTDB: `/users/{uid}/settings`.
+- Idiomas soportados: `es`, `ca`, `en`.
+- Tema soportado: `light`, `dark`, `system`.
+- Toggle push: `pushNotificationsEnabled`.
 
----
+Al cambiar tema, idioma o push, el controlador actualiza el estado local, persiste en `SharedPreferences` y escribe en RTDB cuando hay usuario autenticado. Tambien escucha cambios remotos para reflejarlos en la UI.
 
-## 🔌 Inyección de Dependencias (DI)
+## Integracion con Firebase
 
-La propagación de servicios y controladores se realiza de manera jerárquica y explícita por constructor, lo que facilita el mantenimiento, el testeo unitario y la depuración del flujo de datos:
+### Authentication y registro
 
-```mermaid
-graph TD
-    Main[main.dart] -->|Inicializa| Controller[AppSettingsController]
-    Main -->|Inyecta por constructor| App[app.dart - MyApp]
-    App -->|Propaga jerárquicamente| Root[AppRoot]
-    Root -->|Propaga al iniciar sesión| Nav[MainNavigationPage]
-    Nav -->|Inyecta| Home[HomePage]
-    Nav -->|Inyecta| Profile[ProfilePage]
-```
+El registro no crea usuarios directamente desde el cliente. `RegisterPage` llama a la Cloud Function `secureUniversityRegistration` en `us-central1` con:
 
-* **Arranque**: `main.dart` inicializa y carga las preferencias del [AppSettingsController](file:///home/carlesp/Documentos/UAB/Github/lost-found-frontend/lib/core/settings/app_settings_controller.dart).
-* **Propagación**: El controlador se inyecta en `MyApp` y se propaga en cascada hacia el widget `WelcomePage` o `MainNavigationPage` para reaccionar dinámicamente ante cambios lingüísticos o de luminosidad de pantalla.
+- `email`
+- `password`
+- `name`
+- `language`
+- flags de aceptacion legal
 
----
+Despues inicia sesion, envia email de verificacion y cierra sesion si el correo aun no esta verificado. El frontend valida `@uab.cat` y NIU de 7 digitos antes de llamar al backend.
 
-## 🔐 Integración y Seguridad con Firebase
+### Realtime Database
 
-La infraestructura de Firebase opera bajo un paradigma de **Zero-Trust** (Confianza Cero). El frontend colabora estrictamente con el backend cumpliendo con las siguientes directrices de integración y seguridad:
+La app consume RTDB en tiempo real para:
 
-### 1. Firebase Authentication (Acceso Institucional)
-* **Verificación de Dominio**: El inicio de sesión y registro están restringidos a la comunidad de la UAB mediante expresiones regulares que imponen el uso de correos `@uab.cat`.
-* **Seguridad de Token y Persistencia**: Se inicializa la persistencia en modo `Persistence.LOCAL` para mantener activa la sesión hasta un máximo de 14 días. Superado ese tiempo, el token expira automáticamente.
+- `/posts`: feed de objetos por `center_id`, filtrado localmente por `status == active`, `is_deleted == false`, categoria y busqueda textual.
+- `/chats` y `/user_chats`: listado de chats y metadatos desnormalizados.
+- `/messages/{chatId}`: mensajes del chat.
+- `/users/{uid}/notifications`: campana, bandeja y marcado de lectura.
+- `/users/{uid}/settings`: preferencias sincronizadas.
 
-### 2. Firebase Realtime Database (RTDB)
-* **Estructura del Feed**: Los objetos perdidos o encontrados se almacenan en nodos planos ordenados cronológicamente por marcas de tiempo en milisegundos (`createdAt`).
-* **Mensajería Instantánea**: La mensajería se gestiona en el nodo `/chats/`, permitiendo sub-suscripciones para reducir el consumo de datos móviles en el cliente.
-* **Denormalización de Datos**: Para optimizar las consultas y evitar lecturas costosas, los modelos de datos de chats almacenan de forma denormalizada el `postTitle`, la imagen del post (`postImageUrl`) y la información de los participantes (`displayName`, `photoUrl`).
+### Cloud Functions
 
-### 3. Firebase Storage (Almacenamiento Multimedia Optimizado)
-* El almacenamiento multimedia de fotos de perfil y fotos de objetos perdidos se guarda en Firebase Storage bajo reglas de acceso restringido a usuarios autenticados.
-* **Optimización en el Cliente**: El frontend utiliza un gestor de caché personalizado ([CustomCacheManager](file:///home/carlesp/Documentos/UAB/Github/lost-found-frontend/lib/core/services/custom_cache_manager.dart)) que almacena localmente hasta 200 imágenes concurrentes con una caducidad automática de 7 días.
+Callables usadas por el cliente:
 
-### 4. App Check (Protección de Recursos de la API)
-* En `main.dart`, se inicializa **Firebase App Check** configurando los proveedores de depuración (`AndroidProvider.debug` y `AppleProvider.debug`).
-* Esto garantiza que todas las peticiones que salgan desde la aplicación móvil hacia Firestore, Realtime Database o Firebase Storage sean legítimas y provengan de un binario oficial verificado, mitigando ataques de denegación de servicio (DoS) o robo de datos.
+| Funcion | Uso en frontend |
+| :--- | :--- |
+| `secureUniversityRegistration` | Alta segura de usuarios institucionales. |
+| `checkPotentialMatches` | Sugerencias antes de publicar un objeto. |
+| `recordPostView` | Registro de visualizacion al abrir detalle de un post ajeno. |
+| `getOrCreateChat` | Crear o recuperar chat con el propietario de un post. |
+| `saveFcmToken` | Registrar token FCM del dispositivo. |
+
+La publicacion actual se finaliza desde `FoundFormScreen` escribiendo en `/posts` tras pasar la comprobacion de matches y la validacion local de ubicacion. El backend mantiene triggers sobre `/posts` para validar geovallado, indexar activos, traducir y notificar matches.
+
+### Storage e imagenes
+
+Las fotos de posts se procesan en cliente mediante `ImageUtils` y `flutter_image_compress`, se suben como WebP a `posts/{postId}/{uid}_{timestamp}.webp` y se guardan en el post como `imageUrl` / `postImageUrl`.
+
+El cliente renderiza imagenes con `CachedNetworkImage` y `CustomCacheManager`, que mantiene hasta 200 objetos durante 7 dias.
+
+## Feed, publicacion y geovallado
+
+`HomePage` carga el centro del usuario desde `/users/{uid}/center_id`, escucha posts del centro y ordena por `created_at` descendente.
+
+`FoundFormScreen` permite dos formas de ubicacion:
+
+- GPS actual con `Geolocator`.
+- Selector manual con `MapPickerPage` y `flutter_map`.
+
+La validacion local prioriza el poligono del centro con ray-casting (`LocationService.isPointInPolygon`) y usa radio como fallback. Si no hay ubicacion seleccionada, se usa el centroide de los bounds del centro.
+
+## Chats y notificaciones
+
+`MainNavigationPage` inicializa FCM con `AppNotifications.initFCM` al entrar en la navegacion principal. El flujo:
+
+1. Pide permiso de notificaciones.
+2. Obtiene token FCM.
+3. Llama a `saveFcmToken`.
+4. Escucha mensajes foreground.
+5. Navega a chat o post cuando una notificacion se abre desde background o terminated.
+
+La bandeja `NotificationsPage` escucha `/users/{uid}/notifications`, muestra solo no leidas y escribe `read = true` para marcar una o varias como leidas.
+
+## Navegacion principal
+
+`MainNavigationPage` mantiene tres secciones:
+
+- Chats
+- Home
+- Perfil
+
+El FAB central vuelve a Home si el usuario esta en otra pestana, o abre un bottom sheet para publicar objeto perdido/encontrado si ya esta en Home.

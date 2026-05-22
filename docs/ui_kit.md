@@ -1,113 +1,112 @@
-# 🎨 Catálogo de UI Kit y Widgets Compartidos - UniLost & Found
+# UI kit compartido
 
-Este documento detalla el catálogo de widgets personalizados y reutilizables ubicados en [lib/shared/widgets/](file:///home/carlesp/Documentos/UAB/Github/lost-found-frontend/lib/shared/widgets). Estos componentes constituyen el sistema de diseño visual de la aplicación, alineados estrictamente con las directrices estéticas de **Material 3**, con soporte nativo de accesibilidad, adaptabilidad responsiva e internacionalización.
+Catalogo de widgets reutilizables en `lib/shared/widgets/`, alineado con el codigo actual del frontend.
 
----
+## CustomButton
 
-## 🧱 1. CustomButton (`custom_button.dart`)
+Archivo: `lib/shared/widgets/custom_button.dart`
 
-Un botón táctil estandarizado con un gradiente sutil o bordes delineados que responde dinámicamente a estados de carga o inactividad.
+Boton reutilizable para acciones primarias y secundarias.
 
-### 📝 Propiedades y Parámetros
+| Parametro | Tipo | Default | Uso |
+| :--- | :--- | :--- | :--- |
+| `text` | `String` | requerido | Texto visible del boton. |
+| `onPressed` | `VoidCallback?` | requerido | Accion. Si es `null`, el boton queda deshabilitado. |
+| `isPrimary` | `bool` | `true` | `ElevatedButton` si es primario, `OutlinedButton` si no. |
+| `isLoading` | `bool` | `false` | Sustituye contenido por spinner y deshabilita la accion. |
+| `icon` | `IconData?` | `null` | Icono opcional antes del texto. |
 
-| Parámetro | Tipo | Requerido / Opcional | Valor por Defecto | Propósito |
-| :--- | :--- | :--- | :--- | :--- |
-| `text` | `String` | **Requerido** | - | Texto localizado que se mostrará en el centro del botón. |
-| `onPressed` | `VoidCallback` | **Requerido** | - | Acción a ejecutar tras la pulsación del usuario. |
-| `isPrimary` | `bool` | Opcional | `true` | Determina el estilo: `true` (relleno sólido con color de énfasis), `false` (estilo delineated/outlined). |
-| `isLoading` | `bool` | Opcional | `false` | Si es `true`, reemplaza el texto/icono por un spinner de carga y deshabilita la pulsación. |
-| `icon` | `IconData?` | Opcional | `null` | Icono decorativo que acompaña al texto en la parte izquierda. |
+Usa los estilos globales de `AppTheme` para tamano minimo, radios, colores y tipografia.
 
-### 🌗 Adaptación y Comportamiento Responivo
-* **Tema Claro/Oscuro**: Consume el color primario de énfasis del tema actual. En el modo oscuro, reduce el contraste del gradiente de fondo para evitar fatiga visual del usuario.
-* **Responsividad**: Expande su ancho al máximo de su contenedor padre (`double.infinity`) garantizando un área de pulsación táctil ergonómica y cómoda (mínimo de 48px de altura).
+## CustomTextField
 
----
+Archivo: `lib/shared/widgets/custom_text_field.dart`
 
-## 📝 2. CustomTextField (`custom_text_field.dart`)
+Campo de formulario con etiqueta opcional, iconos y validacion.
 
-Un campo de texto altamente avanzado y adaptado a formularios interactivos que integra soporte nativo para contraseñas, validación reactiva y control del teclado del dispositivo.
+| Parametro | Tipo | Default | Uso |
+| :--- | :--- | :--- | :--- |
+| `label` | `String` | requerido | Texto de la etiqueta. |
+| `hintText` | `String?` | `null` | Placeholder. |
+| `controller` | `TextEditingController?` | `null` | Control externo del valor. |
+| `isPassword` | `bool` | `false` | Activa `obscureText`. |
+| `keyboardType` | `TextInputType` | `TextInputType.text` | Tipo de teclado. |
+| `textInputAction` | `TextInputAction?` | `null` | Accion del teclado. |
+| `onFieldSubmitted` | `void Function(String)?` | `null` | Callback al enviar desde teclado. |
+| `prefixIcon` | `IconData?` | `null` | Icono inicial. |
+| `validator` | `String? Function(String?)?` | `null` | Validador de formulario. |
+| `suffixIcon` | `Widget?` | `null` | Widget final. |
+| `maxLines` | `int` | `1` | Lineas maximas. |
+| `showLabel` | `bool` | `true` | Muestra `FieldLabel`. |
+| `isRequired` | `bool` | `false` | Marca visual de obligatoriedad. |
 
-### 📝 Propiedades y Parámetros
+## CustomCard
 
-| Parámetro | Tipo | Requerido / Opcional | Valor por Defecto | Propósito |
-| :--- | :--- | :--- | :--- | :--- |
-| `label` | `String` | **Requerido** | - | Texto de la etiqueta superior descriptiva. |
-| `hintText` | `String?` | Opcional | `null` | Marcador de posición (placeholder) que se muestra en vacío. |
-| `controller` | `TextEditingController?` | Opcional | `null` | Controlador para capturar o inicializar el contenido escrito. |
-| `isPassword` | `bool` | Opcional | `false` | Si es `true`, oculta los caracteres y añade un botón para alternar visibilidad. |
-| `keyboardType` | `TextInputType` | Opcional | `TextInputType.text` | Tipo de teclado virtual a invocar (ej: numérico, correo, texto). |
-| `prefixIcon` | `IconData?` | Opcional | `null` | Icono representativo al inicio del campo de texto. |
-| `validator` | `String? Function(String?)?` | Opcional | `null` | Función de validación defensiva del formulario. |
-| `suffixIcon` | `Widget?` | Opcional | `null` | Widget a renderizar al final del campo (ej: botones interactivos). |
-| `maxLines` | `int` | Opcional | `1` | Cantidad de líneas verticales máximas permitidas. |
-| `showLabel` | `bool` | Opcional | `true` | Controla la visualización de la etiqueta superior del campo. |
-| `isRequired` | `bool` | Opcional | `false` | Indica si el campo es obligatorio (añade un asterisco rojo a la etiqueta). |
+Archivo: `lib/shared/widgets/custom_card.dart`
 
-### 🌗 Adaptación y Comportamiento Responivo
-* **Tema Claro/Oscuro**: Ajusta dinámicamente el color de fondo del campo (`filled`) y del texto introducido de acuerdo al brillo del tema. Los bordes activos cambian al color primario del tema para indicar enfoque visual.
-* **Responsividad**: Se adapta de forma elástica a la anchura del dispositivo. En layouts angostos, reduce el espaciado para evitar el desbordamiento de pantalla (*overflow*).
+Wrapper sobre `Card` con `InkWell` y padding configurable.
 
----
+| Parametro | Tipo | Default | Uso |
+| :--- | :--- | :--- | :--- |
+| `child` | `Widget` | requerido | Contenido. |
+| `padding` | `EdgeInsetsGeometry?` | `EdgeInsets.all(16)` | Espaciado interno. |
+| `onTap` | `VoidCallback?` | `null` | Habilita interaccion tactil. |
+| `color` | `Color?` | `null` | Color de fondo opcional. |
 
-## 🎴 3. CustomCard (`custom_card.dart`)
+La forma visual final viene de `ThemeData.cardTheme`; actualmente usa radios amplios en claro/oscuro y clip anti-alias.
 
-Contenedor estilizado en forma de tarjeta táctil que unifica la presentación visual de publicaciones de objetos, mensajes de chats y configuraciones del perfil.
+## FieldLabel
 
-### 📝 Propiedades y Parámetros
+Archivo: `lib/shared/widgets/field_label.dart`
 
-| Parámetro | Tipo | Requerido / Opcional | Valor por Defecto | Propósito |
-| :--- | :--- | :--- | :--- | :--- |
-| `child` | `Widget` | **Requerido** | - | Componente o estructura interna a albergar dentro de la tarjeta. |
-| `padding` | `EdgeInsetsGeometry?` | Opcional | `const EdgeInsets.all(16.0)` | Espaciado interno personalizado del contenido. |
-| `onTap` | `VoidCallback?` | Opcional | `null` | Acción táctil que habilita animaciones de pulsación e interactividad. |
-| `color` | `Color?` | Opcional | `null` | Color de fondo personalizado. Si es nulo, toma el de la superficie del tema. |
+Etiqueta compacta para formularios. Recibe `label` y `isRequired`; si el campo es obligatorio, anade un asterisco rojo.
 
-### 🌗 Adaptación y Comportamiento Responivo
-* **Tema Claro/Oscuro**: En modo claro, renderiza una elevación sutil con bordes definidos. En modo oscuro, utiliza elevaciones basadas en tonalidades de grises Material 3 para mejorar la visualización en pantallas AMOLED/OLED.
-* **Responsividad**: Utiliza bordes redondeados consistentes (`BorderRadius.circular(16)`) que se adaptan de forma fluida a grids dinámicos o layouts de tipo lista.
+## SkeletonLoader
 
----
+Archivo: `lib/shared/widgets/skeleton_loader.dart`
 
-## 🏷️ 4. FieldLabel (`field_label.dart`)
+Placeholder shimmer sensible al tema.
 
-Un pequeño widget especializado que actúa como etiqueta para inputs de texto, unificando la tipografía y jerarquía visual de los títulos de formularios.
+| Parametro | Tipo | Default |
+| :--- | :--- | :--- |
+| `width` | `double` | `double.infinity` |
+| `height` | `double` | `20` |
+| `borderRadius` | `BorderRadius?` | `BorderRadius.circular(8)` |
 
-### 📝 Propiedades y Parámetros
+Incluye `SkeletonLoader.postGrid()`, que devuelve un `SliverGrid` de 6 tarjetas de carga para el feed.
 
-| Parámetro | Tipo | Requerido / Opcional | Valor por Defecto | Propósito |
-| :--- | :--- | :--- | :--- | :--- |
-| `label` | `String` | **Requerido** | - | Texto descriptivo de la etiqueta. |
-| `isRequired` | `bool` | Opcional | `false` | Si es `true`, renderiza un asterisco rojo (`*`) en negrita para marcar obligatoriedad. |
+## MainNavigationPage
 
-### 🌗 Adaptación y Comportamiento Responivo
-* **Tema Claro/Oscuro**: Mapea automáticamente el color del texto al esquema de contraste apropiado (`onSurfaceVariant`) para mantener el estándar de accesibilidad visual AAA.
-* **Responsividad**: Diseñado con comportamiento auto-envolvente (`Row` con tamaño mínimo) para integrarse sin desbordamientos en cualquier parte de la interfaz.
+Archivo: `lib/shared/widgets/main_navigation_page.dart`
 
----
+Contenedor principal autenticado. Gestiona:
 
-## ⏳ 5. SkeletonLoader (`skeleton_loader.dart`)
+- Pestañas `ChatsPage`, `HomePage` y `ProfilePage`.
+- `BottomAppBar` con FAB central.
+- Inicializacion de FCM mediante `AppNotifications.initFCM`.
+- Dialogo de cierre de sesion con limpieza de `login_timestamp`.
+- Bottom sheet para publicar objeto `found` o `lost`.
 
-Un widget animado con un efecto de parpadeo suave (*shimmer effect*) que simula el esqueleto visual de los componentes durante la carga asíncrona de datos desde Firebase.
+## NotificationBell
 
-### 📝 Constructores y Helpers Estáticos
+Archivo: `lib/shared/widgets/notification_bell.dart`
 
-* **Constructor Base (`SkeletonLoader`)**: Crea una caja con un ancho, alto y radio de esquinas configurables por parámetros.
-* **`SkeletonLoader.postGrid()`**: Genera una cuadrícula tridimensional compuesta de 6 tarjetas ficticias con imágenes y bloques de texto en parpadeo, idéntica a la visualización de carga de objetos en [HomePage](file:///home/carlesp/Documentos/UAB/Github/lost-found-frontend/lib/features/home/presentation/pages/home_page.dart).
+Icono de notificaciones usado en Home, Chats y Perfil. Escucha `/users/{uid}/notifications` filtrando `read == false`, muestra badge con contador hasta `9+` y abre `NotificationsPage`.
 
-### 🌗 Adaptación y Comportamiento Responivo
-* **Tema Claro/Oscuro**: Modifica dinámicamente sus colores base y de resplandor (`baseColor` / `highlightColor`):
-  * **Modo Claro**: Alterna entre tonalidades de gris claro (`Colors.grey[300]` y `Colors.grey[100]`).
-  * **Modo Oscuro**: Alterna entre tonalidades de gris oscuro/carbón (`Colors.grey[800]` y `Colors.grey[700]`).
-* **Responsividad**: Adopta el espacio exacto del elemento final que reemplazará, de manera que la transición de carga a datos no altere el tamaño de la UI.
+## LanguageSelectorWidget
 
----
+Archivo: `lib/shared/widgets/language_selector_widget.dart`
 
-## 🗺️ 6. MainNavigationPage (`main_navigation_page.dart`)
+Selector de idioma conectado a `AppSettingsController.setLocale`. Cambia el locale local y sincroniza `settings/language` y `preferredLanguage` cuando hay usuario autenticado.
 
-La pieza estructural de navegación principal de la aplicación. Integra el contenedor de pantallas, el menú inferior e interactúa dinámicamente con el botón flotante central de reportes rápidos.
+## LegalMarkdownDialog
 
-### 📝 Estructura y Comportamiento
-* **Barra de Navegación**: Utiliza un menú de navegación `BottomAppBar` de Material 3 con muesca central circular (`CircularNotchedRectangle`) para alojar estéticamente el botón de acción principal.
-* **FAB Central Animado**: Un botón flotante central con un gradiente vistoso que realiza transiciones suaves de escala y rotación entre un icono de casa (`Icons.home_rounded`) o de agregar objeto (`Icons.add_rounded`) dependiendo de la sección en la que se encuentre el usuario.
-* **Expiración de Sesión**: Se comunica activamente con la capa transversal del sistema para comprobar que el token del usuario se mantenga verificado y vigente, garantizando un cierre de sesión seguro en caso de inactividad o superación de la cuota de 14 días.
+Archivo: `lib/shared/widgets/legal_markdown_dialog.dart`
+
+Dialogo para mostrar documentos legales desde `assets/legal/`. Se usa en registro para terminos y politica de privacidad.
+
+## MapPickerPage
+
+Archivo: `lib/shared/widgets/map_picker_page.dart`
+
+Selector de ubicacion basado en `flutter_map`. Recibe centro inicial, bounds y poligono opcional; devuelve un `LatLng` seleccionado al formulario de publicacion.
