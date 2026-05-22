@@ -84,35 +84,8 @@ class _AppRootState extends State<AppRoot> {
     final theme = Theme.of(context);
     return Scaffold(
       body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ClipOval(
-                  child: Image.asset(
-                    'assets/icon/app_icon.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      debugPrint("ULF_DEBUG: Error loading app icon: $error");
-                      return Icon(
-                        Icons.inventory_2_outlined,
-                        size: 120,
-                        color: theme.colorScheme.primary,
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 24),
-                CircularProgressIndicator(
-                  color: theme.colorScheme.primary,
-                ),
-              ],
-            ),
-          ),
+        child: CircularProgressIndicator(
+          color: theme.colorScheme.primary,
         ),
       ),
     );
@@ -242,6 +215,7 @@ class _LegalBlockWrapperState extends State<LegalBlockWrapper> {
     setState(() => _isSaving = true);
     try {
       await FirebaseDatabase.instance.ref('users/${user.uid}').update({
+        'acceptedTermsVersion': requiredLegalVersion,
         'legal/termsAccepted': true,
         'legal/privacyAccepted': true,
         'legal/acceptedAt': ServerValue.timestamp,
@@ -260,13 +234,31 @@ class _LegalBlockWrapperState extends State<LegalBlockWrapper> {
     }
   }
 
+  bool _isVersionAccepted(String? acceptedVersion, String requiredVersion) {
+    if (acceptedVersion == null) return false;
+    if (acceptedVersion == requiredVersion) return true;
+    try {
+      final acceptedParts = acceptedVersion.split('.').map(int.parse).toList();
+      final requiredParts = requiredVersion.split('.').map(int.parse).toList();
+      for (int i = 0; i < requiredParts.length; i++) {
+        final acceptedPart = i < acceptedParts.length ? acceptedParts[i] : 0;
+        final requiredPart = requiredParts[i];
+        if (acceptedPart > requiredPart) return true;
+        if (acceptedPart < requiredPart) return false;
+      }
+      return true;
+    } catch (_) {
+      return acceptedVersion.compareTo(requiredVersion) >= 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return widget.child;
 
     return StreamBuilder<DatabaseEvent>(
-      stream: FirebaseDatabase.instance.ref('users/${user.uid}/legal').onValue,
+      stream: FirebaseDatabase.instance.ref('users/${user.uid}/acceptedTermsVersion').onValue,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -276,11 +268,8 @@ class _LegalBlockWrapperState extends State<LegalBlockWrapper> {
           );
         }
 
-        final data = snapshot.data?.snapshot.value;
-        bool accepted = false;
-        if (data is Map) {
-          accepted = (data['termsAccepted'] == true) && (data['privacyAccepted'] == true);
-        }
+        final String? acceptedVersion = snapshot.data?.snapshot.value as String?;
+        final accepted = _isVersionAccepted(acceptedVersion, requiredLegalVersion);
 
         if (accepted) {
           return widget.child;

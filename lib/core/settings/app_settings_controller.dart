@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 
+const String requiredLegalVersion = "1.0.0";
+
 class AppSettingsController extends ChangeNotifier {
   static const _themeKey = 'is_dark_mode';
   static const _themeModeKey = 'theme_mode';
