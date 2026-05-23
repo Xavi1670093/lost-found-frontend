@@ -152,7 +152,7 @@ class _HomePageState extends State<HomePage> {
 
       final callable = FirebaseFunctions.instance.httpsCallable('getFilteredFeed');
       final response = await callable.call({
-        'centerId': centerId,
+        'center_id': centerId,
         'latitude': position.latitude,
         'longitude': position.longitude,
         'sortBy': 'distance',
