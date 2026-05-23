@@ -26,7 +26,15 @@ import 'package:unilost_found/features/home/presentation/pages/post_detail_page.
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 
+/// Pantalla que presenta el formulario de publicación de objetos.
+///
+/// Permite a los estudiantes reportar el hallazgo (`found`) o la pérdida (`lost`)
+/// de pertenencias en el campus. Incluye flujos interactivos para capturar imágenes,
+/// comprimirlas localmente, seleccionar geolocalización de forma automatizada por GPS
+/// o selector interactivo en mapa, y ejecutar el algoritmo de coincidencia previo
+/// a la publicación en base a coincidencias semánticas e indexadas en la nube.
 class FoundFormScreen extends StatefulWidget {
+  /// Tipo de reporte que se va a crear. Generalmente 'lost' o 'found'.
   final String postType;
 
   const FoundFormScreen({

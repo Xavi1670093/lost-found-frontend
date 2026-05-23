@@ -13,6 +13,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
 import '../../data/models/chat_model.dart';
 
+/// Pantalla de detalle de conversación entre dos usuarios.
+///
+/// Permite enviar mensajes de texto y de imagen en tiempo real asociados a un objeto
+/// reportado. Controla la presencia en el chat para silenciar notificaciones in-app
+/// redundantes, sube imágenes a Firebase Storage comprimiéndolas localmente en WebP
+/// y deshabilita la entrada de mensajes si el chat ha sido bloqueado o resuelto.
 class ChatDetailPage extends StatefulWidget {
   final String chatId;
   final ChatModel chat;

@@ -18,6 +18,12 @@ import 'package:unilost_found/shared/utils/category_utils.dart';
 import 'package:unilost_found/shared/utils/center_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 
+/// Pantalla del feed principal de la aplicación.
+///
+/// Muestra un listado interactivo y en tiempo real de objetos perdidos o encontrados
+/// en el campus. Consume el estado del usuario autenticado para mostrar objetos de su
+/// centro de estudios, y permite filtrar por texto, categorías e incluso ordenar
+/// los objetos según su proximidad física utilizando la geolocalización.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 

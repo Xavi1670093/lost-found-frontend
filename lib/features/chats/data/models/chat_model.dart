@@ -1,17 +1,46 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Modelo de datos que representa una sesión de chat entre dos estudiantes.
+///
+/// Contiene metadatos desnormalizados del objeto relacionado (título, categoría,
+/// imagen), el estado de actividad del canal, el último mensaje intercambiado
+/// y la información de perfil básica de los participantes para evitar consultas
+/// repetidas a la base de datos de usuarios.
 class ChatModel {
+  /// Identificador único del chat.
   final String id;
+  
+  /// Título del post asociado al chat.
   final String postTitle;
+  
+  /// URL de la imagen del post.
   final String? postImageUrl;
+  
+  /// Categoría del objeto reportado en el post.
   final String postCategory;
+  
+  /// Contenido textual del último mensaje enviado en esta conversación.
   final String? lastMessage;
+  
+  /// Timestamp de envío del último mensaje (milisegundos desde la época).
   final int lastMessageTime;
+  
+  /// Timestamp de creación de la sala de chat.
   final int createdAt;
+  
+  /// Mapa desnormalizado con los nombres y fotos de perfil de los usuarios.
   final Map<String, dynamic> usersInfo;
+  
+  /// Listado con los IDs de los usuarios participantes del chat.
   final List<String> participants;
+  
+  /// ID del usuario que publicó el objeto.
   final String postOwnerId;
+  
+  /// Indica si el chat sigue activo para enviar mensajes o ha sido deshabilitado.
   final bool isActive;
+  
+  /// Motivo por el cual el chat fue cerrado (ej. 'deleted' o 'resolved').
   final String? disabledReason;
 
   ChatModel({
@@ -29,8 +58,17 @@ class ChatModel {
     this.disabledReason,
   });
 
+  /// Factory para construir un [ChatModel] a partir de la respuesta cruda de RTDB.
+  ///
+  /// Cuenta con lógica de transformación flexible para:
+  /// 1. Soportar la estructura de miembros representada como mapa (clave: uid)
+  ///    o lista tradicional de participantes.
+  /// 2. Tolerancia a inconsistencias de nomenclatura (camelCase vs snake_case) en
+  ///    las propiedades provenientes del backend de Firebase.
   factory ChatModel.fromMap(String id, Map<dynamic, dynamic> map) {
-    // Parse participants from 'members' map (new) or 'participants' list (old)
+    // Se procesa la lista de participantes mapeando la estructura dinámica de RTDB.
+    // 'members' es preferido por eficiencia en reglas de seguridad en RTDB (objeto con UIDs como clave).
+    // 'participants' se mantiene como fallback para retrocompatibilidad con esquemas antiguos.
     List<String> participantsList = [];
     if (map['members'] != null && map['members'] is Map) {
       participantsList = (map['members'] as Map).keys.map((e) => e.toString()).toList();
