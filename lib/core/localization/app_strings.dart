@@ -294,6 +294,10 @@ class AppStrings {
       'legalUnavailable': 'El documento legal no se encuentra disponible en este momento.',
       'chat_status_deleted': 'Este objeto ha sido eliminado.',
       'chat_status_resolved': 'Este objeto ha sido devuelto.',
+      'recentSort': 'Recientes',
+      'proximitySort': 'Cercanía',
+      'locationPermissionDenied': 'Permiso de ubicación denegado. No se puede ordenar por cercanía.',
+      'faqsLink': 'Preguntas Frecuentes',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -527,6 +531,10 @@ class AppStrings {
       'legalUnavailable': 'El document legal no es troba disponible en aquest moment.',
       'chat_status_deleted': 'Aquest objecte ha estat eliminat.',
       'chat_status_resolved': 'Aquest objecte ha estat retornat.',
+      'recentSort': 'Recents',
+      'proximitySort': 'Proximitat',
+      'locationPermissionDenied': 'Permís d\'ubicació denegat. No es pot ordenar per proximitat.',
+      'faqsLink': 'Preguntes Freqüents',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -760,6 +768,10 @@ class AppStrings {
       'legalUnavailable': 'The legal document is not available at this moment.',
       'chat_status_deleted': 'This item has been deleted.',
       'chat_status_resolved': 'This item has been returned.',
+      'recentSort': 'Recent',
+      'proximitySort': 'Proximity',
+      'locationPermissionDenied': 'Location permission denied. Cannot sort by proximity.',
+      'faqsLink': 'FAQs',
     },
   };
 
@@ -996,6 +1008,10 @@ class AppStrings {
   String get legalUnavailable => _text('legalUnavailable');
   String get chatStatusDeleted => _text('chat_status_deleted');
   String get chatStatusResolved => _text('chat_status_resolved');
+  String get recentSort => _text('recentSort');
+  String get proximitySort => _text('proximitySort');
+  String get locationPermissionDenied => _text('locationPermissionDenied');
+  String get faqsLink => _text('faqsLink');
 
   String minutesAgo(int count) {
     final key = count == 1

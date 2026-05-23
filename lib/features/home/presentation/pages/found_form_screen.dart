@@ -677,13 +677,17 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     // Image Picker Section
                     Row(
                       children: [
-                        _buildSectionTitle(t.objectPhoto, theme),
+                        Flexible(
+                          child: _buildSectionTitle(t.objectPhoto, theme),
+                        ),
                         const SizedBox(width: 8),
-                        Text(
-                          t.recommended,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+                        Flexible(
+                          child: Text(
+                            t.recommended,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],

@@ -26,7 +26,12 @@ class _LegalMarkdownDialogState extends State<LegalMarkdownDialog> {
 
   Future<void> _loadDocument() async {
     final locale = Localizations.localeOf(context).languageCode;
-    final path = 'assets/legal/${widget.documentName}_$locale.md';
+    final String path;
+    if (widget.documentName == 'faq') {
+      path = 'assets/faq/faq_$locale.md';
+    } else {
+      path = 'assets/legal/${widget.documentName}_$locale.md';
+    }
     try {
       final text = await rootBundle.loadString(path);
       if (mounted) {
@@ -132,7 +137,11 @@ class _LegalMarkdownDialogState extends State<LegalMarkdownDialog> {
     final t = AppStrings.of(context);
     final theme = Theme.of(context);
 
-    final title = widget.documentName == 'terms' ? t.termsAndConditions : t.privacyPolicy;
+    final title = widget.documentName == 'terms'
+        ? t.termsAndConditions
+        : widget.documentName == 'privacy'
+            ? t.privacyPolicy
+            : t.faqsLink;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

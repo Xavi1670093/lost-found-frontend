@@ -514,6 +514,28 @@ class _ProfilePageState extends State<ProfilePage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                const SizedBox(height: 24),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton.icon(
+                    icon: Icon(Icons.help_outline_rounded, color: theme.colorScheme.primary, size: 20),
+                    label: Text(
+                      t.faqsLink,
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      showDialog(
+                        context: context,
+                        builder: (context) => const LegalMarkdownDialog(documentName: 'faq'),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
