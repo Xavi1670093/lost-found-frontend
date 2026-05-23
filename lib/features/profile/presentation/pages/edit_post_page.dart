@@ -20,11 +20,7 @@ class EditPostPage extends StatefulWidget {
   final String postId;
   final Map<dynamic, dynamic> post;
 
-  const EditPostPage({
-    super.key,
-    required this.postId,
-    required this.post,
-  });
+  const EditPostPage({super.key, required this.postId, required this.post});
 
   @override
   State<EditPostPage> createState() => _EditPostPageState();
@@ -37,17 +33,14 @@ class _EditPostPageState extends State<EditPostPage> {
   late TextEditingController _descriptionController;
 
   late String _selectedStatus;
+  late String _originalStatus;
   late String _selectedCategory;
 
   bool _saving = false;
   File? _imageFile;
   String? _currentImageUrl;
 
-  final List<String> _statuses = [
-    'active',
-    'matched',
-    'returned',
-  ];
+  final List<String> _statuses = ['active', 'matched', 'returned'];
 
   final List<String> _categories = CategoryUtils.categories;
 
@@ -55,21 +48,25 @@ class _EditPostPageState extends State<EditPostPage> {
   void initState() {
     super.initState();
 
-    _titleController = TextEditingController(
-      text: widget.post['title'] ?? '',
-    );
+    _titleController = TextEditingController(text: widget.post['title'] ?? '');
 
     _descriptionController = TextEditingController(
       text: widget.post['description'] ?? '',
     );
 
-    _selectedStatus = (widget.post['status']?.toString() ?? 'active').toLowerCase().trim();
-    _selectedCategory = (widget.post['category']?.toString() ?? 'others').toLowerCase().trim();
+    _selectedStatus = (widget.post['status']?.toString() ?? 'active')
+        .toLowerCase()
+        .trim();
+    _selectedCategory = (widget.post['category']?.toString() ?? 'others')
+        .toLowerCase()
+        .trim();
     _currentImageUrl = ImageUtils.postImageUrlFrom(widget.post);
 
     if (!_statuses.contains(_selectedStatus)) {
       _selectedStatus = 'active';
     }
+
+    _originalStatus = _selectedStatus;
 
     if (!_categories.contains(_selectedCategory)) {
       _selectedCategory = 'others';
@@ -133,11 +130,15 @@ class _EditPostPageState extends State<EditPostPage> {
       if (_imageFile != null) {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          imagePath = 'posts/${widget.postId}/post_image_${DateTime.now().millisecondsSinceEpoch}.webp';
+          imagePath =
+              'posts/${widget.postId}/post_image_${DateTime.now().millisecondsSinceEpoch}.webp';
           final storageRef = FirebaseStorage.instance.ref().child(imagePath);
 
           try {
-            final uploadTask = storageRef.putFile(_imageFile!, SettableMetadata(contentType: 'image/webp'));
+            final uploadTask = storageRef.putFile(
+              _imageFile!,
+              SettableMetadata(contentType: 'image/webp'),
+            );
             final snapshot = await uploadTask.whenComplete(() => null);
             imageUrl = await snapshot.ref.getDownloadURL();
           } catch (e) {
@@ -156,12 +157,12 @@ class _EditPostPageState extends State<EditPostPage> {
         return;
       }
 
-      // 1. Actualizamos campos directamente en RTDB
+      // 1. Actualizamos campos editables directamente en RTDB.
+      // El estado se cambia solo mediante updatePostStatus para aplicar permisos server-side.
       final Map<String, dynamic> updates = {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
-        'status': _selectedStatus,
         'updated_at': ServerValue.timestamp,
       };
 
@@ -173,25 +174,45 @@ class _EditPostPageState extends State<EditPostPage> {
         }
       }
 
-      await FirebaseDatabase.instance.ref('posts/${widget.postId}').update(updates);
+      await FirebaseDatabase.instance
+          .ref('posts/${widget.postId}')
+          .update(updates);
 
       if (!mounted) return;
 
-      // 2. Notificamos al backend para actualizar el estado (esto dispara triggers en el servidor)
-      final callable = FirebaseFunctions.instance.httpsCallable('updatePostStatus');
-      await callable.call({
-        'postId': widget.postId,
-        'newStatus': _selectedStatus,
-      });
+      // 2. Actualizamos el estado solo si ha cambiado, con validación de permisos en backend.
+      if (_selectedStatus != _originalStatus) {
+        final callable = FirebaseFunctions.instance.httpsCallable(
+          'updatePostStatus',
+        );
+        await callable.call({
+          'postId': widget.postId,
+          'newStatus': _selectedStatus,
+        });
+      }
 
       if (!mounted) return;
 
       AppNotifications.showSuccess(context, t.postEditedSuccess);
       Navigator.pop(context);
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      debugPrint(
+        "ULF_DEBUG: FirebaseFunctionsException during saveChanges: ${e.code} - ${e.message}",
+      );
+      final message =
+          (e.code == 'permission-denied' || e.code == 'invalid-argument')
+          ? t.errorSaving
+          : ErrorHandler.getMessage(e, t);
+      AppNotifications.showError(context, message);
     } on FirebaseException catch (e) {
       if (!mounted) return;
-      debugPrint("ULF_DEBUG: FirebaseException during saveChanges: ${e.code} - ${e.message}");
-      final message = e.code == 'permission-denied' ? t.errorSaving : ErrorHandler.getMessage(e, t);
+      debugPrint(
+        "ULF_DEBUG: FirebaseException during saveChanges: ${e.code} - ${e.message}",
+      );
+      final message = e.code == 'permission-denied'
+          ? t.errorSaving
+          : ErrorHandler.getMessage(e, t);
       AppNotifications.showError(context, message);
     } catch (e) {
       if (!mounted) return;
@@ -209,7 +230,9 @@ class _EditPostPageState extends State<EditPostPage> {
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               const Icon(Icons.delete_outline_rounded, color: Colors.red),
@@ -223,7 +246,10 @@ class _EditPostPageState extends State<EditPostPage> {
             ],
           ),
           content: Text(t.deleteConfirmationMessage),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actionsPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
             Row(
@@ -234,7 +260,9 @@ class _EditPostPageState extends State<EditPostPage> {
                     onPressed: () => Navigator.pop(dialogContext, false),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
@@ -248,7 +276,9 @@ class _EditPostPageState extends State<EditPostPage> {
                     onPressed: () => Navigator.pop(dialogContext, true),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                       elevation: 0,
@@ -282,8 +312,12 @@ class _EditPostPageState extends State<EditPostPage> {
       Navigator.pop(context);
     } on FirebaseException catch (e) {
       if (!mounted) return;
-      debugPrint("ULF_DEBUG: FirebaseException during deletePost: ${e.code} - ${e.message}");
-      final message = e.code == 'permission-denied' ? t.errorDeleting : ErrorHandler.getMessage(e, t);
+      debugPrint(
+        "ULF_DEBUG: FirebaseException during deletePost: ${e.code} - ${e.message}",
+      );
+      final message = e.code == 'permission-denied'
+          ? t.errorDeleting
+          : ErrorHandler.getMessage(e, t);
       AppNotifications.showError(context, message);
     } catch (e) {
       if (!mounted) return;
@@ -293,8 +327,6 @@ class _EditPostPageState extends State<EditPostPage> {
       if (mounted) setState(() => _saving = false);
     }
   }
-
-
 
   String _statusLabel(String status, AppStrings t) {
     return CategoryUtils.getStatusLabel(status, t);
@@ -318,205 +350,249 @@ class _EditPostPageState extends State<EditPostPage> {
         ),
       ),
       body: _saving
-          ? Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))
+          ? Center(
+              child: CircularProgressIndicator(
+                color: theme.colorScheme.primary,
+              ),
+            )
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cabecera de la Imagen del Objeto
-              FieldLabel(label: t.objectPhoto, isRequired: false),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (_imageFile != null)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(22),
-                          child: Image.file(
-                            _imageFile!,
-                            width: double.infinity,
-                            height: 200,
-                            fit: BoxFit.cover,
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Cabecera de la Imagen del Objeto
+                    FieldLabel(label: t.objectPhoto, isRequired: false),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        height: 200,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant,
+                            width: 1.5,
                           ),
-                        )
-                      else if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(22),
-                          child: CachedNetworkImage(
-                            imageUrl: _currentImageUrl!,
-                            cacheManager: CustomCacheManager.instance,
-                            width: double.infinity,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                            errorWidget: (context, url, error) => Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.broken_image_rounded, size: 48, color: theme.colorScheme.error),
-                                const SizedBox(height: 12),
-                                Text(t.errorImageUpload, style: TextStyle(color: theme.colorScheme.error)),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
                           children: [
-                            Icon(Icons.add_a_photo_rounded, size: 48, color: theme.colorScheme.primary),
-                            const SizedBox(height: 12),
-                            Text(
-                              t.tapToTakePhoto,
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
+                            if (_imageFile != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(22),
+                                child: Image.file(
+                                  _imageFile!,
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            else if (_currentImageUrl != null &&
+                                _currentImageUrl!.isNotEmpty)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(22),
+                                child: CachedNetworkImage(
+                                  imageUrl: _currentImageUrl!,
+                                  cacheManager: CustomCacheManager.instance,
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                  errorWidget: (context, url, error) => Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.broken_image_rounded,
+                                        size: 48,
+                                        color: theme.colorScheme.error,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        t.errorImageUpload,
+                                        style: TextStyle(
+                                          color: theme.colorScheme.error,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.add_a_photo_rounded,
+                                    size: 48,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    t.tapToTakePhoto,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                            if (_imageFile != null ||
+                                (_currentImageUrl != null &&
+                                    _currentImageUrl!.isNotEmpty))
+                              Positioned(
+                                right: 12,
+                                bottom: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.9,
+                                    ),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.edit_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
-                      if (_imageFile != null || (_currentImageUrl != null && _currentImageUrl!.isNotEmpty))
-                        Positioned(
-                          right: 12,
-                          bottom: 12,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.9),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.edit_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    CustomTextField(
+                      label: t.titleLabel,
+                      controller: _titleController,
+                      hintText: t.objectTitleHint,
+                      isRequired: true,
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
+                          ? t.fieldRequired
+                          : null,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    CustomTextField(
+                      label: "${t.descriptionLabel} ${t.optional}",
+                      controller: _descriptionController,
+                      maxLines: 4,
+                      hintText: t.descriptionHint,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    FieldLabel(label: t.category, isRequired: true),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedCategory,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                          ),
+                          items: _categories.map((category) {
+                            return DropdownMenuItem(
+                              value: category,
+                              child: Text(_categoryLabel(category, t)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _selectedCategory = value);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    FieldLabel(label: t.currentStatus, isRequired: true),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedStatus,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                          ),
+                          items: _statuses.map((status) {
+                            return DropdownMenuItem(
+                              value: status,
+                              child: Text(_statusLabel(status, t)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _selectedStatus = value);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    CustomButton(text: t.saveChanges, onPressed: _saveChanges),
+
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _deletePost,
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        label: Text(t.deletePost),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              CustomTextField(
-                label: t.titleLabel,
-                controller: _titleController,
-                hintText: t.objectTitleHint,
-                isRequired: true,
-                validator: (value) => (value == null || value.trim().isEmpty) ? t.fieldRequired : null,
-              ),
-
-              const SizedBox(height: 24),
-
-              CustomTextField(
-                label: "${t.descriptionLabel} ${t.optional}",
-                controller: _descriptionController,
-                maxLines: 4,
-                hintText: t.descriptionHint,
-              ),
-
-              const SizedBox(height: 24),
-
-              FieldLabel(label: t.category, isRequired: true),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedCategory,
-                    decoration: const InputDecoration(border: InputBorder.none),
-                    items: _categories.map((category) {
-                      return DropdownMenuItem(
-                        value: category,
-                        child: Text(_categoryLabel(category, t)),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) setState(() => _selectedCategory = value);
-                    },
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              FieldLabel(label: t.currentStatus, isRequired: true),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedStatus,
-                    decoration: const InputDecoration(border: InputBorder.none),
-                    items: _statuses.map((status) {
-                      return DropdownMenuItem(
-                        value: status,
-                        child: Text(_statusLabel(status, t)),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) setState(() => _selectedStatus = value);
-                    },
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              CustomButton(
-                text: t.saveChanges,
-                onPressed: _saveChanges,
-              ),
-
-              const SizedBox(height: 16),
-
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _deletePost,
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  label: Text(t.deletePost),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
