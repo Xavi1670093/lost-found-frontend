@@ -16,6 +16,7 @@ import 'package:unilost_found/core/services/error_handler.dart';
 import 'package:unilost_found/core/services/location_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/center_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'package:unilost_found/shared/widgets/map_picker_page.dart';
 import 'package:unilost_found/features/home/presentation/pages/post_detail_page.dart'; // 2. IMPORTANTE: Importar la página de detalles
@@ -64,14 +65,14 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final userSnap = await FirebaseDatabase.instance.ref('users/${user.uid}').get();
       if (userSnap.exists) {
         final userData = Map<dynamic, dynamic>.from(userSnap.value as Map);
-        _centerId = userData['center_id']?.toString().toLowerCase() ?? 'uab';
+        _centerId = CenterUtils.normalizeCenterId(userData['center_id']);
         _userName = userData['name']?.toString() ?? user.displayName;
       } else {
-        _centerId = 'uab';
+        _centerId = CenterUtils.defaultCenterId;
         _userName = user.displayName;
       }
       
-      final fetchId = _centerId!;
+      final fetchId = CenterUtils.normalizeCenterId(_centerId);
       final centerRef = FirebaseDatabase.instance.ref('centers/$fetchId');
       final centerSnap = await centerRef.get();
       
@@ -112,6 +113,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       }
     } catch (_) {
       setState(() {
+        _centerId = CenterUtils.defaultCenterId;
         _centerBounds = {
           'minLat': 41.450,
           'maxLat': 41.560,
@@ -272,7 +274,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     final t = AppStrings.of(context);
     if (!_formKey.currentState!.validate()) return;
     
-    final centerId = _centerId ?? 'uab';
+    final centerId = CenterUtils.normalizeCenterId(_centerId);
     final centerName = _centerBounds?['name']?.toString() ?? 'UAB Campus';
     
     final double minLat = (_centerBounds?['minLat'] as num? ?? _centerBounds?['latMin'] as num? ?? 41.480).toDouble();
