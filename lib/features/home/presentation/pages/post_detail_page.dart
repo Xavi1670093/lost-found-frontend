@@ -176,6 +176,39 @@ class _PostDetailPageState extends State<PostDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (post['status'] == 'matched') ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.amber.shade300,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.handshake_rounded,
+                            color: Colors.amber.shade900,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              t.possibleMatchDetailBanner,
+                              style: TextStyle(
+                                color: Colors.amber.shade900,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   // Category and Date Wrap (sprints safely on narrow devices)
                   Wrap(
                     spacing: 12,
@@ -197,56 +230,60 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Title and Status
-                  Row(
+                  // Title and Status (Responsive layout to prevent overflow on narrow screens)
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          post['title'] ?? t.defaultItemTitle,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: theme.colorScheme.onSurface,
-                          ),
+                      Text(
+                        post['title'] ?? t.defaultItemTitle,
+                        softWrap: true,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isLost ? Colors.orange.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isLost ? Colors.orange.withValues(alpha: 0.3) : Colors.green.withValues(alpha: 0.3),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isLost ? Colors.orange.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isLost ? Colors.orange.withValues(alpha: 0.3) : Colors.green.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              isLost ? t.lostStatus : t.foundStatus,
+                              style: TextStyle(
+                                color: isLost ? Colors.orange.shade800 : Colors.green.shade800,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          isLost ? t.lostStatus : t.foundStatus,
-                          style: TextStyle(
-                            color: isLost ? Colors.orange.shade800 : Colors.green.shade800,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: CategoryUtils.getStatusColor(post['status'], theme).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: CategoryUtils.getStatusColor(post['status'], theme).withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              CategoryUtils.getStatusLabel(post['status'], t).toUpperCase(),
+                              style: TextStyle(
+                                color: CategoryUtils.getStatusColor(post['status'], theme),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: CategoryUtils.getStatusColor(post['status'], theme).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: CategoryUtils.getStatusColor(post['status'], theme).withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Text(
-                          CategoryUtils.getStatusLabel(post['status'], t).toUpperCase(),
-                          style: TextStyle(
-                            color: CategoryUtils.getStatusColor(post['status'], theme),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -257,6 +294,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   const SizedBox(height: 12),
                   Text(
                     post['description'] ?? t.noDescription,
+                    softWrap: true,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       height: 1.6,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
@@ -412,12 +450,16 @@ class _InfoChip extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: textColor),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

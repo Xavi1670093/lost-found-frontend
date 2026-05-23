@@ -70,80 +70,102 @@ class ChatsPage extends StatelessWidget {
                       );
                     },
                     borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                    child: Opacity(
+                      opacity: chat.isActive ? 1.0 : 0.65,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: chat.isActive
+                              ? theme.colorScheme.surface
+                              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: chat.isActive
+                                ? theme.colorScheme.outlineVariant.withValues(alpha: 0.5)
+                                : theme.colorScheme.outlineVariant,
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          // Leading: Imagen del post o Icono de Categoría
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: chat.postImageUrl != null && chat.postImageUrl!.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: chat.postImageUrl!,
-                                    cacheManager: CustomCacheManager.instance,
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => const SkeletonLoader(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            // Leading: Imagen del post o Icono de Categoría
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: chat.postImageUrl != null && chat.postImageUrl!.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: chat.postImageUrl!,
+                                      cacheManager: CustomCacheManager.instance,
                                       width: 60,
                                       height: 60,
-                                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                                    ),
-                                    errorWidget: (context, url, error) => Container(
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => const SkeletonLoader(
+                                        width: 60,
+                                        height: 60,
+                                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                                      ),
+                                      errorWidget: (context, url, error) => Container(
+                                        width: 60,
+                                        height: 60,
+                                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                        child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary, size: 28),
+                                      ),
+                                    )
+                                  : Container(
                                       width: 60,
                                       height: 60,
                                       color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
                                       child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary, size: 28),
                                     ),
-                                  )
-                                : Container(
-                                    width: 60,
-                                    height: 60,
-                                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                                    child: Icon(CategoryUtils.getCategoryIcon(chat.postCategory), color: theme.colorScheme.primary, size: 28),
-                                  ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        chat.postTitle.isNotEmpty ? chat.postTitle : t.defaultItemTitle,
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: -0.2,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                chat.postTitle.isNotEmpty ? chat.postTitle : t.defaultItemTitle,
+                                                style: theme.textTheme.titleMedium?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: -0.2,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (!chat.isActive) ...[
+                                              const SizedBox(width: 6),
+                                              Icon(
+                                                Icons.lock_rounded,
+                                                size: 14,
+                                                color: theme.colorScheme.error.withValues(alpha: 0.7),
+                                              ),
+                                            ],
+                                          ],
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      timeStr,
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                        fontWeight: FontWeight.w500,
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        timeStr,
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: theme.colorScheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
                                 const SizedBox(height: 6),
                                 // Subtitle: Información del OTRO usuario
                                 Row(
@@ -213,7 +235,8 @@ class ChatsPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                  );
+                  ),
+                );
                 },
               );
             },

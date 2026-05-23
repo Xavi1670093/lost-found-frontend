@@ -222,6 +222,8 @@ class AppStrings {
       'statusMatched': 'Posible coincidencia',
       'statusReturned': 'Devuelto',
       'statusInProcess': 'En proceso',
+      'possible_match_badge': 'Posible coincidencia',
+      'possible_match_detail_banner': 'Esta publicación tiene una posible coincidencia con otro objeto.',
       'sendError': 'Error al enviar mensaje',
       'noMessagesYetDetail': 'Todavía no hay mensajes.',
       'typeMessageHint': 'Escribe un mensaje...',
@@ -274,7 +276,7 @@ class AppStrings {
       'time_hours_ago_singular': 'hace {count} hora',
       'time_hours_ago_plural': 'hace {count} horas',
       'settings_push_toggle': 'Recibir notificaciones push',
-      'settings_push_desc': 'Avisos de mensajes.',
+      'settings_push_desc': 'Avisos de mensajes y coincidencias.',
       'customerSupport': 'Atención al Cliente',
       'supportHelpText': 'Si necesitas ayuda, puedes contactar con nosotros a través de los siguientes medios:',
       'email': 'Correo Electrónico',
@@ -290,6 +292,8 @@ class AppStrings {
       'acceptAndContinue': 'Aceptar y continuar',
       'termsErrorNotAccepted': 'Debes aceptar los Términos y la Política de Privacidad para continuar.',
       'legalUnavailable': 'El documento legal no se encuentra disponible en este momento.',
+      'chat_status_deleted': 'Este objeto ha sido eliminado.',
+      'chat_status_resolved': 'Este objeto ha sido devuelto.',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -451,6 +455,8 @@ class AppStrings {
       'statusMatched': 'Possible coincidència',
       'statusReturned': 'Retornat',
       'statusInProcess': 'En procés',
+      'possible_match_badge': 'Possible coincidència',
+      'possible_match_detail_banner': 'Aquesta publicació té una possible coincidència amb un altre objecte.',
       'sendError': 'Error en enviar el missatge',
       'noMessagesYetDetail': 'Encara no hi ha missatges.',
       'typeMessageHint': 'Escriu un missatge...',
@@ -503,7 +509,7 @@ class AppStrings {
       'time_hours_ago_singular': 'fa {count} hora',
       'time_hours_ago_plural': 'fa {count} hores',
       'settings_push_toggle': 'Rebre notificacions push',
-      'settings_push_desc': 'Avisos de missatges.',
+      'settings_push_desc': 'Avisos de missatges i coincidències.',
       'customerSupport': 'Atenció al Client',
       'supportHelpText': 'Si necessites ajuda, pots contactar amb nosaltres a través dels següents mitjans:',
       'email': 'Correu Electrònic',
@@ -519,6 +525,8 @@ class AppStrings {
       'acceptAndContinue': 'Acceptar i continuar',
       'termsErrorNotAccepted': 'Has d\'acceptar els Termes i la Política de Privacitat per continuar.',
       'legalUnavailable': 'El document legal no es troba disponible en aquest moment.',
+      'chat_status_deleted': 'Aquest objecte ha estat eliminat.',
+      'chat_status_resolved': 'Aquest objecte ha estat retornat.',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -680,6 +688,8 @@ class AppStrings {
       'statusMatched': 'Possible match',
       'statusReturned': 'Returned',
       'statusInProcess': 'In process',
+      'possible_match_badge': 'Possible match',
+      'possible_match_detail_banner': 'This post has a possible match with another item.',
       'sendError': 'Error sending message',
       'noMessagesYetDetail': 'No messages yet.',
       'typeMessageHint': 'Type a message...',
@@ -732,7 +742,7 @@ class AppStrings {
       'time_hours_ago_singular': '{count} hour ago',
       'time_hours_ago_plural': '{count} hours ago',
       'settings_push_toggle': 'Receive push notifications',
-      'settings_push_desc': 'Messages.',
+      'settings_push_desc': 'Messages and matches.',
       'customerSupport': 'Customer Support',
       'supportHelpText': 'If you need help, you can contact us through the following channels:',
       'email': 'Email',
@@ -748,6 +758,8 @@ class AppStrings {
       'acceptAndContinue': 'Accept and continue',
       'termsErrorNotAccepted': 'You must accept the Terms and Privacy Policy to continue.',
       'legalUnavailable': 'The legal document is not available at this moment.',
+      'chat_status_deleted': 'This item has been deleted.',
+      'chat_status_resolved': 'This item has been returned.',
     },
   };
 
@@ -910,6 +922,8 @@ class AppStrings {
   String get statusMatched => _text('statusMatched');
   String get statusReturned => _text('statusReturned');
   String get statusInProcess => _text('statusInProcess');
+  String get possibleMatchBadge => _text('possible_match_badge');
+  String get possibleMatchDetailBanner => _text('possible_match_detail_banner');
   String get sendError => _text('sendError');
   String get noMessagesYetDetail => _text('noMessagesYetDetail');
   String get typeMessageHint => _text('typeMessageHint');
@@ -980,6 +994,8 @@ class AppStrings {
   String get acceptAndContinue => _text('acceptAndContinue');
   String get termsErrorNotAccepted => _text('termsErrorNotAccepted');
   String get legalUnavailable => _text('legalUnavailable');
+  String get chatStatusDeleted => _text('chat_status_deleted');
+  String get chatStatusResolved => _text('chat_status_resolved');
 
   String minutesAgo(int count) {
     final key = count == 1

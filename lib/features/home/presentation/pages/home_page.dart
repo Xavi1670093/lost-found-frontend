@@ -136,6 +136,28 @@ class _HomePageState extends State<HomePage> {
           bool hasNoPosts = false;
           bool isLoading = centerId == null || snapshot.connectionState == ConnectionState.waiting;
 
+          if (snapshot.hasError) {
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Text(
+                        '${t.errorUnexpected}: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: theme.colorScheme.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
           if (!isLoading) {
             if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
               hasNoPosts = true;
@@ -147,7 +169,10 @@ class _HomePageState extends State<HomePage> {
                 bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
                     (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
 
-                if (value['is_deleted'] == false && value['status'] == 'active' && categoryMatch && searchMatch) {
+                if (value['is_deleted'] == false &&
+                    (value['status'] == 'active' || value['status'] == 'matched') &&
+                    categoryMatch &&
+                    searchMatch) {
                   postsList.add(value);
                 }
               }
@@ -508,6 +533,40 @@ class _RealObjectCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (post['status'] == 'matched')
+                  Positioned(
+                    bottom: 12,
+                    left: 12,
+                    right: 12,
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade800,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          t.possibleMatchBadge.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
