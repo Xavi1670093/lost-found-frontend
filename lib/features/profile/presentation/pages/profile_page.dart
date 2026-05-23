@@ -10,6 +10,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/core/services/custom_cache_manager.dart';
+import 'package:unilost_found/shared/utils/center_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 import 'user_posts_page.dart';
 import 'package:unilost_found/shared/widgets/legal_markdown_dialog.dart';
@@ -104,7 +105,7 @@ class _ProfilePageState extends State<ProfilePage> {
           final data = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
           userName = data['name'] ?? t.defaultUserName;
           userRole = data['role'] == 'admin' ? t.adminRole : t.studentRole;
-          centerId = (data['center_id'] ?? t.uabAcronym).toString().toUpperCase();
+          centerId = CenterUtils.normalizeCenterId(data['center_id']).toUpperCase();
           final snakeUrl = data['photo_url']?.toString();
           final camelUrl = data['photoUrl']?.toString();
           

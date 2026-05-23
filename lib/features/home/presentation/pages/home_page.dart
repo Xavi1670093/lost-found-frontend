@@ -15,6 +15,7 @@ import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/notification_bell.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
+import 'package:unilost_found/shared/utils/center_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 
 class HomePage extends StatefulWidget {
@@ -85,7 +86,7 @@ class _HomePageState extends State<HomePage> {
     final snapshot = await FirebaseDatabase.instance.ref('users/${user!.uid}/center_id').get();
     if (mounted) {
       setState(() {
-        centerId = snapshot.value?.toString().toLowerCase() ?? "uab";
+        centerId = CenterUtils.normalizeCenterId(snapshot.value);
       });
     }
   }
@@ -152,7 +153,7 @@ class _HomePageState extends State<HomePage> {
 
       final callable = FirebaseFunctions.instance.httpsCallable('getFilteredFeed');
       final response = await callable.call({
-        'center_id': centerId,
+        'center_id': CenterUtils.normalizeCenterId(centerId),
         'latitude': position.latitude,
         'longitude': position.longitude,
         'sortBy': 'distance',
