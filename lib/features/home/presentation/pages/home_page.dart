@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unilost_found/shared/widgets/custom_card.dart';
@@ -32,6 +33,10 @@ class _HomePageState extends State<HomePage> {
   late MapController _mapController;
   late final Widget _lostMarkerWidget;
   late final Widget _foundMarkerWidget;
+
+  String _sortBy = 'recent'; // 'recent' o 'distance'
+  List<Map<dynamic, dynamic>>? _distancePosts;
+  bool _isLoadingDistance = false;
 
   @override
   void initState() {
@@ -111,6 +116,87 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _handleSortChanged(String value) {
+    if (value == 'recent') {
+      setState(() {
+        _sortBy = 'recent';
+      });
+    } else {
+      _handleSortByDistance();
+    }
+  }
+
+  Future<void> _handleSortByDistance() async {
+    final t = AppStrings.of(context);
+    setState(() {
+      _isLoadingDistance = true;
+      _sortBy = 'distance';
+    });
+
+    final hasPermission = await PermissionService.requestLocation();
+    if (!hasPermission) {
+      if (mounted) {
+        setState(() {
+          _sortBy = 'recent';
+          _isLoadingDistance = false;
+        });
+        AppNotifications.showError(context, t.locationPermissionDenied);
+      }
+      return;
+    }
+
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final callable = FirebaseFunctions.instance.httpsCallable('getFilteredFeed');
+      final response = await callable.call({
+        'center_id': centerId,
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'sortBy': 'distance',
+      });
+
+      final List<Map<dynamic, dynamic>> parsedPosts = [];
+      if (response.data != null) {
+        final data = response.data;
+        if (data is List) {
+          for (var item in data) {
+            if (item is Map) {
+              parsedPosts.add(Map<dynamic, dynamic>.from(item));
+            }
+          }
+        } else if (data is Map) {
+          final listData = data['feed'] ?? data['posts'];
+          if (listData is List) {
+            for (var item in listData) {
+              if (item is Map) {
+                parsedPosts.add(Map<dynamic, dynamic>.from(item));
+              }
+            }
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _distancePosts = parsedPosts;
+          _isLoadingDistance = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("ULF_DEBUG: Error in getFilteredFeed: $e");
+      if (mounted) {
+        setState(() {
+          _sortBy = 'recent';
+          _isLoadingDistance = false;
+        });
+        AppNotifications.showError(context, t.locationError);
+      }
+    }
+  }
+
   void _centerOnCampus() {
     _mapController.move(
       const osm.LatLng(41.5000, 2.1075),
@@ -134,52 +220,77 @@ class _HomePageState extends State<HomePage> {
           // Pre-procesamos los datos de los posts si están disponibles
           List<Map<dynamic, dynamic>> postsList = [];
           bool hasNoPosts = false;
-          bool isLoading = centerId == null || snapshot.connectionState == ConnectionState.waiting;
+          bool isLoading = centerId == null ||
+              (_sortBy == 'recent' && snapshot.connectionState == ConnectionState.waiting) ||
+              (_sortBy == 'distance' && _isLoadingDistance);
 
-          if (snapshot.hasError) {
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(40),
-                      child: Text(
-                        '${t.errorUnexpected}: ${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: theme.colorScheme.error,
-                          fontWeight: FontWeight.bold,
+          if (_sortBy == 'recent') {
+            if (snapshot.hasError) {
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Text(
+                          '${t.errorUnexpected}: ${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: theme.colorScheme.error,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            );
-          }
+                ],
+              );
+            }
 
-          if (!isLoading) {
-            if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-              hasNoPosts = true;
-            } else {
-              for (final child in snapshot.data!.snapshot.children) {
-                final value = Map<dynamic, dynamic>.from(child.value as Map);
-                value['id'] = child.key;
-                bool categoryMatch = _matchesCategory(value['category']?.toString() ?? '', _selectedCategoryLabel, t);
-                bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                    (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+            if (!isLoading) {
+              if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+                hasNoPosts = true;
+              } else {
+                for (final child in snapshot.data!.snapshot.children) {
+                  final value = Map<dynamic, dynamic>.from(child.value as Map);
+                  value['id'] = child.key;
+                  bool categoryMatch = _matchesCategory(value['category']?.toString() ?? '', _selectedCategoryLabel, t);
+                  bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                      (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
 
-                if (value['is_deleted'] == false &&
-                    (value['status'] == 'active' || value['status'] == 'matched') &&
-                    categoryMatch &&
-                    searchMatch) {
-                  postsList.add(value);
+                  if (value['is_deleted'] != true &&
+                      (value['status'] == 'active' || value['status'] == 'matched') &&
+                      categoryMatch &&
+                      searchMatch) {
+                    postsList.add(value);
+                  }
                 }
+                // Ordenar por fecha: más recientes primero
+                postsList.sort((a, b) => (b['created_at'] ?? 0).compareTo(a['created_at'] ?? 0));
+                
+                if (postsList.isEmpty) hasNoPosts = true;
               }
-              // Ordenar por fecha: más recientes primero
-              postsList.sort((a, b) => (b['created_at'] ?? 0).compareTo(a['created_at'] ?? 0));
-              
-              if (postsList.isEmpty) hasNoPosts = true;
+            }
+          } else {
+            // _sortBy == 'distance'
+            if (!isLoading) {
+              if (_distancePosts == null || _distancePosts!.isEmpty) {
+                hasNoPosts = true;
+              } else {
+                for (final value in _distancePosts!) {
+                  bool categoryMatch = _matchesCategory(value['category']?.toString() ?? '', _selectedCategoryLabel, t);
+                  bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                      (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+
+                  if (value['is_deleted'] != true &&
+                      (value['status'] == 'active' || value['status'] == 'matched') &&
+                      categoryMatch &&
+                      searchMatch) {
+                    postsList.add(value);
+                  }
+                }
+                if (postsList.isEmpty) hasNoPosts = true;
+              }
             }
           }
 
@@ -398,7 +509,35 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 24),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(t.recentObjects, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _sortBy == 'distance' ? t.proximitySort : t.recentObjects,
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          DropdownButton<String>(
+                            value: _sortBy,
+                            underline: const SizedBox(),
+                            icon: Icon(Icons.sort_rounded, color: theme.colorScheme.primary),
+                            items: [
+                              DropdownMenuItem(
+                                value: 'recent',
+                                child: Text(t.recentSort),
+                              ),
+                              DropdownMenuItem(
+                                value: 'distance',
+                                child: Text(t.proximitySort),
+                              ),
+                            ],
+                            onChanged: (String? value) {
+                              if (value != null) {
+                                _handleSortChanged(value);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
                   ],
