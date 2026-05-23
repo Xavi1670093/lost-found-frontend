@@ -167,10 +167,13 @@ class _HomePageState extends State<HomePage> {
               parsedPosts.add(Map<dynamic, dynamic>.from(item));
             }
           }
-        } else if (data is Map && data['posts'] is List) {
-          for (var item in data['posts']) {
-            if (item is Map) {
-              parsedPosts.add(Map<dynamic, dynamic>.from(item));
+        } else if (data is Map) {
+          final listData = data['feed'] ?? data['posts'];
+          if (listData is List) {
+            for (var item in listData) {
+              if (item is Map) {
+                parsedPosts.add(Map<dynamic, dynamic>.from(item));
+              }
             }
           }
         }
@@ -255,7 +258,7 @@ class _HomePageState extends State<HomePage> {
                   bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
                       (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
 
-                  if (value['is_deleted'] == false &&
+                  if (value['is_deleted'] != true &&
                       (value['status'] == 'active' || value['status'] == 'matched') &&
                       categoryMatch &&
                       searchMatch) {
@@ -279,7 +282,7 @@ class _HomePageState extends State<HomePage> {
                   bool searchMatch = (value['title'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
                       (value['description'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
 
-                  if (value['is_deleted'] == false &&
+                  if (value['is_deleted'] != true &&
                       (value['status'] == 'active' || value['status'] == 'matched') &&
                       categoryMatch &&
                       searchMatch) {
