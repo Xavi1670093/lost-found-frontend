@@ -635,11 +635,32 @@ class _RealObjectCard extends StatelessWidget {
                             cacheManager: CustomCacheManager.instance,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => const SkeletonLoader(
-                              width: double.infinity,
-                              height: double.infinity,
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                            ),
+                            placeholder: (context, url) {
+                              final thumbnailUrl = ImageUtils.postThumbnailUrlFrom(post);
+                              if (thumbnailUrl != null && thumbnailUrl != imageUrl) {
+                                return CachedNetworkImage(
+                                  imageUrl: thumbnailUrl,
+                                  cacheManager: CustomCacheManager.instance,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const SkeletonLoader(
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                                  ),
+                                  errorWidget: (context, url, error) => const SkeletonLoader(
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                                  ),
+                                );
+                              }
+                              return const SkeletonLoader(
+                                width: double.infinity,
+                                height: double.infinity,
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                              );
+                            },
                             errorWidget: (context, url, error) => _buildIconFallback(theme),
                           ),
                         )

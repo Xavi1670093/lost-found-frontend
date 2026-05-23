@@ -88,6 +88,8 @@ class CustomTextField extends StatelessWidget {
                 ? Icon(prefixIcon, color: theme.colorScheme.primary.withValues(alpha: 0.7)) 
                 : null,
             suffixIcon: suffixIcon,
+            errorMaxLines: null,
+            helperMaxLines: null,
           ),
         ),
       ],

@@ -160,10 +160,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         imageUrl: imageUrl,
                         cacheManager: CustomCacheManager.instance,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const SkeletonLoader(
-                          width: double.infinity,
-                          height: 320,
-                        ),
+                        placeholder: (context, url) {
+                          final thumbnailUrl = ImageUtils.postThumbnailUrlFrom(post);
+                          if (thumbnailUrl != null && thumbnailUrl != imageUrl) {
+                            return CachedNetworkImage(
+                              imageUrl: thumbnailUrl,
+                              cacheManager: CustomCacheManager.instance,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const SkeletonLoader(
+                                width: double.infinity,
+                                height: 320,
+                              ),
+                              errorWidget: (context, url, error) => const SkeletonLoader(
+                                width: double.infinity,
+                                height: 320,
+                              ),
+                            );
+                          }
+                          return const SkeletonLoader(
+                            width: double.infinity,
+                            height: 320,
+                          );
+                        },
                         errorWidget: (context, url, error) => _buildImageFallback(theme, post),
                       )
                     : _buildImageFallback(theme, post),

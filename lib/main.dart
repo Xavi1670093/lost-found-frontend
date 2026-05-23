@@ -6,6 +6,7 @@ import 'package:unilost_found/core/settings/app_settings_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:unilost_found/shared/utils/app_notifications.dart';
+import 'package:unilost_found/shared/utils/center_utils.dart';
 import 'firebase_options.dart';
 
 void main() {
@@ -57,6 +58,9 @@ class _AppInitializerState extends State<AppInitializer> {
       // 5. Settings controller creation & load settings
       final controller = AppSettingsController();
       await controller.loadSettings();
+
+      // 6. Preload centers static data in cache
+      await CenterUtils.preloadCenters();
 
       if (mounted) {
         setState(() {
