@@ -52,45 +52,86 @@ lib/
     └── widgets/
 ```
 
-## Configuracion local
+## Configuración e Instalación Local
+
+### Prerrequisitos
+- **Flutter SDK:** versión `^3.8.0` (Dart SDK compatible).
+- **Herramientas de plataforma:** Android Studio / VS Code con plugins de Flutter y Dart instalados, y Xcode si se compila para iOS (en macOS).
+- **Firebase CLI:** Instalado y autenticado si necesitas regenerar configuraciones.
+
+### Pasos de Instalación
+
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone <url-del-repositorio>
+    cd lost-found-frontend
+    ```
+
+2.  **Obtener dependencias de Flutter:**
+    ```bash
+    flutter pub get
+    ```
+
+3.  **Configurar Firebase (Opcional si se requiere cambiar de proyecto):**
+    Asegúrate de estar autenticado en Firebase CLI y ejecuta:
+    ```bash
+    flutterfire configure
+    ```
+    Esto regenerará el archivo `lib/firebase_options.dart` con las credenciales de tu proyecto.
+
+4.  **Generación de Iconos de la Aplicación:**
+    Si modificas el icono de la aplicación en `assets/icon/app_icon.png`, regenera los iconos nativos con:
+    ```bash
+    dart run flutter_launcher_icons
+    ```
+
+5.  **Ejecutar la aplicación:**
+    - Para desarrollo en emulador o dispositivo físico:
+      ```bash
+      flutter run
+      ```
+    - Para desarrollo en entorno web (Google Chrome):
+      ```bash
+      flutter run -d chrome
+      ```
+
+## Estructura de Carpetas de `lib/`
+
+La estructura sigue un diseño modular por funcionalidades (`features`) junto con un núcleo (`core`) y componentes compartidos (`shared`):
+
+*   `lib/app.dart`: Configuración de MaterialApp, pasarela de autenticación (auth gate), pasarela legal (legal gate) y verificación de sesión.
+*   `lib/main.dart`: Punto de entrada de la aplicación, inicializa Firebase, App Check, notificaciones en segundo plano (FCM) y controladores de configuración.
+*   `lib/firebase_options.dart`: Opciones de conexión automática generadas por la CLI de FlutterFire.
+*   `lib/core/`: Carpeta del núcleo. Contiene localizaciones estáticas, servicios del sistema (ubicación, permisos, caché, errores), ajustes de la app y temas visuales.
+*   `lib/features/`: Módulos principales organizados por dominio:
+    *   `auth/`: Gestión de login, registro institucional y aceptación de términos legales.
+    *   `chats/`: Listado de conversaciones activas e interfaz de chat en tiempo real.
+    *   `home/`: Feed principal de publicaciones, formularios de reporte (`found`/`lost`), detalles de objetos y geolocalización.
+    *   `notifications/`: Bandeja de entrada de notificaciones push y notificaciones in-app.
+    *   `profile/`: Ajustes del perfil del usuario, publicaciones propias y opciones de configuración.
+    *   `welcome/`: Vista de bienvenida para usuarios no autenticados.
+*   `lib/shared/`: Utilidades y widgets reutilizables y sin estado específico de un solo módulo.
+
+## Validación y Build
 
 ```bash
-flutter pub get
-flutter run
-```
-
-Para web:
-
-```bash
-flutter run -d chrome
-```
-
-Si se cambia el proyecto Firebase o las apps registradas, regenerar la configuracion:
-
-```bash
-flutterfire configure
-```
-
-## Validacion y build
-
-```bash
+# Ejecutar análisis de código estático
 flutter analyze
+
+# Ejecutar las pruebas unitarias e instrumentales
 flutter test
-flutter build apk --release
-flutter build appbundle --release
-flutter build web --release
+
+# Compilar versiones de producción
+flutter build apk --release          # APK de Android
+flutter build appbundle --release    # App Bundle para Google Play
+flutter build web --release          # Versión Web estática
+flutter build ipa --release          # IPA de iOS (requiere macOS y Xcode)
 ```
 
-El build iOS requiere macOS y Xcode:
+## Documentación relacionada
 
-```bash
-flutter build ipa --release
-```
-
-## Documentacion relacionada
-
-- [Arquitectura](docs/architecture.md)
-- [UI kit compartido](docs/ui_kit.md)
+- [Arquitectura de la aplicación](docs/architecture.md)
+- [UI Kit y Componentes Compartidos](docs/ui_kit.md)
 
 ## Licencia
 

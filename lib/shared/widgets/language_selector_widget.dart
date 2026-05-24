@@ -3,7 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:unilost_found/core/settings/app_settings_controller.dart';
 
+/// Selector interactivo de idioma de la aplicación.
+///
+/// Presenta botones de selección para los tres idiomas soportados (Español, Catalán, Inglés).
+/// Cuando el usuario pulsa un idioma, actualiza el controlador local de ajustes [settingsController]
+/// y escribe la preferencia en el nodo `/users/{uid}/preferredLanguage` de Firebase Realtime Database
+/// en caso de estar autenticado, sincronizando los textos de forma instantánea.
 class LanguageSelectorWidget extends StatelessWidget {
+  /// Controlador de configuración de la app que gestiona la persistencia local y remota del idioma.
   final AppSettingsController settingsController;
 
   const LanguageSelectorWidget({

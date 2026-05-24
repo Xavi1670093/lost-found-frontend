@@ -13,7 +13,13 @@ import 'package:unilost_found/shared/widgets/main_navigation_page.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/features/auth/presentation/pages/terms_acceptance_screen.dart';
 
+/// Clase principal de la aplicación que inicializa MaterialApp.
+///
+/// Define el tema claro/oscuro global, el idioma de inicio obtenido del
+/// [settingsController], los delegados de traducción y un limitador de tamaño
+/// de fuentes del sistema (`textScaler`) para garantizar consistencia visual.
 class MyApp extends StatelessWidget {
+  /// Controlador de configuración que provee el tema y el locale.
   final AppSettingsController settingsController;
 
   const MyApp({
@@ -60,6 +66,13 @@ class MyApp extends StatelessWidget {
   }
 }
 
+/// Raíz lógica de navegación de la aplicación.
+///
+/// Evalúa reactivamente el estado de autenticación de Firebase (`authStateChanges`):
+/// - Si no hay usuario autenticado o su correo no está verificado, redirige a [WelcomePage].
+/// - Si el usuario está autenticado y verificado, evalúa la validez temporal de su sesión
+///   (máximo 14 días mediante `login_timestamp` en SharedPreferences) y redirige a [LegalGuardGate]
+///   o fuerza el logout según corresponda.
 class AppRoot extends StatefulWidget {
   final AppSettingsController settingsController;
 
@@ -157,6 +170,12 @@ class _AppRootState extends State<AppRoot> {
   }
 }
 
+/// Pasarela protectora de aceptación legal obligatoria.
+///
+/// Escucha en tiempo real los datos del usuario en Firebase Realtime Database para comparar
+/// la versión de términos y condiciones aceptada (`acceptedTermsVersion`) contra la versión
+/// requerida por la aplicación (`requiredLegalVersion`). Si el usuario no ha aceptado
+/// las políticas actualizadas, bloquea el paso y muestra la pantalla [TermsAcceptanceScreen].
 class LegalGuardGate extends StatelessWidget {
   final AppSettingsController settingsController;
   final Widget child;

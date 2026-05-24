@@ -22,6 +22,37 @@ class ImageUtils {
     return null;
   }
 
+  /// Retorna la URL de la miniatura de la imagen del post si existe,
+  /// o genera una a partir de la URL de la imagen principal.
+  static String? postThumbnailUrlFrom(Map<dynamic, dynamic> post) {
+    const thumbKeys = [
+      'thumbnailUrl',
+      'thumbnail_url',
+      'postThumbnailUrl',
+      'post_thumbnail_url',
+      'thumbUrl',
+      'thumb_url',
+    ];
+
+    for (final key in thumbKeys) {
+      final value = post[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) return value;
+    }
+
+    final imageUrl = postImageUrlFrom(post);
+    if (imageUrl != null) {
+      final queryIndex = imageUrl.indexOf('?');
+      final pathPart = queryIndex == -1 ? imageUrl : imageUrl.substring(0, queryIndex);
+      if (pathPart.endsWith('.webp')) {
+        final prefix = pathPart.substring(0, pathPart.length - 5);
+        final suffix = queryIndex == -1 ? '' : imageUrl.substring(queryIndex);
+        return '${prefix}_200x200.webp$suffix';
+      }
+    }
+
+    return null;
+  }
+
   /// Selecciona una imagen desde la cámara o galería, verifica permisos de cámara
   /// si es necesario, y la procesa a WebP con reescalado.
   static Future<File?> pickAndProcessImage({

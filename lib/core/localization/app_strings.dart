@@ -39,6 +39,22 @@ import 'package:flutter/material.dart';
 ///    final t = AppStrings.of(context);
 ///    Text(t.miNuevaClave)
 ///    ```
+///
+/// ============================================================================
+/// 🔄 FLUJO DE CAMBIO DE IDIOMA DINÁMICO (i18n)
+/// ============================================================================
+/// El cambio de idioma en caliente de la aplicación se gestiona de la siguiente manera:
+/// 1. El widget [LanguageSelectorWidget] renderiza la interfaz del selector. Al
+///    pulsar un idioma, llama a `AppSettingsController.setLocale(Locale)`.
+/// 2. [AppSettingsController] cambia su estado interno de `locale`, persiste la
+///    preferencia en la caché local (`SharedPreferences`) y notifica a los oyentes.
+/// 3. Si el usuario está autenticado, el selector también guarda el código de idioma
+///    en Firebase Realtime Database bajo el nodo del usuario (`/users/{uid}/preferredLanguage`).
+/// 4. El punto de entrada [MyApp] en `app.dart` escucha cambios del controlador
+///    y desencadena un rebuild completo del árbol. El `MaterialApp` recibe el nuevo
+///    `locale` y reconstruye la instancia de [AppStrings] mediante el delegado
+///    [_AppStringsDelegate], cargando dinámicamente las cadenas traducidas desde
+///    el mapa [_localizedValues].
 /// ============================================================================
 
 /// [AppStrings] centraliza y expone todos los textos e internacionalización (l10n)

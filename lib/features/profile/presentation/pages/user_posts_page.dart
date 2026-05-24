@@ -114,11 +114,31 @@ class UserPostsPage extends StatelessWidget {
                                             imageUrl: imageUrl,
                                             cacheManager: CustomCacheManager.instance,
                                             fit: BoxFit.cover,
-                                            placeholder: (context, url) => const SkeletonLoader(
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                                            ),
+                                            placeholder: (context, url) {
+                                              final thumbnailUrl = ImageUtils.postThumbnailUrlFrom(post);
+                                              if (thumbnailUrl != null && thumbnailUrl != imageUrl) {
+                                                return CachedNetworkImage(
+                                                  imageUrl: thumbnailUrl,
+                                                  cacheManager: CustomCacheManager.instance,
+                                                  fit: BoxFit.cover,
+                                                  placeholder: (context, url) => const SkeletonLoader(
+                                                    width: double.infinity,
+                                                    height: double.infinity,
+                                                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                                  ),
+                                                  errorWidget: (context, url, error) => const SkeletonLoader(
+                                                    width: double.infinity,
+                                                    height: double.infinity,
+                                                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                                  ),
+                                                );
+                                              }
+                                              return const SkeletonLoader(
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                              );
+                                            },
                                             errorWidget: (context, url, error) => _buildCardIconFallback(theme, isLost),
                                           ),
                                         )

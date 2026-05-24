@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 
+/// Diálogo que renderiza dinámicamente documentos en formato Markdown.
+///
+/// Lee archivos `.md` de términos, privacidad y FAQ desde las carpetas `assets/legal/` y `assets/faq/`
+/// según el idioma actualmente activo en el dispositivo. Cuenta con un motor de parsing ligero
+/// que procesa sintaxis Markdown estándar para títulos (`#`), subtítulos (`##`), listas (`-`)
+/// y textos en negrita (`**`), mostrándolos estilizados de forma nativa en la UI.
 class LegalMarkdownDialog extends StatefulWidget {
-  final String documentName; // 'terms' o 'privacy'
+  /// Nombre del documento legal a cargar. Debe ser 'terms', 'privacy' o 'faq'.
+  final String documentName;
 
   const LegalMarkdownDialog({
     super.key,
@@ -24,6 +31,11 @@ class _LegalMarkdownDialogState extends State<LegalMarkdownDialog> {
     _loadDocument();
   }
 
+  /// Carga el documento en formato Markdown desde los assets locales.
+  ///
+  /// Resuelve dinámicamente el código del idioma actual (`locale`) a través del contexto
+  /// de localización y construye la ruta hacia el archivo correspondiente (ej: `faq_es.md` o `terms_ca.md`).
+  /// Si el recurso no se encuentra disponible, carga un mensaje genérico de error localizado.
   Future<void> _loadDocument() async {
     final locale = Localizations.localeOf(context).languageCode;
     final String path;

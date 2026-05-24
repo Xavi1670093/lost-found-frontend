@@ -61,9 +61,18 @@ Cuando termina la inicializacion, `MyApp` configura tema, locale, delegados de l
 - Tema soportado: `light`, `dark`, `system`.
 - Toggle push: `pushNotificationsEnabled`.
 
-Al cambiar tema, idioma o push, el controlador actualiza el estado local, persiste en `SharedPreferences` y escribe en RTDB cuando hay usuario autenticado. Tambien escucha cambios remotos para reflejarlos en la UI.
+Al cambiar tema, idioma o push, el controlador actualiza el estado local, persiste en `SharedPreferences` y escribe en RTDB cuando hay usuario autenticado. También escucha cambios remotos para reflejarlos en la UI.
 
-## Integracion con Firebase
+## Servicios Nucleares (`lib/core/services/`)
+
+Los servicios del núcleo centralizan la lógica de integración con el sistema operativo y utilidades del sistema:
+
+*   **`LocationService` (`location_service.dart`):** Encargado de la obtención de la geolocalización actual a través del GPS (usando `geolocator`). Implementa validaciones locales para comprobar si un punto (`LatLng`) está dentro de los límites del campus universitario usando algoritmos de punto en polígono (Ray-Casting) y fallbacks de distancia (radios).
+*   **`PermissionService` (`permission_service.dart`):** Gestiona de forma centralizada la solicitud y comprobación de permisos sensibles (Ubicación, Cámara, Galería de fotos, Notificaciones) abstrayendo el paquete `permission_handler`.
+*   **`CustomCacheManager` (`custom_cache_manager.dart`):** Define un gestor de caché de red personalizado extendiendo `BaseCacheManager`. Se encarga de almacenar localmente y expirar las imágenes cargadas desde Firebase Storage para optimizar el consumo de datos y mejorar los tiempos de carga en el feed.
+*   **`ErrorHandler` (`error_handler.dart`):** Intercepta y unifica el procesamiento de errores y excepciones (tanto locales como provenientes de los servicios de Firebase), mostrando diálogos de alerta homogeneizados y formateando mensajes legibles para el usuario.
+
+## Integración con Firebase
 
 ### Authentication y registro
 

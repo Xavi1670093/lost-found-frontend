@@ -16,6 +16,13 @@ import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
 
+/// Pantalla que muestra el detalle de un objeto perdido o encontrado.
+///
+/// Permite visualizar la foto ampliada del objeto, su descripción, categoría, fecha
+/// de reporte, estado de resolución, y ubicación. Si el objeto no pertenece al
+/// usuario autenticado, le proporciona un botón para contactar directamente al
+/// propietario a través de un chat en tiempo real. También registra las visitas
+/// incrementales si corresponde llamando a una Cloud Function.
 class PostDetailPage extends StatefulWidget {
   final Map<dynamic, dynamic> post;
 
@@ -160,10 +167,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         imageUrl: imageUrl,
                         cacheManager: CustomCacheManager.instance,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const SkeletonLoader(
-                          width: double.infinity,
-                          height: 320,
-                        ),
+                        placeholder: (context, url) {
+                          final thumbnailUrl = ImageUtils.postThumbnailUrlFrom(post);
+                          if (thumbnailUrl != null && thumbnailUrl != imageUrl) {
+                            return CachedNetworkImage(
+                              imageUrl: thumbnailUrl,
+                              cacheManager: CustomCacheManager.instance,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const SkeletonLoader(
+                                width: double.infinity,
+                                height: 320,
+                              ),
+                              errorWidget: (context, url, error) => const SkeletonLoader(
+                                width: double.infinity,
+                                height: 320,
+                              ),
+                            );
+                          }
+                          return const SkeletonLoader(
+                            width: double.infinity,
+                            height: 320,
+                          );
+                        },
                         errorWidget: (context, url, error) => _buildImageFallback(theme, post),
                       )
                     : _buildImageFallback(theme, post),

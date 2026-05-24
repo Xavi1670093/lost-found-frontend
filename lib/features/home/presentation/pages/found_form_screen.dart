@@ -6,7 +6,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_functions/cloud_functions.dart'; // 1. IMPORTANTE: Importar cloud_functions
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:unilost_found/core/services/custom_cache_manager.dart';
+import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/core/localization/app_strings.dart';
 import 'package:unilost_found/core/services/permission_service.dart';
 import 'package:unilost_found/shared/widgets/custom_button.dart';
@@ -23,7 +26,15 @@ import 'package:unilost_found/features/home/presentation/pages/post_detail_page.
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 
+/// Pantalla que presenta el formulario de publicación de objetos.
+///
+/// Permite a los estudiantes reportar el hallazgo (`found`) o la pérdida (`lost`)
+/// de pertenencias en el campus. Incluye flujos interactivos para capturar imágenes,
+/// comprimirlas localmente, seleccionar geolocalización de forma automatizada por GPS
+/// o selector interactivo en mapa, y ejecutar el algoritmo de coincidencia previo
+/// a la publicación en base a coincidencias semánticas e indexadas en la nube.
 class FoundFormScreen extends StatefulWidget {
+  /// Tipo de reporte que se va a crear. Generalmente 'lost' o 'found'.
   final String postType;
 
   const FoundFormScreen({
@@ -73,17 +84,25 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       }
       
       final fetchId = CenterUtils.normalizeCenterId(_centerId);
-      final centerRef = FirebaseDatabase.instance.ref('centers/$fetchId');
-      final centerSnap = await centerRef.get();
+      Map<dynamic, dynamic>? centerData = CenterUtils.getCachedCenter(fetchId);
+
+      if (centerData == null) {
+        final centerRef = FirebaseDatabase.instance.ref('centers/$fetchId');
+        final centerSnap = await centerRef.get();
+        if (centerSnap.exists) {
+          centerData = Map<dynamic, dynamic>.from(centerSnap.value as Map);
+          CenterUtils.cacheCenter(fetchId, centerData);
+        }
+      }
       
-      if (centerSnap.exists) {
-        final centerData = Map<dynamic, dynamic>.from(centerSnap.value as Map);
+      final finalCenterData = centerData;
+      if (finalCenterData != null) {
         setState(() {
-          if (centerData['bounds'] != null) {
-            _centerBounds = Map<String, dynamic>.from(centerData['bounds'] as Map);
+          if (finalCenterData['bounds'] != null) {
+            _centerBounds = Map<String, dynamic>.from(finalCenterData['bounds'] as Map);
           }
-          if (centerData['polygon'] != null) {
-            _centerPolygon = (centerData['polygon'] as List).map((point) {
+          if (finalCenterData['polygon'] != null) {
+            _centerPolygon = (finalCenterData['polygon'] as List).map((point) {
               final p = Map<dynamic, dynamic>.from(point as Map);
               return LatLng(
                 (p['lat'] as num).toDouble(),
@@ -520,22 +539,26 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
                                       child: imageUrl.isNotEmpty
-                                          ? Image.network(
-                                              imageUrl,
+                                          ? CachedNetworkImage(
+                                              imageUrl: imageUrl,
+                                              cacheManager: CustomCacheManager.instance,
                                               width: 56,
                                               height: 56,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Container(
-                                                  width: 56,
-                                                  height: 56,
-                                                  color: theme.colorScheme.surfaceContainerHighest,
-                                                  child: Icon(
-                                                    Icons.image_not_supported_rounded,
-                                                    color: theme.colorScheme.onSurfaceVariant,
-                                                  ),
-                                                );
-                                              },
+                                              placeholder: (context, url) => const SkeletonLoader(
+                                                width: 56,
+                                                height: 56,
+                                                borderRadius: BorderRadius.all(Radius.circular(12)),
+                                              ),
+                                              errorWidget: (context, url, error) => Container(
+                                                width: 56,
+                                                height: 56,
+                                                color: theme.colorScheme.surfaceContainerHighest,
+                                                child: Icon(
+                                                  Icons.image_not_supported_rounded,
+                                                  color: theme.colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
                                             )
                                           : Container(
                                               width: 56,
@@ -595,7 +618,8 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     const SizedBox(height: 24),
 
                     // Actions
-                    ElevatedButton(
+                    CustomButton(
+                      text: t.matcherViewButton,
                       onPressed: () async {
                         final selectedMatch = matches[selectedIndex];
                         final savedContext = context;
@@ -617,27 +641,12 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                           AppNotifications.showError(savedContext, "No se pudo cargar el detalle del objeto.");
                         }
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(t.matcherViewButton),
                     ),
                     const SizedBox(height: 8),
-                    OutlinedButton(
+                    CustomButton(
+                      text: t.matcherIgnoreButton,
+                      isPrimary: false,
                       onPressed: () => Navigator.pop(context, true),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(t.matcherIgnoreButton),
                     ),
                   ],
                 );
