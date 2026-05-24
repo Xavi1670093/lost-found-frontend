@@ -15,6 +15,9 @@ import 'package:unilost_found/shared/utils/app_notifications.dart';
 import 'package:unilost_found/shared/widgets/skeleton_loader.dart';
 import 'package:unilost_found/shared/utils/category_utils.dart';
 import 'package:unilost_found/shared/utils/image_utils.dart';
+import 'package:unilost_found/shared/utils/center_utils.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as osm;
 
 /// Pantalla que muestra el detalle de un objeto perdido o encontrado.
 ///
@@ -134,7 +137,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
       final message = ErrorHandler.getMessage(e, t);
       
       messenger.showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: theme.colorScheme.error),
+        SnackBar(
+          content: Text(
+            message,
+            softWrap: true,
+            overflow: TextOverflow.visible,
+          ),
+          backgroundColor: theme.colorScheme.error,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -150,6 +160,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final currentUser = FirebaseAuth.instance.currentUser;
     final isMyPost = currentUser?.uid == post['user_id'];
     final imageUrl = ImageUtils.postImageUrlFrom(post);
+
+    final coords = post['coords'] as Map<dynamic, dynamic>?;
+    final double lat = double.tryParse(coords?['lat']?.toString() ?? '') ?? 0.0;
+    final double lng = double.tryParse(coords?['lng']?.toString() ?? '') ?? 0.0;
+    final centerId = CenterUtils.normalizeCenterId(post['center_id']);
+    final isDefaultLoc = lat != 0.0 && lng != 0.0 && CenterUtils.isDefaultCenterLocation(centerId, lat, lng);
 
     return Scaffold(
       body: CustomScrollView(
@@ -315,53 +331,116 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   const SizedBox(height: 24),
 
                   // Description Section
-                  _buildSectionHeader(t.descriptionLabel, theme),
-                  const SizedBox(height: 12),
-                  Text(
-                    post['description'] ?? t.noDescription,
-                    softWrap: true,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      height: 1.6,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                  if (post['description'] != null && post['description'].toString().trim().isNotEmpty) ...[
+                    _buildSectionHeader(t.descriptionLabel, theme),
+                    const SizedBox(height: 12),
+                    Text(
+                      post['description'].toString(),
+                      softWrap: true,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        height: 1.6,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
+                  ],
 
                   // Location Section
                   _buildSectionHeader(t.locationLabel, theme),
                   const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: theme.colorScheme.outlineVariant),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: theme.colorScheme.primaryContainer,
-                          child: Icon(Icons.location_on_rounded, color: theme.colorScheme.primary),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                post['location'] ?? 'UAB Campus',
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                t.campusLocationDetail,
-                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                              ),
-                            ],
+                  if (lat != 0.0 && lng != 0.0) ...[
+                    Container(
+                      height: 180,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: theme.colorScheme.outlineVariant),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: FlutterMap(
+                          options: MapOptions(
+                            initialCenter: osm.LatLng(lat, lng),
+                            initialZoom: 16,
+                            interactionOptions: const InteractionOptions(
+                              flags: InteractiveFlag.none,
+                            ),
                           ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.lostfound',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: osm.LatLng(lat, lng),
+                                  width: 40,
+                                  height: 40,
+                                  child: Icon(
+                                    Icons.location_on_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 40,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    if (isDefaultLoc) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              t.defaultLocationWarning,
+                              style: TextStyle(
+                                color: Colors.orange.shade800,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ] else
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: theme.colorScheme.outlineVariant),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: theme.colorScheme.primaryContainer,
+                            child: Icon(Icons.location_on_rounded, color: theme.colorScheme.primary),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  post['location'] ?? 'UAB Campus',
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  t.campusLocationDetail,
+                                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 100),
                 ],
               ),

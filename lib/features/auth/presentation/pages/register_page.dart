@@ -128,7 +128,11 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(t.errorConnection), 
+          content: Text(
+            t.errorConnection,
+            softWrap: true,
+            overflow: TextOverflow.visible,
+          ), 
           backgroundColor: AppTheme.warningColor,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

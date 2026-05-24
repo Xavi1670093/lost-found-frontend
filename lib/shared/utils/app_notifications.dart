@@ -271,6 +271,8 @@ class AppNotifications {
             Expanded(
               child: Text(
                 message,
+                softWrap: true,
+                overflow: TextOverflow.visible,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
