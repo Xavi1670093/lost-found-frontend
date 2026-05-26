@@ -30,6 +30,13 @@ class AppNotifications {
     // 1. Request notifications permission using permission_service
     await PermissionService.requestNotification();
 
+    // Force system heads-up notifications when app is in foreground
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
     // 2. Retrieve FCM Token
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
