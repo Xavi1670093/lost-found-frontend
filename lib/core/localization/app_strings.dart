@@ -996,7 +996,6 @@ class AppStrings {
   String get centerLocationError => _text('centerLocationError');
   String get errorLocationOutsideCenter => _text('error_location_outside_center');
   String get errorLocationOutsideRecinct => _text('error_location_outside_recinct');
-  String get emailNotVerified => _text('emailNotVerified');
   String get postPublishedSuccess => _text('post_published_success');
   String get postEditedSuccess => _text('post_edited_success');
   String get postDeletedSuccess => _text('post_deleted_success');
