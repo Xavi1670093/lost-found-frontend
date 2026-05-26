@@ -70,13 +70,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final matchPostId = (data['matchPostId'] ?? 
                          data['match_post_id'] ?? 
                          nestedData?['matchPostId'] ?? 
-                         nestedData?['match_post_id'])?.toString();
+                         nestedData?['match_post_id'] ??
+                         data['postId'] ??
+                         data['post_id'] ??
+                         nestedData?['postId'] ??
+                         nestedData?['post_id'])?.toString();
 
     if (!mounted) return;
 
     if ((type == 'new_message' || type == 'chat' || type == 'message') && chatId != null) {
       _navigateToChat(chatId);
-    } else if ((type == 'match_found' || type == 'match') && matchPostId != null) {
+    } else if ((type == 'match_found' || type == 'match' || type == 'matched' || type == 'possible_match') && matchPostId != null) {
       _navigateToPost(matchPostId);
     }
   }

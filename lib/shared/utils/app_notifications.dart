@@ -102,14 +102,14 @@ class AppNotifications {
                     nestedData?['chatId'] ?? 
                     nestedData?['chat_id'])?.toString();
 
-    final matchPostId = (data['postId'] ??
-                         data['post_id'] ??
-                         data['matchPostId'] ?? 
+    final matchPostId = (data['matchPostId'] ?? 
                          data['match_post_id'] ?? 
-                         nestedData?['postId'] ??
-                         nestedData?['post_id'] ??
                          nestedData?['matchPostId'] ?? 
-                         nestedData?['match_post_id'])?.toString();
+                         nestedData?['match_post_id'] ??
+                         data['postId'] ??
+                         data['post_id'] ??
+                         nestedData?['postId'] ??
+                         nestedData?['post_id'])?.toString();
 
     debugPrint("ULF_DEBUG: Handling push navigation: type=$type, chatId=$chatId, matchPostId=$matchPostId");
 
