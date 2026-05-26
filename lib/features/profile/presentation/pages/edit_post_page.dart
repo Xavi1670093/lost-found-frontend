@@ -39,6 +39,7 @@ class _EditPostPageState extends State<EditPostPage> {
   bool _saving = false;
   File? _imageFile;
   String? _currentImageUrl;
+  bool _imageCleared = false;
 
   final List<String> _statuses = ['active', 'matched', 'returned'];
 
@@ -113,6 +114,7 @@ class _EditPostPageState extends State<EditPostPage> {
     if (picked != null) {
       setState(() {
         _imageFile = picked;
+        _imageCleared = false;
       });
     }
   }
@@ -166,7 +168,11 @@ class _EditPostPageState extends State<EditPostPage> {
         'updated_at': ServerValue.timestamp,
       };
 
-      if (imageUrl != null && imageUrl.isNotEmpty) {
+      if (_imageCleared) {
+        updates['imageUrl'] = null;
+        updates['postImageUrl'] = null;
+        updates['photo_path'] = null;
+      } else if (imageUrl != null && imageUrl.isNotEmpty) {
         updates['imageUrl'] = imageUrl;
         updates['postImageUrl'] = imageUrl;
         if (imagePath != null) {
@@ -445,7 +451,39 @@ class _EditPostPageState extends State<EditPostPage> {
                               ),
                             if (_imageFile != null ||
                                 (_currentImageUrl != null &&
-                                    _currentImageUrl!.isNotEmpty))
+                                    _currentImageUrl!.isNotEmpty)) ...[
+                              Positioned(
+                                right: 12,
+                                top: 12,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _imageFile = null;
+                                      _currentImageUrl = null;
+                                      _imageCleared = true;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.9),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.15),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.delete_forever_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
                               Positioned(
                                 right: 12,
                                 bottom: 12,
@@ -473,6 +511,7 @@ class _EditPostPageState extends State<EditPostPage> {
                                   ),
                                 ),
                               ),
+                            ],
                           ],
                         ),
                       ),

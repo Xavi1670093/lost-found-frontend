@@ -61,4 +61,22 @@ class CenterUtils {
     }
     return normalized;
   }
+
+  /// Compara si las coordenadas dadas coinciden exactamente con las del centro por defecto.
+  static bool isDefaultCenterLocation(String centerId, double lat, double lng) {
+    final centerData = getCachedCenter(centerId);
+    if (centerData == null) return false;
+    final bounds = centerData['bounds'];
+    if (bounds is Map) {
+      final double minLat = double.tryParse(bounds['minLat']?.toString() ?? '') ?? 0.0;
+      final double maxLat = double.tryParse(bounds['maxLat']?.toString() ?? '') ?? 0.0;
+      final double minLng = double.tryParse(bounds['minLng']?.toString() ?? '') ?? 0.0;
+      final double maxLng = double.tryParse(bounds['maxLng']?.toString() ?? '') ?? 0.0;
+      if (minLat == 0.0 || maxLat == 0.0 || minLng == 0.0 || maxLng == 0.0) return false;
+      final double defaultLat = (minLat + maxLat) / 2;
+      final double defaultLng = (minLng + maxLng) / 2;
+      return (lat - defaultLat).abs() < 1e-7 && (lng - defaultLng).abs() < 1e-7;
+    }
+    return false;
+  }
 }

@@ -467,21 +467,79 @@ class _HomePageState extends State<HomePage> {
                                   userAgentPackageName: 'com.example.lostfound',
                                 ),
                                 MarkerLayer(
-                                  markers: postsList.map((post) {
-                                    final coords = post['coords'] as Map<dynamic, dynamic>?;
-                                    final double lat = double.tryParse(coords?['lat'].toString() ?? '0.0') ?? 0.0;
-                                    final double lng = double.tryParse(coords?['lng'].toString() ?? '0.0') ?? 0.0;
+                                 markers: (() {
+                                   final Map<String, List<Map<dynamic, dynamic>>> grouped = {};
+                                   for (var post in postsList) {
+                                     final coords = post['coords'] as Map<dynamic, dynamic>?;
+                                     final double lat = double.tryParse(coords?['lat']?.toString() ?? '0.0') ?? 0.0;
+                                     final double lng = double.tryParse(coords?['lng']?.toString() ?? '0.0') ?? 0.0;
+                                     final key = '${lat.toStringAsFixed(6)}_${lng.toStringAsFixed(6)}';
+                                     grouped.putIfAbsent(key, () => []).add(post);
+                                   }
 
-                                    return Marker(
-                                      point: osm.LatLng(lat, lng),
-                                      width: 30,
-                                      height: 30,
-                                      child: post['type'] == 'lost'
-                                          ? _lostMarkerWidget
-                                          : _foundMarkerWidget,
-                                    );
-                                  }).toList(),
-                                ),
+                                   return grouped.entries.map((entry) {
+                                     final parts = entry.key.split('_');
+                                     final double lat = double.parse(parts[0]);
+                                     final double lng = double.parse(parts[1]);
+                                     final postsAtLoc = entry.value;
+
+                                     Widget markerChild;
+                                     if (postsAtLoc.length == 1) {
+                                       final post = postsAtLoc.first;
+                                       markerChild = GestureDetector(
+                                         onTap: () {
+                                           Navigator.push(
+                                             context,
+                                             MaterialPageRoute(
+                                               builder: (context) => PostDetailPage(post: post),
+                                             ),
+                                           );
+                                         },
+                                         child: post['type'] == 'lost'
+                                             ? _lostMarkerWidget
+                                             : _foundMarkerWidget,
+                                       );
+                                     } else {
+                                       markerChild = GestureDetector(
+                                         onTap: () => _showMultiplePostsSheet(context, postsAtLoc, t),
+                                         child: Container(
+                                           width: 34,
+                                           height: 34,
+                                           decoration: BoxDecoration(
+                                             color: theme.colorScheme.primary,
+                                             shape: BoxShape.circle,
+                                             border: Border.all(color: Colors.white, width: 2),
+                                             boxShadow: [
+                                               BoxShadow(
+                                                 color: Colors.black.withValues(alpha: 0.25),
+                                                 blurRadius: 4,
+                                                 offset: const Offset(0, 2),
+                                               ),
+                                             ],
+                                           ),
+                                           child: Center(
+                                             child: Text(
+                                               postsAtLoc.length.toString(),
+                                               style: const TextStyle(
+                                                 color: Colors.white,
+                                                 fontSize: 12,
+                                                 fontWeight: FontWeight.bold,
+                                               ),
+                                             ),
+                                           ),
+                                         ),
+                                       );
+                                     }
+
+                                     return Marker(
+                                       point: osm.LatLng(lat, lng),
+                                       width: postsAtLoc.length > 1 ? 38 : 30,
+                                       height: postsAtLoc.length > 1 ? 38 : 30,
+                                       child: markerChild,
+                                     );
+                                   }).toList();
+                                 })(),
+                               ),
                               ],
                             ),
                             Positioned(
@@ -601,6 +659,147 @@ class _HomePageState extends State<HomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         showCheckmark: false,
       ),
+    );
+  }
+
+  void _showMultiplePostsSheet(BuildContext context, List<Map<dynamic, dynamic>> posts, AppStrings t) {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.multiplePostsTitle,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: posts.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final post = posts[index];
+                      final isLost = post['type'] == 'lost';
+                      final imageUrl = ImageUtils.postImageUrlFrom(post);
+                      return CustomCard(
+                        onTap: () {
+                          Navigator.pop(context); // Cerrar bottom sheet
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PostDetailPage(post: post),
+                            ),
+                          );
+                        },
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(
+                                width: 60,
+                                height: 60,
+                                child: imageUrl != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: imageUrl,
+                                        cacheManager: CustomCacheManager.instance,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => const SkeletonLoader(
+                                          width: 60,
+                                          height: 60,
+                                        ),
+                                        errorWidget: (context, url, error) => Container(
+                                          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+                                          child: Icon(
+                                            CategoryUtils.getCategoryIcon(post['category']?.toString()),
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+                                        child: Icon(
+                                          CategoryUtils.getCategoryIcon(post['category']?.toString()),
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    post['title'] ?? t.defaultItemTitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isLost
+                                              ? Colors.orange.withValues(alpha: 0.1)
+                                              : Colors.green.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          isLost ? t.lostStatus : t.foundStatus,
+                                          style: TextStyle(
+                                            color: isLost
+                                                ? Colors.orange.shade800
+                                                : Colors.green.shade800,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          CategoryUtils.getCategoryLabel(post['category']?.toString() ?? 'others', t),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: theme.colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

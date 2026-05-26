@@ -78,7 +78,11 @@ class _LoginPageState extends State<LoginPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(t.verifyEmailMessage),
+            content: Text(
+              t.verifyEmailMessage,
+              softWrap: true,
+              overflow: TextOverflow.visible,
+            ),
             backgroundColor: AppTheme.warningColor,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
