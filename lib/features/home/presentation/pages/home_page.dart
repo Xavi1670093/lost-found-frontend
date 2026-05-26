@@ -467,78 +467,101 @@ class _HomePageState extends State<HomePage> {
                                   userAgentPackageName: 'com.example.lostfound',
                                 ),
                                 MarkerLayer(
-                                 markers: (() {
-                                   final Map<String, List<Map<dynamic, dynamic>>> grouped = {};
-                                   for (var post in postsList) {
-                                     final coords = post['coords'] as Map<dynamic, dynamic>?;
-                                     final double lat = double.tryParse(coords?['lat']?.toString() ?? '0.0') ?? 0.0;
-                                     final double lng = double.tryParse(coords?['lng']?.toString() ?? '0.0') ?? 0.0;
-                                     final key = '${lat.toStringAsFixed(6)}_${lng.toStringAsFixed(6)}';
-                                     grouped.putIfAbsent(key, () => []).add(post);
-                                   }
+                                  markers: (() {
+                                    final List<List<Map<dynamic, dynamic>>> clusters = [];
+                                    for (var post in postsList) {
+                                      final coords = post['coords'] as Map<dynamic, dynamic>?;
+                                      final double lat = double.tryParse(coords?['lat']?.toString() ?? '0.0') ?? 0.0;
+                                      final double lng = double.tryParse(coords?['lng']?.toString() ?? '0.0') ?? 0.0;
+                                      if (lat == 0.0 && lng == 0.0) continue;
 
-                                   return grouped.entries.map((entry) {
-                                     final parts = entry.key.split('_');
-                                     final double lat = double.parse(parts[0]);
-                                     final double lng = double.parse(parts[1]);
-                                     final postsAtLoc = entry.value;
+                                      bool addedToCluster = false;
+                                      for (final cluster in clusters) {
+                                        final firstPost = cluster.first;
+                                        final firstCoords = firstPost['coords'] as Map<dynamic, dynamic>?;
+                                        final double firstLat = double.tryParse(firstCoords?['lat']?.toString() ?? '0.0') ?? 0.0;
+                                        final double firstLng = double.tryParse(firstCoords?['lng']?.toString() ?? '0.0') ?? 0.0;
 
-                                     Widget markerChild;
-                                     if (postsAtLoc.length == 1) {
-                                       final post = postsAtLoc.first;
-                                       markerChild = GestureDetector(
-                                         onTap: () {
-                                           Navigator.push(
-                                             context,
-                                             MaterialPageRoute(
-                                               builder: (context) => PostDetailPage(post: post),
-                                             ),
-                                           );
-                                         },
-                                         child: post['type'] == 'lost'
-                                             ? _lostMarkerWidget
-                                             : _foundMarkerWidget,
-                                       );
-                                     } else {
-                                       markerChild = GestureDetector(
-                                         onTap: () => _showMultiplePostsSheet(context, postsAtLoc, t),
-                                         child: Container(
-                                           width: 34,
-                                           height: 34,
-                                           decoration: BoxDecoration(
-                                             color: theme.colorScheme.primary,
-                                             shape: BoxShape.circle,
-                                             border: Border.all(color: Colors.white, width: 2),
-                                             boxShadow: [
-                                               BoxShadow(
-                                                 color: Colors.black.withValues(alpha: 0.25),
-                                                 blurRadius: 4,
-                                                 offset: const Offset(0, 2),
-                                               ),
-                                             ],
-                                           ),
-                                           child: Center(
-                                             child: Text(
-                                               postsAtLoc.length.toString(),
-                                               style: const TextStyle(
-                                                 color: Colors.white,
-                                                 fontSize: 12,
-                                                 fontWeight: FontWeight.bold,
-                                               ),
-                                             ),
-                                           ),
-                                         ),
-                                       );
-                                     }
+                                        final double distance = Geolocator.distanceBetween(lat, lng, firstLat, firstLng);
+                                        if (distance <= 20.0) {
+                                          cluster.add(post);
+                                          addedToCluster = true;
+                                          break;
+                                        }
+                                      }
 
-                                     return Marker(
-                                       point: osm.LatLng(lat, lng),
-                                       width: postsAtLoc.length > 1 ? 38 : 30,
-                                       height: postsAtLoc.length > 1 ? 38 : 30,
-                                       child: markerChild,
-                                     );
-                                   }).toList();
-                                 })(),
+                                      if (!addedToCluster) {
+                                        clusters.add([post]);
+                                      }
+                                    }
+
+                                    return clusters.map((cluster) {
+                                      double sumLat = 0;
+                                      double sumLng = 0;
+                                      for (final p in cluster) {
+                                        final c = p['coords'] as Map<dynamic, dynamic>?;
+                                        sumLat += double.tryParse(c?['lat']?.toString() ?? '0.0') ?? 0.0;
+                                        sumLng += double.tryParse(c?['lng']?.toString() ?? '0.0') ?? 0.0;
+                                      }
+                                      final double avgLat = sumLat / cluster.length;
+                                      final double avgLng = sumLng / cluster.length;
+
+                                      Widget markerChild;
+                                      if (cluster.length == 1) {
+                                        final post = cluster.first;
+                                        markerChild = GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => PostDetailPage(post: post),
+                                              ),
+                                            );
+                                          },
+                                          child: post['type'] == 'lost'
+                                              ? _lostMarkerWidget
+                                              : _foundMarkerWidget,
+                                        );
+                                      } else {
+                                        markerChild = GestureDetector(
+                                          onTap: () => _showMultiplePostsSheet(context, cluster, t),
+                                          child: Container(
+                                            width: 34,
+                                            height: 34,
+                                            decoration: BoxDecoration(
+                                              color: theme.colorScheme.primary,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: Colors.white, width: 2),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.25),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                cluster.length.toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      return Marker(
+                                        point: osm.LatLng(avgLat, avgLng),
+                                        width: cluster.length > 1 ? 38 : 30,
+                                        height: cluster.length > 1 ? 38 : 30,
+                                        child: markerChild,
+                                      );
+                                    }).toList();
+                                  })(),
                                ),
                               ],
                             ),

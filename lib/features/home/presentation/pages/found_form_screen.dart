@@ -325,6 +325,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       // --- NUEVA LÓGICA DE INTERCEPCIÓN (MATCHER) ---
       final callable = FirebaseFunctions.instance.httpsCallable('checkPotentialMatches');
       final result = await callable.call({
+        'lang': AppStrings.of(context).locale.languageCode,
         'center_id': centerId.toLowerCase(),
         'category': selectedCategoryKey,
         'type': widget.postType,

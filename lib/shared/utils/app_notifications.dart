@@ -30,6 +30,13 @@ class AppNotifications {
     // 1. Request notifications permission using permission_service
     await PermissionService.requestNotification();
 
+    // Force system heads-up notifications when app is in foreground
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
     // 2. Retrieve FCM Token
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
@@ -102,14 +109,14 @@ class AppNotifications {
                     nestedData?['chatId'] ?? 
                     nestedData?['chat_id'])?.toString();
 
-    final matchPostId = (data['postId'] ??
-                         data['post_id'] ??
-                         data['matchPostId'] ?? 
+    final matchPostId = (data['matchPostId'] ?? 
                          data['match_post_id'] ?? 
-                         nestedData?['postId'] ??
-                         nestedData?['post_id'] ??
                          nestedData?['matchPostId'] ?? 
-                         nestedData?['match_post_id'])?.toString();
+                         nestedData?['match_post_id'] ??
+                         data['postId'] ??
+                         data['post_id'] ??
+                         nestedData?['postId'] ??
+                         nestedData?['post_id'])?.toString();
 
     debugPrint("ULF_DEBUG: Handling push navigation: type=$type, chatId=$chatId, matchPostId=$matchPostId");
 
