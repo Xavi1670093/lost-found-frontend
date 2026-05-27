@@ -351,33 +351,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         throw Exception(t.errorImageUpload);
       }
 
-      // Guardar el post inicial en Firebase (status: 'active')
-      await newPostRef.set({
-        'id': postId,
-        'user_id': user.uid,
-        'user_name': _userName ?? 'Estudiante',
-        'center_id': centerId.toLowerCase(),
-        'type': widget.postType,
-        'title': titleController.text.trim(),
-        'description': descriptionController.text.trim(),
-        'category': selectedCategoryKey,
-        'status': 'active',
-        'location': centerName,
-        'coords': {
-          'lat': lat,
-          'lng': lng,
-          'geohash': geohash,
-        },
-        'photo_path': imagePath ?? '',
-        'imageUrl': imageUrl ?? '',
-        'postImageUrl': imageUrl ?? '',
-        'date': selectedDate.millisecondsSinceEpoch,
-        'created_at': ServerValue.timestamp,
-        'updated_at': ServerValue.timestamp,
-        'is_deleted': false,
-      });
-
-      // Llamar a la Cloud Function checkPotentialMatches
+      // Llamar a la Cloud Function checkPotentialMatches sin 'id' o 'postId' en el payload
       final callable = FirebaseFunctions.instance.httpsCallable('checkPotentialMatches');
       final result = await callable.call({
         'lang': langCode,
@@ -388,7 +362,6 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
         'description': descriptionController.text.trim(),
         'postImageUrl': imageUrl ?? '',
         'created_at': DateTime.now().millisecondsSinceEpoch,
-        'id': postId,
       });
 
       if (!mounted) return;
@@ -396,31 +369,78 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final bool autoMatched = result.data['autoMatched'] as bool? ?? false;
       final matches = result.data['matches'] as List<dynamic>? ?? [];
 
+      bool shouldPublish = false;
       if (autoMatched) {
-        AppNotifications.showSuccess(context, t.autoMatchSuccessMessage);
-        Navigator.pop(context);
+        shouldPublish = true;
+      } else if (matches.isNotEmpty) {
+        setState(() => _isPublishing = false); // Ocultar spinner para mostrar diálogo
+        final shouldPublishAnyway = await _showMatchesDialog(matches);
+        if (!mounted) return;
+        if (shouldPublishAnyway == true) {
+          shouldPublish = true;
+          setState(() => _isPublishing = true); // Volver a mostrar spinner
+        }
       } else {
-        if (matches.isNotEmpty) {
-          setState(() => _isPublishing = false); // Pausamos la carga para mostrar el popup
-          
-          final shouldPublishAnyway = await _showMatchesDialog(matches);
-          
-          if (!mounted) return;
-          
-          if (shouldPublishAnyway == true) {
-            AppNotifications.showSuccess(
-              context, 
-              widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
-            );
-            Navigator.pop(context);
+        shouldPublish = true;
+      }
+
+      if (shouldPublish) {
+        // Guardar el post inicial en Firebase (status: 'active')
+        await newPostRef.set({
+          'id': postId,
+          'user_id': user.uid,
+          'user_name': _userName ?? 'Estudiante',
+          'center_id': centerId.toLowerCase(),
+          'type': widget.postType,
+          'title': titleController.text.trim(),
+          'description': descriptionController.text.trim(),
+          'category': selectedCategoryKey,
+          'status': 'active',
+          'location': centerName,
+          'coords': {
+            'lat': lat,
+            'lng': lng,
+            'geohash': geohash,
+          },
+          'photo_path': imagePath ?? '',
+          'imageUrl': imageUrl ?? '',
+          'postImageUrl': imageUrl ?? '',
+          'date': selectedDate.millisecondsSinceEpoch,
+          'created_at': ServerValue.timestamp,
+          'updated_at': ServerValue.timestamp,
+          'is_deleted': false,
+        });
+
+        if (!mounted) return;
+
+        // Escuchar reactivamente si cambia a 'matched' por un tiempo corto (ej. 2 segundos)
+        final postStatusRef = FirebaseDatabase.instance.ref('posts/$postId/status');
+        String finalStatus = 'active';
+        
+        try {
+          final statusEvent = await postStatusRef.onValue
+              .map((event) => event.snapshot.value?.toString())
+              .firstWhere((status) => status == 'matched')
+              .timeout(const Duration(seconds: 2));
+          if (statusEvent == 'matched') {
+            finalStatus = 'matched';
           }
+        } catch (_) {
+          // Timeout o error
+        }
+
+        if (!mounted) return;
+
+        if (finalStatus == 'matched') {
+          AppNotifications.showSuccess(context, t.autoMatchSuccessMessage);
         } else {
           AppNotifications.showSuccess(
-            context, 
-            widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
+            context,
+            widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost,
           );
-          Navigator.pop(context);
         }
+
+        Navigator.pop(context);
       }
 
     } catch (e) {
@@ -638,7 +658,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
                     ),
                     const SizedBox(height: 8),
                     CustomButton(
-                      text: t.matcherIgnoreButton,
+                      text: t.publishAnyway,
                       isPrimary: false,
                       onPressed: () => Navigator.pop(context, true),
                     ),

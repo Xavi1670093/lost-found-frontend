@@ -318,6 +318,7 @@ class AppStrings {
       'deleteImage': 'Eliminar imagen',
       'defaultLocationWarning': 'Esta es la ubicación por defecto del centro, el usuario no especificó el lugar exacto',
       'multiplePostsTitle': 'Publicaciones en esta ubicación',
+      'publishAnyway': 'Publicar de todos modos',
     },
     'ca': {
       'appName': 'UniLost & Found',
@@ -559,6 +560,7 @@ class AppStrings {
       'deleteImage': 'Eliminar imatge',
       'defaultLocationWarning': 'Aquesta és la ubicació per defecte del centre, l\'usuari no va especificar el lloc exacte',
       'multiplePostsTitle': 'Publicacions en aquesta ubicació',
+      'publishAnyway': 'Publicar de totes maneres',
     },
     'en': {
       'appName': 'UniLost & Found',
@@ -800,6 +802,7 @@ class AppStrings {
       'deleteImage': 'Delete image',
       'defaultLocationWarning': 'This is the default center location, the user did not specify the exact place',
       'multiplePostsTitle': 'Posts at this location',
+      'publishAnyway': 'Publish anyway',
     },
   };
 
@@ -1043,6 +1046,7 @@ class AppStrings {
   String get deleteImage => _text('deleteImage');
   String get defaultLocationWarning => _text('defaultLocationWarning');
   String get multiplePostsTitle => _text('multiplePostsTitle');
+  String get publishAnyway => _text('publishAnyway');
 
   String minutesAgo(int count) {
     final key = count == 1
