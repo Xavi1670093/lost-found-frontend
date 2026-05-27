@@ -282,6 +282,7 @@ class AppStrings {
       'matcherSubtitle': 'Hemos encontrado objetos similares en el sistema. ¿Es alguno de estos?',
       'matcherViewButton': 'Ver detalle',
       'matcherIgnoreButton': 'Ignorar y publicar',
+      'autoMatchSuccessMessage': '¡Objeto publicado y emparejado automáticamente!',
       'notifications_title': 'Notificaciones',
       'no_notifications': 'No tienes notificaciones nuevas.',
       'all_notifications_read': 'Todas las notificaciones marcadas como leídas.',
@@ -522,6 +523,7 @@ class AppStrings {
       'matcherSubtitle': "Hem trobat objectes similars al sistema. És algun d'aquests?",
       'matcherViewButton': 'Veure detall',
       'matcherIgnoreButton': 'Ignorar i publicar',
+      'autoMatchSuccessMessage': '¡Objecte publicat i emparellat automàticament!',
       'notifications_title': 'Notificacions',
       'no_notifications': 'No tens cap notificació nova.',
       'all_notifications_read': 'Totes les notificacions marcades com a llegides.',
@@ -762,6 +764,7 @@ class AppStrings {
       'matcherSubtitle': 'We found similar items in the system. Is it one of these?',
       'matcherViewButton': 'View detail',
       'matcherIgnoreButton': 'Ignore and publish',
+      'autoMatchSuccessMessage': 'Item published and auto-matched successfully!',
       'notifications_title': 'Notifications',
       'no_notifications': 'No new notifications.',
       'all_notifications_read': 'All notifications marked as read.',
@@ -1004,6 +1007,7 @@ class AppStrings {
   String get matcherSubtitle => _text('matcherSubtitle');
   String get matcherViewButton => _text('matcherViewButton');
   String get matcherIgnoreButton => _text('matcherIgnoreButton');
+  String get autoMatchSuccessMessage => _text('autoMatchSuccessMessage');
 
   String get noObjectsFoundForTitleRaw => _text('noObjectsFoundForTitle');
   String noObjectsFoundForTitle(String title) => noObjectsFoundForTitleRaw.replaceAll('{title}', title);

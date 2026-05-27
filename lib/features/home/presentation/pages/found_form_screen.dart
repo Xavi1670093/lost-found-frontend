@@ -291,6 +291,7 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
 
   Future<void> _submit() async {
     final t = AppStrings.of(context);
+    final langCode = t.locale.languageCode;
     if (!_formKey.currentState!.validate()) return;
     
     final centerId = CenterUtils.normalizeCenterId(_centerId);
@@ -322,38 +323,104 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception(t.sessionError);
 
-      // --- NUEVA LÓGICA DE INTERCEPCIÓN (MATCHER) ---
+      final postsRef = FirebaseDatabase.instance.ref('posts');
+      final newPostRef = postsRef.push();
+      final postId = newPostRef.key;
+
+      if (postId == null) throw Exception(t.errorSaving);
+
+      final lat = _currentPosition?.latitude ?? defaultLat;
+      final lng = _currentPosition?.longitude ?? defaultLng;
+      final geohash = GeoHasher().encode(lng, lat);
+      final imagePath = imageFile != null
+          ? 'posts/$postId/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.webp'
+          : null;
+
+      String? imageUrl;
+      if (imageFile != null && imagePath != null) {
+        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
+        if (processedImage == null) throw Exception(t.errorImageUpload);
+
+        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
+        final uploadTask = storageRef.putFile(processedImage, SettableMetadata(contentType: 'image/webp'));
+        final snapshot = await uploadTask.whenComplete(() => null);
+        imageUrl = await snapshot.ref.getDownloadURL();
+      }
+
+      if (imageFile != null && (imageUrl == null || imageUrl.isEmpty)) {
+        throw Exception(t.errorImageUpload);
+      }
+
+      // Guardar el post inicial en Firebase (status: 'active')
+      await newPostRef.set({
+        'id': postId,
+        'user_id': user.uid,
+        'user_name': _userName ?? 'Estudiante',
+        'center_id': centerId.toLowerCase(),
+        'type': widget.postType,
+        'title': titleController.text.trim(),
+        'description': descriptionController.text.trim(),
+        'category': selectedCategoryKey,
+        'status': 'active',
+        'location': centerName,
+        'coords': {
+          'lat': lat,
+          'lng': lng,
+          'geohash': geohash,
+        },
+        'photo_path': imagePath ?? '',
+        'imageUrl': imageUrl ?? '',
+        'postImageUrl': imageUrl ?? '',
+        'date': selectedDate.millisecondsSinceEpoch,
+        'created_at': ServerValue.timestamp,
+        'updated_at': ServerValue.timestamp,
+        'is_deleted': false,
+      });
+
+      // Llamar a la Cloud Function checkPotentialMatches
       final callable = FirebaseFunctions.instance.httpsCallable('checkPotentialMatches');
       final result = await callable.call({
-        'lang': AppStrings.of(context).locale.languageCode,
+        'lang': langCode,
         'center_id': centerId.toLowerCase(),
         'category': selectedCategoryKey,
         'type': widget.postType,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
-        'postImageUrl': imageFile != null ? 'pending' : '',   // indica si el post tendrá imagen
-        'created_at': DateTime.now().millisecondsSinceEpoch,  // timestamp para el score de fecha
+        'postImageUrl': imageUrl ?? '',
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+        'id': postId,
       });
 
       if (!mounted) return;
 
+      final bool autoMatched = result.data['autoMatched'] as bool? ?? false;
       final matches = result.data['matches'] as List<dynamic>? ?? [];
 
-      if (matches.isNotEmpty) {
-        setState(() => _isPublishing = false); // Pausamos la carga para mostrar el popup
-        
-        final shouldPublishAnyway = await _showMatchesDialog(matches);
-        
-        if (!mounted) return;
-        
-        if (shouldPublishAnyway == true) {
-          // Si el usuario decide ignorar las sugerencias, publicamos
-          setState(() => _isPublishing = true);
-          await _finalizePublish(user, centerId, centerName, defaultLat, defaultLng);
-        }
+      if (autoMatched) {
+        AppNotifications.showSuccess(context, t.autoMatchSuccessMessage);
+        Navigator.pop(context);
       } else {
-        // No hubo sugerencias del algoritmo, publicamos directamente
-        await _finalizePublish(user, centerId, centerName, defaultLat, defaultLng);
+        if (matches.isNotEmpty) {
+          setState(() => _isPublishing = false); // Pausamos la carga para mostrar el popup
+          
+          final shouldPublishAnyway = await _showMatchesDialog(matches);
+          
+          if (!mounted) return;
+          
+          if (shouldPublishAnyway == true) {
+            AppNotifications.showSuccess(
+              context, 
+              widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
+            );
+            Navigator.pop(context);
+          }
+        } else {
+          AppNotifications.showSuccess(
+            context, 
+            widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
+          );
+          Navigator.pop(context);
+        }
       }
 
     } catch (e) {
@@ -363,80 +430,6 @@ class _FoundFormScreenState extends State<FoundFormScreen> {
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
-  }
-  // MODIFICACIÓN 4: Lógica extraída de guardado final
-  Future<void> _finalizePublish(User user, String centerId, String centerName, double defaultLat, double defaultLng) async {
-    final t = AppStrings.of(context);
-    final postsRef = FirebaseDatabase.instance.ref('posts');
-    final newPostRef = postsRef.push();
-    final postId = newPostRef.key;
-
-    if (postId == null) throw Exception(t.errorSaving);
-
-    final lat = _currentPosition?.latitude ?? defaultLat;
-    final lng = _currentPosition?.longitude ?? defaultLng;
-    final geohash = GeoHasher().encode(lng, lat);
-    final imagePath = imageFile != null
-        ? 'posts/$postId/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.webp'
-        : null;
-
-    String? imageUrl;
-    if (imageFile != null && imagePath != null) {
-      try {
-        final processedImage = await ImageUtils.compressAndGetWebp(imageFile!);
-        if (processedImage == null) throw Exception(t.errorImageUpload);
-
-        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-        final uploadTask = storageRef.putFile(processedImage, SettableMetadata(contentType: 'image/webp'));
-        final snapshot = await uploadTask.whenComplete(() => null);
-        imageUrl = await snapshot.ref.getDownloadURL();
-      } catch (e) {
-        if (!mounted) return;
-        setState(() => _isPublishing = false);
-        _showError(t.errorImageUpload);
-        return;
-      }
-    }
-
-    if (imageFile != null && (imageUrl == null || imageUrl.isEmpty)) {
-      if (!mounted) return;
-      setState(() => _isPublishing = false);
-      _showError(t.errorImageUpload);
-      return;
-    }
-
-    await newPostRef.set({
-      'id': postId,
-      'user_id': user.uid,
-      'user_name': _userName ?? 'Estudiante',
-      'center_id': centerId.toLowerCase(),
-      'type': widget.postType,
-      'title': titleController.text.trim(),
-      'description': descriptionController.text.trim(),
-      'category': selectedCategoryKey,
-      'status': 'active',
-      'location': centerName,
-      'coords': {
-        'lat': lat,
-        'lng': lng,
-        'geohash': geohash,
-      },
-      'photo_path': imagePath ?? '',
-      'imageUrl': imageUrl ?? '',
-      'postImageUrl': imageUrl ?? '',
-      'date': selectedDate.millisecondsSinceEpoch,
-      'created_at': ServerValue.timestamp,
-      'updated_at': ServerValue.timestamp,
-      'is_deleted': false,
-    });
-
-    if (!mounted) return;
-
-    AppNotifications.showSuccess(
-      context, 
-      widget.postType == 'found' ? t.publishSuccessFound : t.publishSuccessLost
-    );
-    Navigator.pop(context);
   }
 
   // MODIFICACIÓN 5: Modal UI del Matcher
