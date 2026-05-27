@@ -31,7 +31,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _isUploadingPhoto = false;
-  String? _oldPhotoUrl;
   int _imageVersion = DateTime.now().millisecondsSinceEpoch;
 
   Future<void> _pickAndUploadPhoto(DatabaseReference ref, String userId, String? currentPhotoUrl) async {
@@ -46,7 +45,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (processedImage == null) return;
 
     setState(() {
-      _oldPhotoUrl = currentPhotoUrl;
       _isUploadingPhoto = true;
     });
 
@@ -61,17 +59,31 @@ class _ProfilePageState extends State<ProfilePage> {
       await storageRef.putFile(processedImage, metadata).timeout(
         const Duration(seconds: 15),
       );
-      
-      // Ya NO actualizamos el RTDB manualmente aquí. 
-      // Dejamos que el backend procese la imagen a .webp y actualice el campo 'photoUrl'.
-      debugPrint("ULF_DEBUG: Upload finished, waiting for backend processing...");
+
+      final downloadUrl = await storageRef.getDownloadURL();
+      await FirebaseAuth.instance.currentUser?.updatePhotoURL(downloadUrl);
+      await ref.update({
+        'photoUrl': downloadUrl,
+        'photo_url': downloadUrl,
+        'profile_image_url': downloadUrl,
+        'imageUrl': downloadUrl,
+        'updated_at': ServerValue.timestamp,
+      });
+
+      debugPrint("ULF_DEBUG: Profile photo uploaded and saved: $downloadUrl");
+
+      if (!mounted) return;
+      setState(() {
+        _isUploadingPhoto = false;
+        _imageVersion = DateTime.now().millisecondsSinceEpoch;
+      });
+      AppNotifications.showSuccess(context, t.editPhotoSuccess);
       
     } catch (e) {
       if (mounted) {
         AppNotifications.showError(context, t.errorSaving);
         setState(() {
           _isUploadingPhoto = false;
-          _oldPhotoUrl = null;
         });
       }
     }
@@ -120,20 +132,6 @@ class _ProfilePageState extends State<ProfilePage> {
           }
           
           debugPrint("ULF_DEBUG: Final photoUrl: $photoUrl");
-          
-          // Solo completamos el estado de subida si el photoUrl actual es diferente del que teníamos antes de subir (para evitar trigger falso inmediato)
-          if (_isUploadingPhoto && photoUrl != null && photoUrl != _oldPhotoUrl) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _isUploadingPhoto = false;
-                  _oldPhotoUrl = null;
-                  _imageVersion = DateTime.now().millisecondsSinceEpoch;
-                });
-                AppNotifications.showSuccess(context, t.editPhotoSuccess);
-              }
-            });
-          }
         }
 
         return AnimatedBuilder(
