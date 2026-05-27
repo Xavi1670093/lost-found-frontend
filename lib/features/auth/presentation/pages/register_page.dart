@@ -95,6 +95,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'privacyAccepted': true,
         'legalAccepted': true,
         'legalAcceptedAt': ServerValue.timestamp,
+        'acceptedTermsVersion': '1.0.0',
       });
 
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
